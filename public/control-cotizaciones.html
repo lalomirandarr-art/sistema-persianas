@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Historial Financiero Completo</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .historial-container { padding: 40px; max-width: 1400px; margin: auto; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); font-size: 0.85em; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
+        th { background-color: #001f3f; color: white; }
+        tr:hover { background-color: #f8f9fa; }
+        
+        .badge { padding: 3px 8px; border-radius: 10px; font-size: 0.85em; background: #e2e6ea; color: #333; }
+        .fecha { color: #666; font-size: 0.9em; }
+        
+        .costo { color: #dc3545; } 
+        .utilidad { color: #28a745; font-weight: bold; } 
+        .descuento { color: #d63384; font-weight: bold; } 
+        .extras { color: #6610f2; font-weight: bold; } 
+        .total { font-weight: bold; font-size: 1.1em; color: #000; }
+        .detalle-gastos { font-size: 0.85em; color: #555; margin-top: 4px; border-left: 2px solid #ccc; padding-left: 5px; }
+
+        /* Estilo del Botón Borrar */
+        .btn-borrar {
+            background-color: transparent;
+            border: 1px solid #dc3545;
+            color: #dc3545;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-borrar:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+    <div class="nav-container">
+        <div class="logo">
+            <img src="/IMG/logo PD.jpeg" alt="Logo">
+        </div>
+        
+        <nav class="nav-links">
+            <a href="login.html" class="btn-logout">Cerrar Sesión</a>
+            <a href="/index.html">Inicio</a>
+            <a href="#">Productos</a>
+            <a href="/clientes.html">Clientes</a>
+            
+            <div class="dropdown">
+                <button class="dropbtn">Cotizaciones ▼</button>
+                <div class="dropdown-content">
+                    <a href="/cotizaciones.html">Nueva Cotización</a>
+                    <a href="/control-cotizaciones.html">Control Cotizaciones</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+    </header>
+
+    <div class="historial-container">
+        <h1>📊 Historial Detallado de Cotizaciones</h1>
+        
+        <table id="tabla-cotizaciones">
+            <thead>
+                <tr>
+                    <th>Fecha / Cliente</th>
+                    <th>Producto</th>
+                    <th>Medidas</th>
+                    <th>Costo Neto</th>
+                    <th>Utilidad</th>
+                    <th>Descuento</th>
+                    <th>Gastos Extra</th>
+                    <th>Venta Final</th>
+                    <th style="text-align: center;">Acción</th> </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function cargarHistorial() {
+            const tabla = document.querySelector('#tabla-cotizaciones tbody');
+            
+            try {
+                const respuesta = await fetch('/cotizaciones');
+                const cotizaciones = await respuesta.json();
+
+                if (cotizaciones.length === 0) {
+                    tabla.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">Sin registros aún.</td></tr>';
+                    return;
+                }
+
+                tabla.innerHTML = ''; 
+                cotizaciones.forEach(c => {
+                    const fecha = new Date(c.fecha).toLocaleDateString('es-MX', { 
+                        month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' 
+                    });
+
+                    // Formatos de dinero y textos...
+                    const costo = c.costoNeto ? `$${c.costoNeto.toFixed(2)}` : 'N/A';
+                    const montoUtilidad = c.montoUtilidad ? c.montoUtilidad : (c.precioConUtilidad && c.costoNeto ? c.precioConUtilidad - c.costoNeto : 0);
+                    const porcentajeUtil = c.porcentajeUtilidad ? `(${c.porcentajeUtilidad}%)` : '';
+                    
+                    let infoDescuento = c.porcentajeDescuento > 0 ? `<span class="descuento">-${c.porcentajeDescuento}%</span>` : '<span style="color:#ccc;">-</span>';
+                    
+                    let infoGastos = '<span style="color:#ccc;">-</span>';
+                    if (c.totalGastosAdicionales > 0) {
+                        infoGastos = `<span class="extras">+$${c.totalGastosAdicionales.toFixed(2)}</span>`;
+                        if (c.gastosAdicionales && c.gastosAdicionales.length > 0) {
+                            infoGastos += `<div class="detalle-gastos">`;
+                            c.gastosAdicionales.forEach(g => { infoGastos += `<div>• ${g.descripcion}: $${g.monto}</div>`; });
+                            infoGastos += `</div>`;
+                        }
+                    }
+
+                    const fila = `
+                        <tr>
+                            <td><strong>${c.cliente}</strong><br><span class="fecha">${fecha}</span></td>
+                            <td>${c.producto}<br><span class="badge">${c.tela}</span></td>
+                            <td>${c.medidas.ancho} x ${c.medidas.alto} m<br>Cant: ${c.cantidad}</td>
+                            <td class="costo">${costo}</td>
+                            <td class="utilidad">$${montoUtilidad.toFixed(2)} <br><span style="font-size:0.8em; color:#666;">${porcentajeUtil}</span></td>
+                            <td>${infoDescuento}</td>
+                            <td>${infoGastos}</td>
+                            <td class="total">$${c.total.toFixed(2)}</td>
+                            
+                            <td style="text-align: center;">
+                                <button class="btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Eliminar Cotización">
+                                    🗑️
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tabla.innerHTML += fila;
+                });
+
+            } catch (error) {
+                console.error(error);
+                alert("Error al cargar historial.");
+            }
+        }
+
+        // --- FUNCIÓN DE BORRADO ---
+        async function confirmarBorrado(id) {
+            // 1. Pedimos la contraseña al usuario
+            const password = prompt("🔒 ACCESO RESTRINGIDO\nPara eliminar esta cotización, ingresa la contraseña de administrador:");
+            
+            // Si el usuario da Cancelar o no escribe nada, no hacemos nada
+            if (!password) return;
+
+            // 2. Enviamos la orden al servidor
+            try {
+                const res = await fetch('/cotizaciones', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, password: password })
+                });
+
+                const data = await res.json();
+
+                if (data.exito) {
+                    alert("✅ " + data.mensaje);
+                    cargarHistorial(); // Recargamos la tabla para que desaparezca
+                } else {
+                    alert("⛔ Error: " + data.mensaje); // "Contraseña incorrecta"
+                }
+
+            } catch (error) {
+                alert("Error de conexión con el servidor.");
+            }
+        }
+
+        cargarHistorial();
+    </script>
+</body>
+</html>

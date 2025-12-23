@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotizador con Utilidad</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .cotizador-container { padding: 50px 20px; max-width: 800px; margin: auto; }
+        .grid-medidas { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .campo { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
+        select, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+        
+        .resultado-box { 
+            margin-top: 30px; 
+            padding: 25px; 
+            background-color: #f8f9fa; 
+            border-radius: 10px; 
+            border-left: 6px solid #28a745; /* Verde dinero */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* Estilos para los renglones de precios */
+        .fila-precio { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1em; }
+        .fila-destacada { font-weight: bold; color: #007bff; font-size: 1.3em; border-top: 1px solid #ccc; padding-top: 10px; margin-top: 10px;}
+        .etiqueta { color: #555; }
+    </style>
+</head>
+<body>
+
+   <header class="header">
+    <div class="nav-container">
+        <div class="logo">
+            <img src="/IMG/logo PD.jpeg" alt="Logo">
+        </div>
+        
+        <nav class="nav-links">
+            <a href="login.html" class="btn-logout">Cerrar Sesión</a>
+            <a href="/index.html">Inicio</a>
+            <a href="#">Productos</a>
+            <a href="/clientes.html">Clientes</a>
+            
+            <div class="dropdown">
+                <button class="dropbtn">Cotizaciones ▼</button>
+                <div class="dropdown-content">
+                    <a href="/cotizaciones.html">Nueva Cotización</a>
+                    <a href="/control-cotizaciones.html">Control Cotizaciones</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+    </header>
+
+    <div class="cotizador-container">
+        <h1>💰 Cotizador Comercial</h1>
+        
+        <div class="campo">
+            <label>Cliente:</label>
+            <input type="text" id="cliente" placeholder="Nombre del cliente">
+        </div>
+
+        <div class="campo">
+            <label>1. Producto (Costo Base):</label>
+            <select id="select-producto"><option>Cargando...</option></select>
+        </div>
+
+        <div class="campo">
+            <label>2. Tela (Costo Extra):</label>
+            <select id="select-tela"></select>
+        </div>
+
+        <div class="grid-medidas">
+            <div class="campo">
+                <label>Ancho (m):</label>
+                <input type="number" id="ancho" step="0.01">
+            </div>
+            <div class="campo">
+                <label>Alto (m):</label>
+                <input type="number" id="alto" step="0.01">
+            </div>
+            <div class="campo">
+                <label>Cantidad:</label>
+                <input type="number" id="cantidad" value="1" min="1">
+            </div>
+        </div>
+
+        <div class="campo" style="background: #e9ecef; padding: 15px; border-radius: 8px;">
+            <label>📈 Porcentaje de Utilidad:</label>
+            <select id="select-utilidad">
+                </select>
+        </div>
+            <div class="campo" style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin-top: 10px;">
+            <label style="color: #0c5460;">📉 Porcentaje de Descuento:</label>
+            <select id="select-descuento">
+                </select>
+         </div>
+                
+                <div class="campo" style="background: #e2e3e5; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 5px solid #6c757d;">
+            
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <input type="checkbox" id="check-gastos" onchange="toggleGastos()" style="width: 20px; height: 20px;">
+                <label for="check-gastos" style="margin:0; font-weight:bold; cursor:pointer;">¿Hay Gastos Adicionales?</label>
+            </div>
+
+            <div id="panel-gastos" style="display: none; padding-left: 20px;">
+                <label>¿Cuántos gastos agregarás?</label>
+                <select id="cantidad-gastos" onchange="generarCamposGastos()" style="width: 100px; margin-bottom: 10px;">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                </select>
+
+                <div id="contenedor-inputs-gastos"></div>
+            </div>
+        </div>
+
+        <div class="campo" style="display: flex; align-items: center; gap: 10px; background: #fff3cd; padding: 10px; border-radius: 8px;">
+    <input type="checkbox" id="check-iva" checked style="width: 25px; height: 25px; cursor: pointer;">
+    <label for="check-iva" style="margin:0; cursor: pointer; color: #856404; font-weight: bold;">
+        Aplicar 16% de IVA
+    </label>
+</div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="hero-button" onclick="calcular()">Calcular</button>
+            <button class="hero-button" onclick="guardar()" style="background-color: #6c757d;">💾 Guardar</button>
+        </div>
+
+        <div id="resultado-cotizacion" class="resultado-box" style="display: none;">
+            <h3>Detalle Financiero:</h3>
+            <div id="detalle-contenido"></div>
+        </div>
+    </div>
+
+    <script>
+       // --- VARIABLES GLOBALES ---
+   let productosDB = [];
+    const telasDB = [
+        { id: 1, nombre: "Malla Solar 5%", precioExtra: 0 },
+        { id: 2, nombre: "Blackout", precioExtra: 100 }
+    ];
+
+    async function inicializar() {
+        // Llenar Utilidad
+        const selUtil = document.getElementById('select-utilidad');
+        for(let i=0; i<=400; i+=10) {
+            let opt = new Option(`${i}% de Utilidad`, i);
+            if(i === 50) opt.selected = true; 
+            selUtil.add(opt);
+        }
+        // Llenar Descuento
+        const selDesc = document.getElementById('select-descuento');
+        for(let i=0; i<=50; i++) {
+            selDesc.add(new Option(`${i}% de Descuento`, i));
+        }
+
+        // Cargar BD
+        try {
+            const res = await fetch('/productos');
+            productosDB = await res.json();
+            const selProd = document.getElementById('select-producto');
+            selProd.innerHTML = '<option value="">-- Seleccione --</option>';
+            productosDB.forEach(p => selProd.add(new Option(`${p.nombre} (Base: $${p.precio})`, p._id)));
+            
+            const selTela = document.getElementById('select-tela');
+            telasDB.forEach(t => selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t.id)));
+        } catch (e) { console.error(e); }
+    }
+    inicializar();
+
+    // --- FUNCIONES VISUALES NUEVAS ---
+    
+    // 1. Mostrar u Ocultar el panel
+    function toggleGastos() {
+        const check = document.getElementById('check-gastos');
+        const panel = document.getElementById('panel-gastos');
+        const contenedor = document.getElementById('contenedor-inputs-gastos');
+        const select = document.getElementById('cantidad-gastos');
+
+        if (check.checked) {
+            panel.style.display = 'block';
+        } else {
+            panel.style.display = 'none';
+            select.value = "0"; // Resetear
+            contenedor.innerHTML = ""; // Borrar campos
+        }
+    }
+
+    // 2. Generar los renglones de inputs (Descripción y Precio)
+    function generarCamposGastos() {
+        const cantidad = parseInt(document.getElementById('cantidad-gastos').value);
+        const contenedor = document.getElementById('contenedor-inputs-gastos');
+        contenedor.innerHTML = ""; // Limpiar antes de dibujar
+
+        for(let i=1; i<=cantidad; i++) {
+            const div = document.createElement('div');
+            div.style.display = "flex";
+            div.style.gap = "10px";
+            div.style.marginBottom = "10px";
+
+            div.innerHTML = `
+                <input type="text" id="gasto-desc-${i}" placeholder="Descripción Gasto ${i} " style="flex: 2;">
+                <input type="number" id="gasto-monto-${i}" placeholder="$ Costo" style="flex: 1;">
+            `;
+            contenedor.appendChild(div);
+        }
+    }
+
+
+    // --- CEREBRO MATEMÁTICO ACTUALIZADO ---
+    function obtenerDatosYCalcular() {
+        // ... Recolección de datos básicos ...
+        const idProd = document.getElementById('select-producto').value;
+        const idTela = parseInt(document.getElementById('select-tela').value);
+        const ancho = parseFloat(document.getElementById('ancho').value);
+        const alto = parseFloat(document.getElementById('alto').value);
+        const cant = parseInt(document.getElementById('cantidad').value);
+        const cliente = document.getElementById('cliente').value;
+        const porcentajeUtilidad = parseInt(document.getElementById('select-utilidad').value);
+        const porcentajeDescuento = parseInt(document.getElementById('select-descuento').value);
+        const aplicarIva = document.getElementById('check-iva').checked;
+
+        if(!idProd || !idTela || !ancho || !alto) {
+            alert("Por favor completa los campos principales.");
+            return null;
+        }
+
+        // --- RECOLECCIÓN DE GASTOS ADICIONALES ---
+        let listaGastos = [];
+        let totalGastosAdicionales = 0;
+        
+        if (document.getElementById('check-gastos').checked) {
+            const cantidad = parseInt(document.getElementById('cantidad-gastos').value);
+            for(let i=1; i<=cantidad; i++) {
+                const desc = document.getElementById(`gasto-desc-${i}`).value;
+                const monto = parseFloat(document.getElementById(`gasto-monto-${i}`).value) || 0;
+                
+                if(desc || monto > 0) { // Solo si escribió algo
+                    listaGastos.push({ descripcion: desc, monto: monto });
+                    totalGastosAdicionales += monto;
+                }
+            }
+        }
+
+        // --- CÁLCULOS ---
+        const prod = productosDB.find(p => p._id === idProd);
+        const tela = telasDB.find(t => t.id === idTela);
+
+        let area = ancho * alto;
+        let areaCobrar = area < 1 ? 1 : area; 
+        let costoBaseUnitario = prod.precio + tela.precioExtra;
+        let costoNetoTotal = (costoBaseUnitario * areaCobrar) * cant;
+
+        let montoUtilidad = costoNetoTotal * (porcentajeUtilidad / 100);
+        let precioConUtilidad = costoNetoTotal + montoUtilidad;
+
+        let montoDescuento = precioConUtilidad * (porcentajeDescuento / 100);
+        let precioConDescuento = precioConUtilidad - montoDescuento;
+
+        // AQUÍ SUMAMOS LOS GASTOS ADICIONALES (Antes de IVA)
+        // Lógica: (PrecioProducto - Descuento) + GastosExtras = Base para IVA
+        let baseImponible = precioConDescuento + totalGastosAdicionales;
+
+        let iva = 0;
+        if (aplicarIva) {
+            iva = baseImponible * 0.16;
+        }
+        
+        let granTotal = baseImponible + iva;
+
+        return {
+            cliente, productoNombre: prod.nombre, telaNombre: tela.nombre,
+            ancho, alto, cant, areaCobrar, costoNetoTotal, 
+            porcentajeUtilidad, montoUtilidad, precioConUtilidad,
+            porcentajeDescuento, montoDescuento, precioConDescuento,
+            
+            // Datos nuevos
+            listaGastos, totalGastosAdicionales, baseImponible,
+
+            iva, granTotal
+        };
+    }
+
+    // --- MOSTRAR RESULTADOS ---
+    function calcular() {
+        const datos = obtenerDatosYCalcular();
+        if(!datos) return; 
+
+        // Generamos el HTML de los Gastos Extra si existen
+        let htmlGastos = '';
+        if (datos.totalGastosAdicionales > 0) {
+            htmlGastos = `<div class="fila-precio" style="color: #6610f2; border-bottom: 1px dashed #ccc; padding-bottom:5px;">
+                            <span class="etiqueta">+ Gastos Adicionales:</span> 
+                            <span>$${datos.totalGastosAdicionales.toFixed(2)}</span>
+                          </div>`;
+        }
+
+        // Armamos el HTML Final
+        let html = `
+            <p><strong>Medidas:</strong> ${datos.ancho}x${datos.alto} (${datos.areaCobrar.toFixed(2)} m²)</p>
+            <hr>
+            <div class="fila-precio"><span class="etiqueta">Costo Neto:</span> <span>$${datos.costoNetoTotal.toFixed(2)}</span></div>
+            <div class="fila-precio" style="color: green;"><span class="etiqueta">+ Utilidad (${datos.porcentajeUtilidad}%):</span> <span>$${datos.montoUtilidad.toFixed(2)}</span></div>
+        `;
+
+        if (datos.porcentajeDescuento > 0) {
+            html += `<div class="fila-precio" style="color: #dc3545;">
+                        <span class="etiqueta">- Descuento (${datos.porcentajeDescuento}%):</span> 
+                        <span>-$${datos.montoDescuento.toFixed(2)}</span>
+                     </div>`;
+        }
+
+        // Insertamos los gastos aquí
+        html += htmlGastos;
+
+        html += `
+            <div class="fila-precio" style="font-weight:bold; margin-top:5px;"><span class="etiqueta">Subtotal Base:</span> <span>$${datos.baseImponible.toFixed(2)}</span></div>
+            <div class="fila-precio" style="font-size: 0.9em; color: #666;"><span class="etiqueta">+ IVA (16%):</span> <span>$${datos.iva.toFixed(2)}</span></div>
+            <div style="text-align:right; font-size:1.5em; font-weight:bold; margin-top:10px;">Total Venta: $${datos.granTotal.toFixed(2)}</div>
+        `;
+
+        document.getElementById('resultado-cotizacion').style.display = 'block';
+        document.getElementById('detalle-contenido').innerHTML = html;
+    }
+
+    // --- GUARDAR ---
+    async function guardar() {
+        const datos = obtenerDatosYCalcular();
+        if(!datos) return; 
+        if(!datos.cliente) { alert("Falta el cliente"); return; }
+
+        const paquete = {
+            cliente: datos.cliente,
+            producto: datos.productoNombre,
+            tela: datos.telaNombre,
+            medidas: { ancho: datos.ancho, alto: datos.alto },
+            cantidad: datos.cant,
+            costoNeto: datos.costoNetoTotal,
+            porcentajeUtilidad: datos.porcentajeUtilidad,
+            precioConUtilidad: datos.precioConUtilidad,
+            porcentajeDescuento: datos.porcentajeDescuento,
+            
+            // Enviamos los gastos
+            gastosAdicionales: datos.listaGastos,
+            totalGastosAdicionales: datos.totalGastosAdicionales,
+
+            total: datos.granTotal
+        };
+
+        try {
+            const res = await fetch('/cotizaciones', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(paquete)
+            });
+            const r = await res.json();
+            if(r.exito) alert("✅ Guardado con éxito");
+            else alert("Error: " + r.mensaje);
+        } catch (e) { console.error(e); alert("Error de conexión"); }
+    }
+    </script>
+</body>
+</html>

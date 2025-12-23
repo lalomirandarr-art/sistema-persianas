@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Directorio de Clientes</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .clientes-container { padding: 50px; max-width: 600px; margin: auto; }
+        
+        /* Estilo de tarjeta para la lista */
+        .tabla-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            overflow: hidden; /* Para que las esquinas redondas se respeten */
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        
+        th { 
+            background-color: #007bff; /* Azul brillante */
+            color: white; 
+            padding: 15px; 
+            text-align: left; 
+            font-size: 1.1em;
+        }
+        
+        td { 
+            padding: 15px; 
+            border-bottom: 1px solid #eee; 
+            color: #333;
+            font-weight: 500;
+        }
+        
+        /* Efecto al pasar el mouse */
+        tr:hover td { 
+            background-color: #f8f9fa; 
+            color: #007bff; 
+            cursor: default;
+        }
+
+        /* Icono de usuario antes del nombre */
+        .icono-user::before {
+            content: "👤";
+            margin-right: 10px;
+        }
+        
+        .contador {
+            margin-top: 10px;
+            text-align: right;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+    <div class="nav-container">
+        <div class="logo">
+            <img src="/IMG/logo PD.jpeg" alt="Logo">
+        </div>
+        
+        <nav class="nav-links">
+            <a href="login.html" class="btn-logout">Cerrar Sesión</a>
+            <a href="/index.html">Inicio</a>
+            <a href="#">Productos</a>
+            <a href="/clientes.html">Clientes</a>
+            
+            <div class="dropdown">
+                <button class="dropbtn">Cotizaciones ▼</button>
+                <div class="dropdown-content">
+                    <a href="/cotizaciones.html">Nueva Cotización</a>
+                    <a href="/control-cotizaciones.html">Control Cotizaciones</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+    </header>
+
+
+    <div class="clientes-container">
+        <h1>Directorio de Clientes</h1>
+        <p>Lista alfabética de personas que han cotizado.</p>
+
+        <div class="tabla-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre del Cliente</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-clientes">
+                    </tbody>
+            </table>
+        </div>
+        
+        <div id="total-clientes" class="contador">Cargando...</div>
+    </div>
+
+    <script>
+        async function cargarClientes() {
+            const tbody = document.getElementById('lista-clientes');
+            const contador = document.getElementById('total-clientes');
+
+            try {
+                const res = await fetch('/clientes');
+                const clientes = await res.json();
+
+                tbody.innerHTML = ''; // Limpiar
+
+                if (clientes.length === 0) {
+                    tbody.innerHTML = '<tr><td style="text-align:center; color:#999;">No hay clientes registrados aún.</td></tr>';
+                    contador.innerText = "0 clientes";
+                    return;
+                }
+
+                clientes.forEach(nombre => {
+                    const fila = `
+                        <tr>
+                            <td class="icono-user">${nombre}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += fila;
+                });
+
+                contador.innerText = `Total: ${clientes.length} clientes registrados`;
+
+            } catch (error) {
+                console.error(error);
+                alert("No se pudo cargar la lista de clientes.");
+            }
+        }
+
+        cargarClientes();
+    </script>
+
+</body>
+</html>

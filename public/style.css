@@ -1,0 +1,156 @@
+/* Configuración básica */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+   
+}
+
+/* Ajustar el tamaño del logo */
+.logo img {
+    height: 50px;    /* Cambia este valor para hacerlo más pequeño o grande */
+    width: auto;      /* Mantiene la proporción original para que no se deforme */
+    display: block;
+    border-radius: 10px;   /* Elimina espacios extra debajo de la imagen */
+}
+
+/* Encabezado Azul Oscuro */
+.header {
+    background-color: #001f3f; /* Azul oscuro profundo */
+    padding: 10px 50px;
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between; /* Logo a la izquierda, menú a la derecha */
+    align-items: center;
+}
+
+/* Estilo de los enlaces */
+.nav-links a, .dropbtn {
+    color: white;
+    text-decoration: none;
+    padding: 14px 20px;
+    font-size: 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.nav-links a:hover, .dropdown:hover .dropbtn {
+    background-color: #003366; /* Un azul un poco más claro al pasar el mouse */
+}
+
+/* --- Lógica del Dropdown (Menú desplegable) --- */
+
+.dropdown {
+    display: inline-block;
+    position: relative;
+}
+
+.dropdown-content {
+    display: none; /* Oculto por defecto */
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 180px;
+    box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+/* Enlaces dentro del desplegable */
+.dropdown-content a {
+    color: #333;
+    padding: 12px 16px;
+    display: block;
+    text-align: left;
+}
+
+.dropdown-content a:hover {
+    background-color: #ddd;
+}
+
+/* Mostrar el menú al pasar el mouse sobre el contenedor dropdown */
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* Estilos para la sección HERO */
+.hero-section {
+    /* 1. La imagen de fondo */
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
+                      url('/IMG/logogrande.jpg'); 
+    
+    /* 2. Ajustes de la imagen para que no se repita y cubra todo */
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed; /* Esto crea un efecto Parallax muy elegante */
+
+    /* 3. Dimensiones y centrado del texto */
+    min-height: calc(100vh - 70px); 
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white; /* Texto blanco para que resalte */
+}
+
+/* Estilo para que el texto se vea más profesional como en la foto */
+.hero-content h1 {
+    font-size: 3.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.5); /* Sombra para legibilidad */
+}
+
+.hero-content p {
+    font-size: 1.5rem;
+    margin-bottom: 25px;
+}
+
+.hero-button {
+    background-color: #28a745; /* Un verde vibrante */
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease; /* Transición suave al pasar el mouse */
+}
+
+.hero-button:hover {
+    background-color: #218838; /* Verde más oscuro al pasar el mouse */
+}
+
+        /* Estilos específicos para centrar el formulario */
+        .login-container {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #001f3f; /* Fondo azul oscuro como tu header */
+        }
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            width: 300px;
+            text-align: center;
+        }
+        .login-card input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        .cotizador-container 
+        { padding: 100px 50px; max-width: 600px; margin: auto; }
+        .campo { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        select, input { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+        .resultado { margin-top: 30px; padding: 20px; background: #e9ecef; border-radius: 10px; border-left: 5px solid #001f3f; }
+      
