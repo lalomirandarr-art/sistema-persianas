@@ -2,55 +2,67 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PersianasDelta</title>
-    <link rel="stylesheet" href="style.css"> </head>
+    <title>Login - Mi Empresa</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
-    <header class="header">
-    <div class="nav-container">
-        <div class="logo">
-            <img src="/IMG/logo PD.jpeg" alt="Logo">
-        </div>
-        
-        <nav class="nav-links">
-            <a href="login.html" class="btn-logout">Cerrar Sesión</a>
-            <a href="/index.html">Inicio</a>
-            <a href="#">Productos</a>
-            <a href="/clientes.html">Clientes</a>
-            
-            <div class="dropdown">
-                <button class="dropbtn">Cotizaciones ▼</button>
-                <div class="dropdown-content">
-                    <a href="/cotizaciones.html">Nueva Cotización</a>
-                    <a href="/control-cotizaciones.html">Control Cotizaciones</a>
-                </div>
-            </div>
-        </nav>
-    </div>
-    </header>
-    <body>
 
-    <header class="header">
-        </header>
-
-    <div class="hero-section">
-        <div class="hero-content">
-            <h1>Bienvenido a Nuestra Plataforma</h1>
-            <p>¿Listo para comenzar a cotizar?</p>
-            <a href="cotizaciones.html">
-    <button class="hero-button">¡Cotiza ya!</button>
-</a>
+    <div class="login-container">
+        <div class="login-card">
+            <h2>Iniciar Sesión</h2>
+            <input type="text" id="usuario" placeholder="Usuario">
+            <input type="password" id="password" placeholder="Contraseña">
+            <button class="hero-button" onclick="validar()">Entrar</button>
+            <p id="mensaje" style="color: red; font-size: 14px; margin-top: 10px;"></p>
         </div>
     </div>
 
-    <main style="padding: 20px;">
-        <h2>Nuestros Servicios</h2>
-        <p>Aquí irá el contenido principal de la página, como descripciones de servicios, productos, etc.</p>
-        <p>Para probar el scroll, puedes añadir más texto o un par de párrafos.</p>
-        <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
-    </main>
+    <script>
+    // La palabra "async" es necesaria para esperar la respuesta del servidor
+    async function validar() {
+        const user = document.getElementById('usuario').value;
+        const pass = document.getElementById('password').value;
+        const mensaje = document.getElementById('mensaje');
 
-</body>
-</html>
+        // Limpiamos mensajes anteriores
+        mensaje.innerText = "Consultando al servidor...";
+        mensaje.style.color = "blue";
+
+        try {
+            // 1. Enviamos los datos a tu servidor local (puerto 3000)
+            const respuesta = await fetch('http://localhost:3000/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario: user, password: pass })
+            });
+
+            // 2. Esperamos a ver qué dice el servidor (convertimos a JSON)
+            const datos = await respuesta.json();
+
+            // 3. Verificamos la respuesta
+            if (datos.exito === true) {
+                // ¡Login correcto!
+                mensaje.innerText = "¡Bienvenido! Redirigiendo...";
+                mensaje.style.color = "green";
+                
+                // Esperamos 1 segundo para que se vea el mensaje y entramos
+                setTimeout(() => {
+                  
+                    window.location.href = 'inicio.html';
+                }, 1000);
+            } else {
+                // Login fallido
+                mensaje.innerText = "Usuario o contraseña incorrectos.";
+                mensaje.style.color = "red";
+            }
+
+        } catch (error) {
+            console.error("Error:", error);
+            mensaje.innerText = "Error: No puedo conectar con el servidor.";
+            mensaje.style.color = "red";
+        }
+    }
+</script>
+
 </body>
 </html>
