@@ -54,7 +54,6 @@ body {
     min-width: 180px;
     box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
     z-index: 1;
-    padding: 0;
 }
 
 /* Enlaces dentro del desplegable */
@@ -63,8 +62,7 @@ body {
     padding: 12px 16px;
     display: block;
     text-align: left;
-    width: 100%;
-    box-sizing: border-box;
+    
 }
 
 .dropdown-content a:hover {
