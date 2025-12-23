@@ -99,19 +99,24 @@
                 <div class="campo" style="background: #e2e3e5; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 5px solid #6c757d;">
             
                     <div class="form-group">
-         <label>
-          <input type="checkbox" id="checkMotor" onchange="toggleMotor()"> 
-        ¿Requiere motor?
-         </label>
+       
 </div>
+            <div class="card" style="background-color: #e9ecef; padding: 15px; margin-top: 20px; border-radius: 5px;">
+    
+    <div style="margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
+        <label style="font-weight: bold; font-size: 1.1em; display: flex; align-items: center; cursor: pointer;">
+            <input type="checkbox" id="check-motor" onchange="toggleMotor()" style="width: 20px; height: 20px; margin-right: 10px;"> 
+            ¿Requiere Motorización?
+        </label>
 
-<div id="contenedorMotor" style="display: none; margin-top: 10px;">
-    <label>Selecciona el motor:</label>
-    <select id="selectMotor" class="form-control" onchange="calcularTotal()">
-        <option value="0">-- Seleccionar --</option>
-        </select>
-</div>
-
+        <div id="panel-motor" style="display: none; margin-top: 10px; margin-left: 30px;">
+            <label style="display: block; margin-bottom: 5px;">Selecciona el modelo:</label>
+            <select id="select-motor" class="form-control" onchange="calcular()" style="width: 100%; padding: 8px;">
+                <option value="0">-- Ninguno --</option>
+                </select>
+        </div>
+    </div>
+            
 
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                 <input type="checkbox" id="check-gastos" onchange="toggleGastos()" style="width: 20px; height: 20px;">
@@ -137,6 +142,7 @@
                 <div id="contenedor-inputs-gastos"></div>
             </div>
         </div>
+        
 
         <div class="campo" style="display: flex; align-items: center; gap: 10px; background: #fff3cd; padding: 10px; border-radius: 8px;">
     <input type="checkbox" id="check-iva" checked style="width: 25px; height: 25px; cursor: pointer;">
