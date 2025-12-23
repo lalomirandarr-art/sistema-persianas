@@ -71,6 +71,50 @@ async function inicializarProductos() {
 }
 inicializarProductos();
 
+// ==========================================
+//          ZONA DE MOTORES (NUEVO)
+// ==========================================
+
+// 1. El Molde (Schema) - Definimos qué datos tiene un motor
+const motorSchema = new mongoose.Schema({
+    nombre: String,
+    precio: Number
+});
+
+// Creamos el Modelo (esto crea la colección 'motors' en MongoDB automáticamente)
+const Motor = mongoose.model('Motor', motorSchema);
+
+// 2. Llenar la base de datos (Solo si está vacía)
+// Esto es genial porque la primera vez que guardes y reinicies, 
+// te subirá estos motores a MongoDB Atlas solito.
+async function inicializarMotores() {
+    try {
+        const cantidad = await Motor.countDocuments();
+        if (cantidad === 0) {
+            console.log("⚙️ Base de datos de motores vacía. Creando iniciales...");
+            await Motor.insertMany([
+                { nombre: "Motor Básico", precio: 1500 },
+                { nombre: "Motor WiFi / Alexa", precio: 2800 },
+                { nombre: "Motor Silencioso Premium", precio: 4500 }
+            ]);
+            console.log("✅ Motores agregados exitosamente.");
+        }
+    } catch (error) {
+        console.error("Error inicializando motores:", error);
+    }
+}
+inicializarMotores();
+
+// 3. La Ruta (El API que consultará tu página web)
+app.get('/api/motores', async (req, res) => {
+    try {
+        const motores = await Motor.find({}); // Busca todos los motores
+        res.json(motores); // Se los envía al frontend
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener motores' });
+    }
+});
+
 // 3. La Ruta (El HTML llamará aquí para pedir la lista)
 app.get('/productos', async (req, res) => {
     try {
@@ -184,5 +228,25 @@ app.delete('/cotizaciones', async (req, res) => {
         res.status(500).json({ exito: false, mensaje: "Error en el servidor al intentar borrar." });
     }
 });
+// Agrega esto en tu server.js, antes de app.listen(...)
+
+app.get('/api/motores', async (req, res) => {
+    try {
+        // 1. Accedemos a la colección "motores"
+        // NOTA: Asegúrate de que 'db' es la variable de tu conexión a Mongo. 
+        // Si usas Mongoose, sería: await ModeloMotor.find({});
+        const collection = db.collection('motores'); 
+        
+        // 2. Buscamos todos los motores y los convertimos a un array
+        const motores = await collection.find({}).toArray();
+        
+        // 3. Enviamos la lista al frontend
+        res.json(motores);
+    } catch (error) {
+        console.error("Error obteniendo motores:", error);
+        res.status(500).send("Error en el servidor");
+    }
+});
+
 
 app.listen(PORT, () => console.log(`Servidor listo en http://localhost:${PORT}`));

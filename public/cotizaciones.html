@@ -103,6 +103,10 @@
                 <label for="check-gastos" style="margin:0; font-weight:bold; cursor:pointer;">¿Hay Gastos Adicionales?</label>
             </div>
 
+            <select id="tipoMotor" class="form-control" onchange="calcularTotal()">
+    <option value="0">-- Seleccionar --</option>
+    </select>
+
             <div id="panel-gastos" style="display: none; padding-left: 20px;">
                 <label>¿Cuántos gastos agregarás?</label>
                 <select id="cantidad-gastos" onchange="generarCamposGastos()" style="width: 100px; margin-bottom: 10px;">
