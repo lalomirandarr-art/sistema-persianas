@@ -154,3 +154,59 @@ body {
         select, input { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
         .resultado { margin-top: 30px; padding: 20px; background: #e9ecef; border-radius: 10px; border-left: 5px solid #001f3f; }
       
+/* =========================================
+   ESTILOS DE NAVEGACIÓN (HEADER)
+   ========================================= */
+
+/* 1. Estilo para Computadora (Pantallas grandes) */
+.nav-links {
+    background-color: #001f3f; /* Azul Marino profesional */
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between; /* Logo a la izq, links a la der */
+    align-items: center;
+    flex-wrap: wrap; /* Permite que baje si no cabe */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+    margin-left: 20px;
+    font-weight: 500;
+    font-size: 1.1rem;
+    transition: color 0.3s;
+}
+
+.nav-links a:hover {
+    color: #ffd700; /* Dorado al pasar el mouse */
+}
+
+/* 2. Estilo para CELULARES (Pantallas menores a 768px) */
+@media (max-width: 768px) {
+    .nav-links {
+        flex-direction: column; /* Apilar todo verticalmente */
+        padding: 10px;
+        align-items: stretch; /* Que ocupen todo el ancho */
+    }
+
+    /* Ajustar el logo (si tienes uno dentro del nav) o el primer elemento */
+    .nav-links > *:first-child {
+        margin-bottom: 15px;
+        text-align: center; /* Centrar logo */
+        align-self: center;
+    }
+
+    /* Convertir los enlaces en "Botones" grandes */
+    .nav-links a {
+        margin: 0; /* Quitar margen lateral */
+        padding: 12px; /* Más espacio para el dedo */
+        text-align: center; /* Texto centrado */
+        border-bottom: 1px solid rgba(255,255,255,0.1); /* Línea divisoria sutil */
+        display: block; /* Ocupar todo el renglón */
+    }
+
+    .nav-links a:last-child {
+        border-bottom: none; /* Quitar línea al último */
+    }
+}
