@@ -67,7 +67,7 @@ body {
 
 .dropdown-content a:hover {
     background-color: #003366;
-    align-items:stretch;
+    align-items:center;
 }
 
 /* Mostrar el menú al pasar el mouse sobre el contenedor dropdown */
