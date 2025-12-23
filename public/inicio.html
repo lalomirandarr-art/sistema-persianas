@@ -11,6 +11,22 @@
         <div class="logo">
             <img src="/IMG/logo PD.jpeg" alt="Logo">
         </div>
+
+        <div class="navbar" id="miNavbar">
+  <a href="/inicio.html">Inicio</a>
+  <a href="#">Productos</a>
+  <a href="/clientes.html">Clientes</a>
+  
+  <div class="dropdown">
+    <button class="dropdown-btn">Cotizaciones ▼</button>
+    <div class="dropdown-content">
+      <a href="#">Nueva Cotización</a>
+    </div>
+  </div> 
+
+  <a href="javascript:void(0);" class="icon" onclick="menuResponsivo()">
+    &#9776; </a>
+</div>
         
         <nav class="nav-links">
             <a href="/index.html" class="btn-logout">Cerrar Sesión</a>
@@ -49,7 +65,19 @@
         <p>Para probar el scroll, puedes añadir más texto o un par de párrafos.</p>
         <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
     </main>
-
+<script>
+function menuResponsivo() {
+  var x = document.getElementById("miNavbar");
+  
+  // Si la clase es solo "navbar", le agrega " responsive"
+  if (x.className === "navbar") {
+    x.className += " responsive";
+  } else {
+    // Si ya tiene "responsive", se lo quita (cierra el menú)
+    x.className = "navbar";
+  }
+}
+</script>
 </body>
 </html>
 </body>

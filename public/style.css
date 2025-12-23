@@ -154,3 +154,49 @@ body {
         select, input { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
         .resultado { margin-top: 30px; padding: 20px; background: #e9ecef; border-radius: 10px; border-left: 5px solid #001f3f; }
       
+/* 1. Por defecto en PC, ocultamos el ícono de hamburguesa */
+.navbar .icon {
+  display: none;
+}
+
+/* 2. Cuando la pantalla sea menor a 600px (Celulares) */
+@media screen and (max-width: 600px) {
+  
+  /* Ocultamos todos los enlaces y el dropdown (menos el primero si quisieras dejar el logo visible) */
+  .navbar a:not(:first-child), .dropdown .dropdown-btn {
+    display: none;
+  }
+  
+  /* Mostramos el ícono de hamburguesa y lo ponemos a la derecha */
+  .navbar a.icon {
+    float: right;
+    display: block;
+  }
+}
+
+/* 3. La clase mágica que activa el Javascript: "responsive" */
+@media screen and (max-width: 600px) {
+  .navbar.responsive {
+    position: relative;
+  }
+  
+  /* Cuando tiene la clase responsive, forzamos a que el ícono siga a la derecha */
+  .navbar.responsive .icon {
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+  
+  /* Y hacemos que los enlaces aparezcan y se apilen verticalmente */
+  .navbar.responsive a, 
+  .navbar.responsive .dropdown .dropdown-btn {
+    float: none;
+    display: block;
+    text-align: left;
+  }
+  
+  /* Ajuste para que el dropdown funcione bien en modo lista vertical */
+  .navbar.responsive .dropdown {
+      float: none;
+  }
+}
