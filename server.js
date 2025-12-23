@@ -172,21 +172,6 @@ const motorSchema = new mongoose.Schema({
 
 const Motor = mongoose.model('Motor', motorSchema);
 
-// 2. Inicializar (Llenar la BD si está vacía)
-// Esto insertará los motores automáticamente la primera vez, igual que tus productos
-async function inicializarMotores() {
-    const cantidad = await Motor.countDocuments();
-    if (cantidad === 0) {
-        console.log("⚙️ Base de datos de motores vacía. Creando iniciales...");
-        await Motor.insertMany([
-            { nombre: "Motor Básico", precio: 1500 },
-            { nombre: "Motor WiFi / Alexa", precio: 2800 },
-            { nombre: "Motor Silencioso Premium", precio: 4500 }
-        ]);
-        console.log("✅ Motores agregados exitosamente.");
-    }
-}
-inicializarMotores();
 
 // 3. La Ruta (API) para que la página web pida la lista
 app.get('/motores', async (req, res) => {
@@ -194,7 +179,7 @@ app.get('/motores', async (req, res) => {
         const motores = await Motor.find({}); // Busca todos
         res.json(motores); // Se los envía al HTML
     } catch (error) {
-        res.status(500).json({ error: 'Error al obtener motores' });
+        res.status(500).send({ error: 'Error al obtener motores' });
     }
 });
 

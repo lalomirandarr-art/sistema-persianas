@@ -85,6 +85,24 @@
             </div>
         </div>
 
+                        <div class="campo" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #90caf9;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="check-motor" onchange="toggleMotor()" style="width: 20px; height: 20px;">
+                <label for="check-motor" style="margin:0; font-weight:bold; cursor:pointer; color: #0d47a1;">
+                    ⚙️ ¿Agregar Motorización?
+                </label>
+            </div>
+
+            <div id="panel-motor" style="display: none; margin-top: 15px;">
+                <label>Selecciona el tipo de Motor:</label>
+                <select id="select-motor">
+                    <option value="">-- Seleccionar Motor --</option>
+                </select>
+            </div>
+        </div>
+
+                
+
         <div class="campo" style="background: #e9ecef; padding: 15px; border-radius: 8px;">
             <label>📈 Porcentaje de Utilidad:</label>
             <select id="select-utilidad">
@@ -144,6 +162,7 @@
     <script>
        // --- VARIABLES GLOBALES ---
    let productosDB = [];
+   let motoresDB = [];
     const telasDB = [
         { id: 1, nombre: "Malla Solar 5%", precioExtra: 0 },
         { id: 2, nombre: "Blackout", precioExtra: 100 }
@@ -173,12 +192,29 @@
             
             const selTela = document.getElementById('select-tela');
             telasDB.forEach(t => selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t.id)));
+
+            // --- NUEVO: Cargar Motores ---
+            const resMotores = await fetch('/motores'); // Asegurate de crear esta ruta en Node
+            motoresDB = await resMotores.json();
+            const selMotor = document.getElementById('select-motor');
+            motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
         } catch (e) { console.error(e); }
     }
     inicializar();
 
     // --- FUNCIONES VISUALES NUEVAS ---
-    
+    function toggleMotor() {
+        const check = document.getElementById('check-motor');
+        const panel = document.getElementById('panel-motor');
+        const select = document.getElementById('select-motor');
+
+        if (check.checked) {
+            panel.style.display = 'block';
+        } else {
+            panel.style.display = 'none';
+            select.value = ""; // Resetear selección al ocultar
+        }
+    }
     // 1. Mostrar u Ocultar el panel
     function toggleGastos() {
         const check = document.getElementById('check-gastos');
@@ -216,11 +252,14 @@
     }
 
 
-    // --- CEREBRO MATEMÁTICO ACTUALIZADO ---
-    function obtenerDatosYCalcular() {
-        // ... Recolección de datos básicos ...
+   function obtenerDatosYCalcular() {
+        // Recolección de datos
         const idProd = document.getElementById('select-producto').value;
         const idTela = parseInt(document.getElementById('select-tela').value);
+        // Motor
+        const usaMotor = document.getElementById('check-motor').checked;
+        const idMotor = document.getElementById('select-motor').value;
+
         const ancho = parseFloat(document.getElementById('ancho').value);
         const alto = parseFloat(document.getElementById('alto').value);
         const cant = parseInt(document.getElementById('cantidad').value);
@@ -234,58 +273,80 @@
             return null;
         }
 
-        // --- RECOLECCIÓN DE GASTOS ADICIONALES ---
+        // Validación de Motor
+        if (usaMotor && !idMotor) {
+            alert("Seleccionaste motor pero no elegiste cuál.");
+            return null;
+        }
+
+        // --- GASTOS ADICIONALES ---
         let listaGastos = [];
         let totalGastosAdicionales = 0;
-        
         if (document.getElementById('check-gastos').checked) {
             const cantidad = parseInt(document.getElementById('cantidad-gastos').value);
             for(let i=1; i<=cantidad; i++) {
                 const desc = document.getElementById(`gasto-desc-${i}`).value;
                 const monto = parseFloat(document.getElementById(`gasto-monto-${i}`).value) || 0;
-                
-                if(desc || monto > 0) { // Solo si escribió algo
+                if(desc || monto > 0) {
                     listaGastos.push({ descripcion: desc, monto: monto });
                     totalGastosAdicionales += monto;
                 }
             }
         }
 
-        // --- CÁLCULOS ---
+        // --- CÁLCULOS MATEMÁTICOS ---
         const prod = productosDB.find(p => p._id === idProd);
         const tela = telasDB.find(t => t.id === idTela);
+        
+        // Lógica Motor
+        let motorObj = null;
+        let costoMotorUnitario = 0;
+        if (usaMotor && idMotor) {
+            motorObj = motoresDB.find(m => m._id === idMotor);
+            if (motorObj) costoMotorUnitario = motorObj.precio;
+        }
 
+        // 1. Costo Materiales (Dimensiones)
         let area = ancho * alto;
         let areaCobrar = area < 1 ? 1 : area; 
-        let costoBaseUnitario = prod.precio + tela.precioExtra;
-        let costoNetoTotal = (costoBaseUnitario * areaCobrar) * cant;
+        let costoMaterialUnitario = (prod.precio + tela.precioExtra) * areaCobrar;
 
+        // 2. Costo Unitario TOTAL (Material + Motor)
+        // El motor se suma por unidad, no por metro cuadrado
+        let costoBaseUnitario = costoMaterialUnitario + costoMotorUnitario;
+
+        // 3. Costo Neto Total (Multiplicado por cantidad de persianas)
+        let costoNetoTotal = costoBaseUnitario * cant;
+
+        // 4. Utilidad
         let montoUtilidad = costoNetoTotal * (porcentajeUtilidad / 100);
         let precioConUtilidad = costoNetoTotal + montoUtilidad;
 
+        // 5. Descuento
         let montoDescuento = precioConUtilidad * (porcentajeDescuento / 100);
         let precioConDescuento = precioConUtilidad - montoDescuento;
 
-        // AQUÍ SUMAMOS LOS GASTOS ADICIONALES (Antes de IVA)
-        // Lógica: (PrecioProducto - Descuento) + GastosExtras = Base para IVA
+        // 6. Base Imponible (Precio final + Gastos Extra)
         let baseImponible = precioConDescuento + totalGastosAdicionales;
 
+        // 7. IVA y Total
         let iva = 0;
         if (aplicarIva) {
             iva = baseImponible * 0.16;
         }
-        
         let granTotal = baseImponible + iva;
 
         return {
-            cliente, productoNombre: prod.nombre, telaNombre: tela.nombre,
+            cliente, 
+            productoNombre: prod.nombre, 
+            telaNombre: tela.nombre,
+            motorNombre: motorObj ? motorObj.nombre : "Sin Motor", // Para guardar/mostrar
+            
             ancho, alto, cant, areaCobrar, costoNetoTotal, 
             porcentajeUtilidad, montoUtilidad, precioConUtilidad,
             porcentajeDescuento, montoDescuento, precioConDescuento,
             
-            // Datos nuevos
             listaGastos, totalGastosAdicionales, baseImponible,
-
             iva, granTotal
         };
     }
@@ -311,6 +372,14 @@
             <div class="fila-precio"><span class="etiqueta">Costo Neto:</span> <span>$${datos.costoNetoTotal.toFixed(2)}</span></div>
             <div class="fila-precio" style="color: green;"><span class="etiqueta">+ Utilidad (${datos.porcentajeUtilidad}%):</span> <span>$${datos.montoUtilidad.toFixed(2)}</span></div>
         `;
+        
+        if (datos.motorNombre !== "Sin Motor") {
+            html += `<p style="font-size: 0.9em; color: #0d47a1; font-weight: bold;">⚙️ Incluye: ${datos.motorNombre}</p>`;
+        }
+
+        html += `<hr>
+            <div class="fila-precio"><span class="etiqueta">Costo Neto (Mat + Motor):</span> <span>$${datos.costoNetoTotal.toFixed(2)}</span></div>
+             `;
 
         if (datos.porcentajeDescuento > 0) {
             html += `<div class="fila-precio" style="color: #dc3545;">
@@ -348,6 +417,7 @@
             porcentajeUtilidad: datos.porcentajeUtilidad,
             precioConUtilidad: datos.precioConUtilidad,
             porcentajeDescuento: datos.porcentajeDescuento,
+            motor: datos.motorNombre,
             
             // Enviamos los gastos
             gastosAdicionales: datos.listaGastos,
