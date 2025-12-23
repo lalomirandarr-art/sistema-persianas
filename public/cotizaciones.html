@@ -98,6 +98,21 @@
                 
                 <div class="campo" style="background: #e2e3e5; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 5px solid #6c757d;">
             
+                    <div class="form-group">
+         <label>
+          <input type="checkbox" id="checkMotor" onchange="toggleMotor()"> 
+        ¿Requiere motor?
+         </label>
+</div>
+
+<div id="contenedorMotor" style="display: none; margin-top: 10px;">
+    <label>Selecciona el motor:</label>
+    <select id="selectMotor" class="form-control" onchange="calcularTotal()">
+        <option value="0">-- Seleccionar --</option>
+        </select>
+</div>
+
+
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                 <input type="checkbox" id="check-gastos" onchange="toggleGastos()" style="width: 20px; height: 20px;">
                 <label for="check-gastos" style="margin:0; font-weight:bold; cursor:pointer;">¿Hay Gastos Adicionales?</label>
@@ -144,6 +159,7 @@
     <script>
        // --- VARIABLES GLOBALES ---
    let productosDB = [];
+   let motoresDB = [];
     const telasDB = [
         { id: 1, nombre: "Malla Solar 5%", precioExtra: 0 },
         { id: 2, nombre: "Blackout", precioExtra: 100 }
@@ -173,7 +189,17 @@
             
             const selTela = document.getElementById('select-tela');
             telasDB.forEach(t => selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t.id)));
-        } catch (e) { console.error(e); }
+            // --- NUEVO BLOQUE: CARGAR MOTORES ---
+        const resMotores = await fetch('/motores'); // Llama a la ruta del server.js
+        motoresDB = await resMotores.json();
+        
+        const selMotor = document.getElementById('select-motor');
+        motoresDB.forEach(m => {
+            // Ponemos el precio en el value para facilitar la suma
+            selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m.precio));
+        });
+        } 
+        catch (e) { console.error(e); }
     }
     inicializar();
 
@@ -194,6 +220,21 @@
             contenedor.innerHTML = ""; // Borrar campos
         }
     }
+
+    // MUESTRA U OCULTA EL SELECTOR DE MOTOR
+function toggleMotor() {
+    const check = document.getElementById('check-motor');
+    const panel = document.getElementById('panel-motor');
+    const select = document.getElementById('select-motor');
+
+    if (check.checked) {
+        panel.style.display = 'block';
+    } else {
+        panel.style.display = 'none';
+        select.value = "0"; // Reseteamos a 0 si lo ocultan
+        calcular(); // Recalculamos para quitar el precio
+    }
+}
 
     // 2. Generar los renglones de inputs (Descripción y Precio)
     function generarCamposGastos() {
@@ -267,8 +308,17 @@
         let precioConDescuento = precioConUtilidad - montoDescuento;
 
         // AQUÍ SUMAMOS LOS GASTOS ADICIONALES (Antes de IVA)
+        
+        // 1. OBTENER PRECIO DEL MOTOR (Agrega esto antes de calcular totales)
+    let costoMotor = 0;
+    const checkMotor = document.getElementById('check-motor');
+    const selMotor = document.getElementById('select-motor');
+    
+    if (checkMotor && checkMotor.checked) {
+        costoMotor = parseFloat(selMotor.value) || 0;
+    }
         // Lógica: (PrecioProducto - Descuento) + GastosExtras = Base para IVA
-        let baseImponible = precioConDescuento + totalGastosAdicionales;
+       let baseImponible = precioConDescuento + totalGastosAdicionales + costoMotor;
 
         let iva = 0;
         if (aplicarIva) {
@@ -282,10 +332,11 @@
             ancho, alto, cant, areaCobrar, costoNetoTotal, 
             porcentajeUtilidad, montoUtilidad, precioConUtilidad,
             porcentajeDescuento, montoDescuento, precioConDescuento,
+
             
             // Datos nuevos
             listaGastos, totalGastosAdicionales, baseImponible,
-
+            costoMotor:costomotor,
             iva, granTotal
         };
     }
