@@ -50,7 +50,7 @@ body {
 .dropdown-content {
     display: none; /* Oculto por defecto */
     position: absolute;
-    background-color: #f9f9f9;
+    background-color: #001f3f;
     min-width: 180px;
     box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
     z-index: 1;
