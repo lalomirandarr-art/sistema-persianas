@@ -210,28 +210,30 @@ body {
         border-bottom: none; /* Quitar línea al último */
     }
 }
-
 /* =========================================
-   ARREGLO DEL MENÚ DESPLEGABLE (DROPDOWN)
+   ESTILO TIPO "DROPDOWN CLÁSICO" (Gris Claro)
    ========================================= */
 
-/* Hacemos que la cajita tenga el mismo fondo azul oscuro */
+/* 1. La cajita del menú (Fondo claro) */
 .dropdown-content {
-    background-color: #001f3f; /* Azul marino */
-    border: 1px solid rgba(255, 255, 255, 0.1); /* Borde sutil */
-    box-shadow: 0 8px 16px rgba(0,0,0,0.3); /* Sombra para que flote bonito */
+    background-color: #f9f9f9; /* El gris muy clarito de la imagen */
+    min-width: 160px;          /* Un ancho mínimo para que no se vea aplastado */
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); /* Sombra suave */
+    border-radius: 4px;        /* Bordes un poco redondeados (opcional, se ve moderno) */
+    border: none;              /* Sin bordes duros */
 }
 
-/* Aseguramos que los enlaces dentro también se vean bien */
+/* 2. Los enlaces adentro (Letras oscuras) */
 .dropdown-content a {
-    color: white !important; /* Forza el color blanco */
-    padding: 12px 16px;
+    color: #333333 !important; /* Gris oscuro casi negro */
+    padding: 12px 16px;        /* Espacio para que respire el texto */
+    text-decoration: none;
     display: block;
-    text-align: left; /* Alineado a la izquierda se ve mejor en listas */
+    text-align: left;
 }
 
-/* Efecto al pasar el dedo/mouse por las opciones */
+/* 3. Efecto Hover (Cuando pasas el mouse/dedo) */
 .dropdown-content a:hover {
-    background-color: #003366; /* Fondo dorado al seleccionar */
-    color: #001f3f !important; /* Letra azul para contraste */
+    background-color: #ddd;    /* El gris más oscurito de tu imagen */
+    color: black !important;   /* El texto se pone totalmente negro */
 }
