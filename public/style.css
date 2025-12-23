@@ -179,7 +179,7 @@ body {
 }
 
 .nav-links a:hover {
-    color: #ffd700; /* Dorado al pasar el mouse */
+    color: #003366; /* Dorado al pasar el mouse */
 }
 
 /* 2. Estilo para CELULARES (Pantallas menores a 768px) */
@@ -193,7 +193,7 @@ body {
     /* Ajustar el logo (si tienes uno dentro del nav) o el primer elemento */
     .nav-links > *:first-child {
         margin-bottom: 15px;
-        text-align: center; /* Centrar logo */
+        text-align: center; /* Centrar logo */ 
         align-self: center;
     }
 
@@ -232,6 +232,6 @@ body {
 
 /* Efecto al pasar el dedo/mouse por las opciones */
 .dropdown-content a:hover {
-    background-color: #ffd700; /* Fondo dorado al seleccionar */
+    background-color: #003366; /* Fondo dorado al seleccionar */
     color: #001f3f !important; /* Letra azul para contraste */
 }
