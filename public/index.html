@@ -30,7 +30,7 @@
 
         try {
             // 1. Enviamos los datos a tu servidor local (puerto 3000)
-            const respuesta = await fetch('/login', {
+            const respuesta = await fetch('/index', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ usuario: user, password: pass })
