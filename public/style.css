@@ -178,7 +178,7 @@ body {
 }
 
 .nav-links a:hover {
-    color: #ffd700; /* Dorado al pasar el mouse */
+    color: wheat; /* Dorado al pasar el mouse */
 }
 
 /* 2. Estilo para CELULARES (Pantallas menores a 768px) */
