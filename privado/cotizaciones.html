@@ -32,7 +32,7 @@
    <header class="header">
     <div class="nav-container">
         <div class="logo">
-            <img src="/IMG/logo PD.jpeg" alt="Logo">
+            <img src="/IMG/logo%20PD.jpeg" alt="Logo">
         </div>
         
         <nav class="nav-links">
@@ -360,11 +360,11 @@
                           </div>`;
         }
 
-        // HTML DEL REPORTE
+        // --- CAMBIO: Agregamos background:white y el logo con %20 ---
         let html = `
-            <div id="contenido-pdf" style="padding: 10px;">
+            <div id="contenido-pdf" style="padding: 20px; background-color: white;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <img src="/IMG/logo PD.jpeg" style="width: 100px; margin-bottom: 10px;">
+                    <img src="/IMG/logo%20PD.jpeg" style="width: 100px; margin-bottom: 10px;">
                     <h2 style="margin: 0; color: #001f3f;">Cotización Formal</h2>
                     <p style="color: #666; font-size: 0.9em;">Fecha: ${new Date().toLocaleDateString()}</p>
                 </div>
@@ -410,38 +410,36 @@
 
     // --- 2. NUEVA FUNCIÓN PARA DESCARGAR EL PDF ---
     function generarPDF() {
-        // Seleccionamos lo que queremos imprimir
-        const elemento = document.getElementById('detalle-contenido');
+        // --- CAMBIO: Seleccionamos el ID específico que creamos dentro del HTML ---
+        const elemento = document.getElementById('contenido-pdf');
         
-        // Seleccionamos la fila de utilidad
+        // Validación por si acaso no has calculado
+        if (!elemento) {
+            alert("Primero debes realizar un cálculo.");
+            return;
+        }
+
         const filaUtilidad = document.getElementById('fila-utilidad');
 
-        // PASO 1: La ocultamos temporalmente (solo visualmente)
-        if (filaUtilidad) {
-            filaUtilidad.style.display = 'none';
-        }
+        // 1. Ocultamos utilidad
+        if (filaUtilidad) filaUtilidad.style.display = 'none';
         
-        // Configuramos las opciones
         const opciones = {
             margin:       10,
             filename:     'Cotizacion_PersianasDelta.pdf',
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2 },
+            html2canvas:  { scale: 2, useCORS: true }, // useCORS ayuda con las imágenes
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        // PASO 2: Generamos el PDF
+        // 2. Generamos
         html2pdf().set(opciones).from(elemento).save()
             .then(() => {
-                // PASO 3: ¡Ya se descargó! Volvemos a mostrar la utilidad en pantalla
-                // para que tú sigas viendo tus números
-                if (filaUtilidad) {
-                    filaUtilidad.style.display = 'flex'; // O 'block' según tu CSS
-                }
+                // 3. Volvemos a mostrar utilidad
+                if (filaUtilidad) filaUtilidad.style.display = 'flex'; // O 'block'
             })
-            .catch((err) => {
-                console.error("Error al generar PDF", err);
-                // Si falla, asegurarnos de volver a mostrar la fila
+            .catch(err => {
+                console.error(err);
                 if (filaUtilidad) filaUtilidad.style.display = 'flex';
             });
     }
