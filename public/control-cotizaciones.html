@@ -20,7 +20,14 @@
         .descuento { color: #d63384; font-weight: bold; } 
         .extras { color: #6610f2; font-weight: bold; } 
         .total { font-weight: bold; font-size: 1.1em; color: #000; }
-        .detalle-gastos { font-size: 0.85em; color: #555; margin-top: 4px; border-left: 2px solid #ccc; padding-left: 5px; }
+        .detalle-gastos { font-size: 0.85em; color: #555; margin-top: 4px; border-left: 2px solid #ccc; padding-left: 5px; 
+            /* 1. Definimos un ancho máximo para forzar el salto de línea */
+            max-width: 150px; 
+            min-width: 120px;
+            /* 3. Permitimos que el texto baje y rompa palabras si es necesario */
+            white-space: normal;
+            overflow-wrap: break-word; 
+            word-wrap: break-word;}
 
         /* Estilo del Botón Borrar */
         .btn-borrar {
