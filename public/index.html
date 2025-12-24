@@ -88,13 +88,43 @@
         }
 
         /* Para celulares: poner uno debajo del otro */
+       /* --- ESTILOS PARA CELULAR (Pantalla Completa) --- */
         @media (max-width: 768px) {
-            .login-card {
-                flex-direction: column;
-                width: 400px;
+            body {
+                /* Quitamos el centrado vertical para que ocupe todo desde arriba */
+                align-items: flex-start; 
+                background-color: white; /* Fondo blanco para que no se vean bordes grises */
             }
+
+            .login-card {
+                /* Transformamos la tarjeta en pantalla completa */
+                flex-direction: column; /* Pone la imagen arriba y el form abajo */
+                width: 100%;
+                height: 100vh; /* 100% de la altura visible */
+                max-width: 100%; /* Quitamos límites de ancho */
+                border-radius: 0; /* Quitamos las esquinas redondas */
+                box-shadow: none; /* Quitamos la sombra, ya no es necesaria */
+            }
+
             .login-imagen {
-                height: 200px; /* En celular la imagen se hace chaparrita arriba */
+                /* La imagen ahora será un encabezado */
+                width: 100%;
+                height: 30vh; /* Ocupará el 30% de la altura de la pantalla */
+                flex: none; /* Evita que se encoja o estire raro */
+            }
+
+            .login-form-container {
+                /* El formulario ocupa el resto del espacio */
+                flex: 1; 
+                padding: 40px 30px; /* Más espacio a los lados para que sea cómodo tocar */
+                justify-content: flex-start; /* El contenido empieza arriba, no centrado */
+            }
+            
+            /* Hacemos los inputs y botones un poco más grandes para dedos */
+            .login-form-container input, 
+            .hero-button {
+                padding: 15px; /* Más gorditos los botones */
+                font-size: 16px; /* Letra legible */
             }
         }
     </style>
