@@ -360,42 +360,47 @@
                           </div>`;
         }
 
-        // --- CAMBIO: Agregamos background:white y el logo con %20 ---
+        // --- CAMBIO CLAVE: Nombre de imagen sencillo y sin espacios ---
+        // Asegúrate de que tu carpeta se llame 'IMG' (mayúsculas) y el archivo 'logo.jpeg' (minúsculas)
         let html = `
-            <div id="contenido-pdf" style="padding: 20px; background-color: white;">
+            <div id="contenido-pdf" style="padding: 20px; background-color: white; width: 100%; box-sizing: border-box;">
+                
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <img src="/IMG/logo%20PD.jpeg" style="width: 100px; margin-bottom: 10px;">
+                    <img src="/IMG/logo.jpeg" style="width: 120px; display: block; margin: 0 auto 10px auto;">
+                    
                     <h2 style="margin: 0; color: #001f3f;">Cotización Formal</h2>
                     <p style="color: #666; font-size: 0.9em;">Fecha: ${new Date().toLocaleDateString()}</p>
                 </div>
                 
-                <p><strong>Cliente:</strong> ${datos.cliente}</p>
-                <p><strong>Sistema:</strong> ${datos.productoNombre} | <strong>Tela:</strong> ${datos.telaNombre}</p>
-                <p><strong>Medidas:</strong> ${datos.ancho}x${datos.alto} (${datos.areaCobrar.toFixed(2)} m²) - Cant: ${datos.cant}</p>
-                <hr>
-                
-                <div class="fila-precio"><span class="etiqueta">Importe Persianas:</span> <span>$${datos.totalMateriales.toFixed(2)}</span></div>
-                
-                ${datos.totalMotores > 0 ? 
-                    `<div class="fila-precio" style="color: #0d47a1;"><span class="etiqueta">Importe Motor:</span> <span>$${datos.totalMotores.toFixed(2)}</span></div>` 
-                    : ''}
+                <div style="font-family: Arial, sans-serif;">
+                    <p><strong>Cliente:</strong> ${datos.cliente}</p>
+                    <p><strong>Sistema:</strong> ${datos.productoNombre} | <strong>Tela:</strong> ${datos.telaNombre}</p>
+                    <p><strong>Medidas:</strong> ${datos.ancho}x${datos.alto} (${datos.areaCobrar.toFixed(2)} m²) - Cant: ${datos.cant}</p>
+                    <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
+                    
+                    <div class="fila-precio"><span class="etiqueta">Importe Persianas:</span> <span>$${datos.totalMateriales.toFixed(2)}</span></div>
+                    
+                    ${datos.totalMotores > 0 ? 
+                        `<div class="fila-precio" style="color: #0d47a1;"><span class="etiqueta">Importe Motor:</span> <span>$${datos.totalMotores.toFixed(2)}</span></div>` 
+                        : ''}
 
-                <div class="fila-precio" style="border-top: 1px solid #eee; margin-top:5px; font-weight: bold;">
-                    <span class="etiqueta">Costo Neto:</span> <span>$${datos.costoNetoTotal.toFixed(2)}</span>
-                </div>
+                    <div class="fila-precio" style="border-top: 1px solid #eee; margin-top:5px; font-weight: bold;">
+                        <span class="etiqueta">Costo Neto:</span> <span>$${datos.costoNetoTotal.toFixed(2)}</span>
+                    </div>
 
-                <div id="fila-utilidad" class="fila-precio" style="color: green;">
-                    <span class="etiqueta">+ Utilidad:</span> <span>$${datos.montoUtilidad.toFixed(2)}</span>
-                </div>
+                    <div id="fila-utilidad" class="fila-precio" style="color: green;">
+                        <span class="etiqueta">+ Utilidad:</span> <span>$${datos.montoUtilidad.toFixed(2)}</span>
+                    </div>
 
-                ${datos.porcentajeDescuento > 0 ? 
-                    `<div class="fila-precio" style="color: #dc3545;"><span class="etiqueta">- Descuento:</span> <span>-$${datos.montoDescuento.toFixed(2)}</span></div>` 
-                    : ''}
+                    ${datos.porcentajeDescuento > 0 ? 
+                        `<div class="fila-precio" style="color: #dc3545;"><span class="etiqueta">- Descuento:</span> <span>-$${datos.montoDescuento.toFixed(2)}</span></div>` 
+                        : ''}
 
-                ${htmlGastos}
+                    ${htmlGastos}
 
-                <div class="fila-precio" style="font-weight:bold; margin-top:10px; border-top: 2px solid #001f3f; padding-top: 10px; font-size: 1.2em;">
-                    <span class="etiqueta">TOTAL A PAGAR:</span> <span>$${datos.granTotal.toFixed(2)}</span>
+                    <div class="fila-precio" style="font-weight:bold; margin-top:10px; border-top: 2px solid #001f3f; padding-top: 10px; font-size: 1.2em;">
+                        <span class="etiqueta">TOTAL A PAGAR:</span> <span>$${datos.granTotal.toFixed(2)}</span>
+                    </div>
                 </div>
                 
                 <p style="text-align: center; font-size: 0.8em; color: #888; margin-top: 30px;">
@@ -410,36 +415,40 @@
 
     // --- 2. NUEVA FUNCIÓN PARA DESCARGAR EL PDF ---
     function generarPDF() {
-        // --- CAMBIO: Seleccionamos el ID específico que creamos dentro del HTML ---
+        // 1. Apuntamos al ID específico que tiene el fondo blanco
         const elemento = document.getElementById('contenido-pdf');
         
-        // Validación por si acaso no has calculado
+        // Validación por seguridad
         if (!elemento) {
-            alert("Primero debes realizar un cálculo.");
+            alert("Primero debes calcular una cotización.");
             return;
         }
 
+        // 2. Ocultamos la utilidad (truco visual)
         const filaUtilidad = document.getElementById('fila-utilidad');
-
-        // 1. Ocultamos utilidad
         if (filaUtilidad) filaUtilidad.style.display = 'none';
         
+        // 3. Opciones CLAVE para que la imagen cargue
         const opciones = {
-            margin:       10,
+            margin:       10, // Margen del papel
             filename:     'Cotizacion_PersianasDelta.pdf',
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true }, // useCORS ayuda con las imágenes
+            html2canvas:  { 
+                scale: 2, 
+                useCORS: true, // <--- ESTO ES VITAL PARA QUE SALGA EL LOGO
+                logging: true  // Ayuda a ver errores si los hay
+            }, 
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        // 2. Generamos
+        // 4. Generar y Restaurar
         html2pdf().set(opciones).from(elemento).save()
             .then(() => {
-                // 3. Volvemos a mostrar utilidad
-                if (filaUtilidad) filaUtilidad.style.display = 'flex'; // O 'block'
+                // Volvemos a mostrar la utilidad al terminar
+                if (filaUtilidad) filaUtilidad.style.display = 'flex';
             })
             .catch(err => {
-                console.error(err);
+                console.error("Error PDF:", err);
                 if (filaUtilidad) filaUtilidad.style.display = 'flex';
             });
     }
