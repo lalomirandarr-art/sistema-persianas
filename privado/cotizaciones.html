@@ -352,7 +352,7 @@
         const datos = obtenerDatosYCalcular();
         if(!datos) return; 
 
-        // Gastos extra (tu código original)
+        // Gastos extra
         let htmlGastos = '';
         if (datos.totalGastosAdicionales > 0) {
             htmlGastos = `<div class="fila-precio" style="color: #6610f2; border-bottom: 1px dashed #ccc; padding-bottom:5px;">
@@ -360,8 +360,7 @@
                           </div>`;
         }
 
-        // --- AQUÍ ESTÁ EL CAMBIO: AGREGAMOS UN ENCABEZADO CON LOGO ---
-        // Asegúrate de que la ruta de la imagen sea correcta (/IMG/logo PD.jpeg)
+        // HTML DEL REPORTE
         let html = `
             <div id="contenido-pdf" style="padding: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -385,7 +384,7 @@
                     <span class="etiqueta">Costo Neto:</span> <span>$${datos.costoNetoTotal.toFixed(2)}</span>
                 </div>
 
-                <div class="fila-precio" style="color: green;">
+                <div id="fila-utilidad" class="fila-precio" style="color: green;">
                     <span class="etiqueta">+ Utilidad:</span> <span>$${datos.montoUtilidad.toFixed(2)}</span>
                 </div>
 
@@ -414,54 +413,37 @@
         // Seleccionamos lo que queremos imprimir
         const elemento = document.getElementById('detalle-contenido');
         
+        // Seleccionamos la fila de utilidad
+        const filaUtilidad = document.getElementById('fila-utilidad');
+
+        // PASO 1: La ocultamos temporalmente (solo visualmente)
+        if (filaUtilidad) {
+            filaUtilidad.style.display = 'none';
+        }
+        
         // Configuramos las opciones
         const opciones = {
-            margin:       10, // Margen en mm
+            margin:       10,
             filename:     'Cotizacion_PersianasDelta.pdf',
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2 }, // Mejora la calidad de la imagen
+            html2canvas:  { scale: 2 },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        // ¡Generamos el PDF!
-        html2pdf().set(opciones).from(elemento).save();
-    }
-
-    // --- GUARDAR ---
-    async function guardar() {
-        const datos = obtenerDatosYCalcular();
-        if(!datos) return; 
-        if(!datos.cliente) { alert("Falta el cliente"); return; }
-
-        const paquete = {
-            cliente: datos.cliente,
-            producto: datos.productoNombre,
-            tela: datos.telaNombre,
-            medidas: { ancho: datos.ancho, alto: datos.alto },
-            cantidad: datos.cant,
-            costoNeto: datos.costoNetoTotal,
-            porcentajeUtilidad: datos.porcentajeUtilidad,
-            precioConUtilidad: datos.precioConUtilidad,
-            porcentajeDescuento: datos.porcentajeDescuento,
-            motor: datos.motorNombre,
-            
-            // Enviamos los gastos
-            gastosAdicionales: datos.listaGastos,
-            totalGastosAdicionales: datos.totalGastosAdicionales,
-
-            total: datos.granTotal
-        };
-
-        try {
-            const res = await fetch('/cotizaciones', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(paquete)
+        // PASO 2: Generamos el PDF
+        html2pdf().set(opciones).from(elemento).save()
+            .then(() => {
+                // PASO 3: ¡Ya se descargó! Volvemos a mostrar la utilidad en pantalla
+                // para que tú sigas viendo tus números
+                if (filaUtilidad) {
+                    filaUtilidad.style.display = 'flex'; // O 'block' según tu CSS
+                }
+            })
+            .catch((err) => {
+                console.error("Error al generar PDF", err);
+                // Si falla, asegurarnos de volver a mostrar la fila
+                if (filaUtilidad) filaUtilidad.style.display = 'flex';
             });
-            const r = await res.json();
-            if(r.exito) alert("✅ Guardado con éxito");
-            else alert("Error: " + r.mensaje);
-        } catch (e) { console.error(e); alert("Error de conexión"); }
     }
     </script>
 </body>
