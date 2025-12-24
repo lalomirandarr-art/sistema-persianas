@@ -258,13 +258,12 @@
 
 
    function obtenerDatosYCalcular() {
-        // Recolección de datos
+        // --- RECOLECCIÓN DE DATOS (Igual que antes) ---
         const idProd = document.getElementById('select-producto').value;
-        const idTela = (document.getElementById('select-tela').value);
-        // Motor
+        const idTela = document.getElementById('select-tela').value; 
         const usaMotor = document.getElementById('check-motor').checked;
         const idMotor = document.getElementById('select-motor').value;
-
+        
         const ancho = parseFloat(document.getElementById('ancho').value);
         const alto = parseFloat(document.getElementById('alto').value);
         const cant = parseInt(document.getElementById('cantidad').value);
@@ -273,86 +272,71 @@
         const porcentajeDescuento = parseInt(document.getElementById('select-descuento').value);
         const aplicarIva = document.getElementById('check-iva').checked;
 
-        if(!idProd || !idTela || !ancho || !alto) {
-            alert("Por favor completa los campos principales.");
-            return null;
-        }
+        if(!idProd || !idTela || !ancho || !alto) return null; 
 
-        // Validación de Motor
-        if (usaMotor && !idMotor) {
-            alert("Seleccionaste motor pero no elegiste cuál.");
-            return null;
-        }
-
-        // --- GASTOS ADICIONALES ---
+        // Gastos Adicionales (Igual que antes)
         let listaGastos = [];
         let totalGastosAdicionales = 0;
         if (document.getElementById('check-gastos').checked) {
-            const cantidad = parseInt(document.getElementById('cantidad-gastos').value);
-            for(let i=1; i<=cantidad; i++) {
-                const desc = document.getElementById(`gasto-desc-${i}`).value;
-                const monto = parseFloat(document.getElementById(`gasto-monto-${i}`).value) || 0;
-                if(desc || monto > 0) {
-                    listaGastos.push({ descripcion: desc, monto: monto });
-                    totalGastosAdicionales += monto;
-                }
-            }
+             const cantidad = parseInt(document.getElementById('cantidad-gastos').value);
+             for(let i=1; i<=cantidad; i++) {
+                 const desc = document.getElementById(`gasto-desc-${i}`).value;
+                 const monto = parseFloat(document.getElementById(`gasto-monto-${i}`).value) || 0;
+                 if(desc || monto > 0) {
+                     listaGastos.push({ descripcion: desc, monto: monto });
+                     totalGastosAdicionales += monto;
+                 }
+             }
         }
 
-        // --- CÁLCULOS MATEMÁTICOS ---
+        // --- CÁLCULOS SEPARADOS ---
         const prod = productosDB.find(p => p._id === idProd);
         const tela = telasDB.find(t => t._id === idTela);
         
-        // Lógica Motor
+        // A. Calcular Motores
         let motorObj = null;
         let costoMotorUnitario = 0;
         if (usaMotor && idMotor) {
             motorObj = motoresDB.find(m => m._id === idMotor);
             if (motorObj) costoMotorUnitario = motorObj.precio;
         }
+        let totalMotores = costoMotorUnitario * cant; // <--- TOTAL SOLO MOTORES
 
-        // 1. Costo Materiales (Dimensiones)
+        // B. Calcular Persianas (Material)
         let area = ancho * alto;
         let areaCobrar = area < 1 ? 1 : area; 
         let costoMaterialUnitario = (prod.precio + tela.precioExtra) * areaCobrar;
+        let totalMateriales = costoMaterialUnitario * cant; // <--- TOTAL SOLO PERSIANAS
 
-        // 2. Costo Unitario TOTAL (Material + Motor)
-        // El motor se suma por unidad, no por metro cuadrado
-        let costoBaseUnitario = costoMaterialUnitario + costoMotorUnitario;
+        // C. Costo Neto (La suma de ambos)
+        let costoNetoTotal = totalMateriales + totalMotores;
 
-        // 3. Costo Neto Total (Multiplicado por cantidad de persianas)
-        let costoNetoTotal = costoBaseUnitario * cant;
-
-        // 4. Utilidad
+        // D. Utilidad
         let montoUtilidad = costoNetoTotal * (porcentajeUtilidad / 100);
         let precioConUtilidad = costoNetoTotal + montoUtilidad;
 
-        // 5. Descuento
+        // E. Descuento
         let montoDescuento = precioConUtilidad * (porcentajeDescuento / 100);
         let precioConDescuento = precioConUtilidad - montoDescuento;
 
-        // 6. Base Imponible (Precio final + Gastos Extra)
+        // F. Finales
         let baseImponible = precioConDescuento + totalGastosAdicionales;
-
-        // 7. IVA y Total
         let iva = 0;
-        if (aplicarIva) {
-            iva = baseImponible * 0.16;
-        }
+        if (aplicarIva) iva = baseImponible * 0.16;
         let granTotal = baseImponible + iva;
 
         return {
-            cliente, 
-            productoNombre: prod.nombre, 
-            telaNombre: tela.nombre,
-            motorNombre: motorObj ? motorObj.nombre : "Sin Motor", // Para guardar/mostrar
+            cliente, productoNombre: prod.nombre, telaNombre: tela.nombre,
+            motorNombre: motorObj ? motorObj.nombre : "Sin Motor",
+            ancho, alto, cant, areaCobrar, 
             
-            ancho, alto, cant, areaCobrar, costoNetoTotal, 
-            porcentajeUtilidad, montoUtilidad, precioConUtilidad,
+            // NUEVOS CAMPOS PARA EL DESGLOSE:
+            totalMateriales, 
+            totalMotores,
+            
+            costoNetoTotal, porcentajeUtilidad, montoUtilidad, precioConUtilidad,
             porcentajeDescuento, montoDescuento, precioConDescuento,
-            
-            listaGastos, totalGastosAdicionales, baseImponible,
-            iva, granTotal
+            listaGastos, totalGastosAdicionales, baseImponible, iva, granTotal
         };
     }
 
@@ -361,30 +345,43 @@
         const datos = obtenerDatosYCalcular();
         if(!datos) return; 
 
-        // Generamos el HTML de los Gastos Extra si existen
+        // HTML de Gastos (igual que antes)
         let htmlGastos = '';
         if (datos.totalGastosAdicionales > 0) {
             htmlGastos = `<div class="fila-precio" style="color: #6610f2; border-bottom: 1px dashed #ccc; padding-bottom:5px;">
-                            <span class="etiqueta">+ Gastos Adicionales:</span> 
-                            <span>$${datos.totalGastosAdicionales.toFixed(2)}</span>
+                            <span class="etiqueta">+ Gastos Adicionales:</span> <span>$${datos.totalGastosAdicionales.toFixed(2)}</span>
                           </div>`;
         }
 
-        // Armamos el HTML Final
+        // --- HTML DEL DESGLOSE NUEVO ---
         let html = `
-            <p><strong>Medidas:</strong> ${datos.ancho}x${datos.alto} (${datos.areaCobrar.toFixed(2)} m²)</p>
+            <p><strong>Medidas:</strong> ${datos.ancho}x${datos.alto} (${datos.areaCobrar.toFixed(2)} m²) - Cant: ${datos.cant}</p>
+            <p style="font-size: 0.9em; color: #555;">${datos.productoNombre} | ${datos.telaNombre}</p>
             <hr>
-            <div class="fila-precio"><span class="etiqueta">Costo Neto:</span> <span>$${datos.costoNetoTotal.toFixed(2)}</span></div>
-            <div class="fila-precio" style="color: green;"><span class="etiqueta">+ Utilidad (${datos.porcentajeUtilidad}%):</span> <span>$${datos.montoUtilidad.toFixed(2)}</span></div>
-        `;
-        
-        if (datos.motorNombre !== "Sin Motor") {
-            html += `<p style="font-size: 0.9em; color: #0d47a1; font-weight: bold;">⚙️ Incluye: ${datos.motorNombre}</p>`;
-        }
+            
+            <div class="fila-precio">
+                <span class="etiqueta">Importe Persianas:</span> 
+                <span>$${datos.totalMateriales.toFixed(2)}</span>
+            </div>
+            
+            ${datos.totalMotores > 0 ? 
+                `<div class="fila-precio" style="color: #0d47a1;">
+                    <span class="etiqueta">Importe Motor:</span> 
+                    <span>$${datos.totalMotores.toFixed(2)}</span>
+                 </div>` 
+                : ''
+            }
 
-        html += `<hr>
-            <div class="fila-precio"><span class="etiqueta">Costo Neto (Mat + Motor):</span> <span>$${datos.costoNetoTotal.toFixed(2)}</span></div>
-             `;
+            <div class="fila-precio" style="border-top: 1px solid #eee; margin-top:5px; padding-top:5px; font-weight: bold;">
+                <span class="etiqueta">Costo Neto Total:</span> 
+                <span>$${datos.costoNetoTotal.toFixed(2)}</span>
+            </div>
+
+            <div class="fila-precio" style="color: green;">
+                <span class="etiqueta">+ Utilidad (${datos.porcentajeUtilidad}%):</span> 
+                <span>$${datos.montoUtilidad.toFixed(2)}</span>
+            </div>
+        `;
 
         if (datos.porcentajeDescuento > 0) {
             html += `<div class="fila-precio" style="color: #dc3545;">
@@ -397,9 +394,15 @@
         html += htmlGastos;
 
         html += `
-            <div class="fila-precio" style="font-weight:bold; margin-top:5px;"><span class="etiqueta">Subtotal Base:</span> <span>$${datos.baseImponible.toFixed(2)}</span></div>
-            <div class="fila-precio" style="font-size: 0.9em; color: #666;"><span class="etiqueta">+ IVA (16%):</span> <span>$${datos.iva.toFixed(2)}</span></div>
-            <div style="text-align:right; font-size:1.5em; font-weight:bold; margin-top:10px;">Total Venta: $${datos.granTotal.toFixed(2)}</div>
+            <div class="fila-precio" style="font-weight:bold; margin-top:5px; border-top: 2px solid #ccc; padding-top: 10px;">
+                <span class="etiqueta">Subtotal Base:</span> <span>$${datos.baseImponible.toFixed(2)}</span>
+            </div>
+            <div class="fila-precio" style="font-size: 0.9em; color: #666;">
+                <span class="etiqueta">+ IVA (16%):</span> <span>$${datos.iva.toFixed(2)}</span>
+            </div>
+            <div style="text-align:right; font-size:1.5em; font-weight:bold; margin-top:10px; color: #333;">
+                Total Venta: $${datos.granTotal.toFixed(2)}
+            </div>
         `;
 
         document.getElementById('resultado-cotizacion').style.display = 'block';
