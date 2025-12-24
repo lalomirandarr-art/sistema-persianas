@@ -151,8 +151,7 @@
         <div style="display: flex; gap: 10px; margin-top: 20px;">
             <button class="hero-button" onclick="calcular()">Calcular</button>
             <button class="hero-button" onclick="guardar()" style="background-color: #6c757d;">💾 Guardar</button>
-            <button class="hero-button" onclick="generarPDF()" style="background-color: #dc3545;">
-        📄 Descargar PDF
+           
     </button>
         </div>
 
@@ -413,45 +412,7 @@
         document.getElementById('detalle-contenido').innerHTML = html;
     }
 
-    // --- 2. NUEVA FUNCIÓN PARA DESCARGAR EL PDF ---
-    function generarPDF() {
-        // 1. Apuntamos al ID específico que tiene el fondo blanco
-        const elemento = document.getElementById('contenido-pdf');
-        
-        // Validación por seguridad
-        if (!elemento) {
-            alert("Primero debes calcular una cotización.");
-            return;
-        }
 
-        // 2. Ocultamos la utilidad (truco visual)
-        const filaUtilidad = document.getElementById('fila-utilidad');
-        if (filaUtilidad) filaUtilidad.style.display = 'none';
-        
-        // 3. Opciones CLAVE para que la imagen cargue
-        const opciones = {
-            margin:       10, // Margen del papel
-            filename:     'Cotizacion_PersianasDelta.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { 
-                scale: 2, 
-                useCORS: true, // <--- ESTO ES VITAL PARA QUE SALGA EL LOGO
-                logging: true  // Ayuda a ver errores si los hay
-            }, 
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        // 4. Generar y Restaurar
-        html2pdf().set(opciones).from(elemento).save()
-            .then(() => {
-                // Volvemos a mostrar la utilidad al terminar
-                if (filaUtilidad) filaUtilidad.style.display = 'flex';
-            })
-            .catch(err => {
-                console.error("Error PDF:", err);
-                if (filaUtilidad) filaUtilidad.style.display = 'flex';
-            });
-    }
 
     // --- GUARDAR ---
     async function guardar() {
