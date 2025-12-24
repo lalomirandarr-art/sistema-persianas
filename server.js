@@ -137,7 +137,7 @@ app.get('/productos.html', protegerRuta, (req, res) => {
 
 // ==========================================
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 // ==========================================
 //           ZONA DE COTIZACIONES (NUEVO)
 // ==========================================
@@ -302,4 +302,6 @@ app.get('/control-cotizaciones.html', protegerRuta, (req, res) => {
     res.sendFile(path.join(__dirname, 'privado', 'control-cotizaciones.html'));
 });
 
-app.listen(PORT, () => console.log(`Servidor listo en http://localhost:${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor listo y escuchando en el puerto ${PORT}`);
+});
