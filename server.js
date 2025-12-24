@@ -2,6 +2,30 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const session = require('express-session');
+const path = require('path'); // <--- AGREGA ESTO AL PRINCIPIO
+/** seguridad */
+
+// --- CONFIGURACIÓN DE SESIÓN ---
+app.use(session({
+    secret: 'Ingegarcia', // Cambia esto por una frase secreta tuya
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: true } // 
+}));
+
+// --- MIDDLEWARE DE PROTECCIÓN (El Guardia de Seguridad) ---
+function protegerRuta(req, res, next) {
+    if (req.session && req.session.usuario) {
+        // Si tiene credencial, pase usted
+        return next();
+    } else {
+        // Si no, ¡fuera! Redirigir al login
+        res.redirect('/index.html');
+    }
+}
+
+
 
 const app = express();
 app.use(cors());
@@ -36,11 +60,30 @@ async function crearAdmin() {
 }
 crearAdmin();
 
+// --- RUTA DE LOGIN ACTUALIZADA (Paso 3) ---
 app.post('/login', async (req, res) => {
     const { usuario, password } = req.body;
+    
+    // 1. Buscamos en la base de datos
     const encontrado = await Usuario.findOne({ usuario: usuario, clave: password });
-    if (encontrado) res.json({ exito: true });
-    else res.json({ exito: false });
+    
+    if (encontrado) {
+        // 2. ¡AQUÍ ESTÁ LA CLAVE! Guardamos al usuario en la "memoria" del servidor
+        req.session.usuario = usuario; 
+        
+        // 3. Avisamos que todo salió bien
+        res.json({ exito: true });
+    } else {
+        res.json({ exito: false });
+    }
+});
+
+// --- RUTA DE LOGOUT (Para cerrar sesión) ---
+app.get('/logout', (req, res) => {
+    req.session.destroy(() => {
+        // Borramos la memoria y mandamos al login
+        res.redirect('/index.html'); 
+    });
 });
 
 
@@ -225,6 +268,28 @@ app.get('/telas', async (req, res) => {
     }
 });
 
+// ==========================================
+//        ZONA DE RUTAS PROTEGIDAS 
+// ==========================================
 
+// Ruta para el INICIO
+app.get('/inicio.html', protegerRuta, (req, res) => {
+    res.sendFile(path.join(__dirname, 'privado', 'inicio.html'));
+});
+
+// Ruta para COTIZACIONES
+app.get('/cotizaciones.html', protegerRuta, (req, res) => {
+    res.sendFile(path.join(__dirname, 'privado', 'cotizaciones.html'));
+});
+
+// Ruta para CLIENTES
+app.get('/clientes.html', protegerRuta, (req, res) => {
+    res.sendFile(path.join(__dirname, 'privado', 'clientes.html'));
+});
+
+// Ruta para CONTROL DE COTIZACIONES (si tienes este archivo)
+app.get('/control-cotizaciones.html', protegerRuta, (req, res) => {
+    res.sendFile(path.join(__dirname, 'privado', 'control-cotizaciones.html'));
+});
 
 app.listen(PORT, () => console.log(`Servidor listo en http://localhost:${PORT}`));
