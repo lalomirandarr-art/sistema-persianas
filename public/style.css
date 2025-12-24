@@ -93,7 +93,7 @@ body {
     justify-content: center;
     align-items: center;
     text-align: center;
-    color: white; /* Texto blanco para que resalte */
+    color: rgb(178, 176, 176); /* Texto blanco para que resalte */
 }
 
 /* Estilo para que el texto se vea más profesional como en la foto */
