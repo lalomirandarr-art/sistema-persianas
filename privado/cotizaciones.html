@@ -151,6 +151,9 @@
         <div style="display: flex; gap: 10px; margin-top: 20px;">
             <button class="hero-button" onclick="calcular()">Calcular</button>
             <button class="hero-button" onclick="guardar()" style="background-color: #6c757d;">💾 Guardar</button>
+            <button class="hero-button" onclick="generarPDF()" style="background-color: #dc3545;">
+        📄 Descargar PDF
+    </button>
         </div>
 
         <div id="resultado-cotizacion" class="resultado-box" style="display: none;">
@@ -158,6 +161,9 @@
             <div id="detalle-contenido"></div>
         </div>
     </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 
     <script>
        // --- VARIABLES GLOBALES ---
@@ -341,11 +347,12 @@
     }
 
     // --- MOSTRAR RESULTADOS ---
+    // --- 1. MODIFICAMOS CALCULAR PARA QUE INCLUYA EL LOGO EN EL REPORTE ---
     function calcular() {
         const datos = obtenerDatosYCalcular();
         if(!datos) return; 
 
-        // HTML de Gastos (igual que antes)
+        // Gastos extra (tu código original)
         let htmlGastos = '';
         if (datos.totalGastosAdicionales > 0) {
             htmlGastos = `<div class="fila-precio" style="color: #6610f2; border-bottom: 1px dashed #ccc; padding-bottom:5px;">
@@ -353,60 +360,71 @@
                           </div>`;
         }
 
-        // --- HTML DEL DESGLOSE NUEVO ---
+        // --- AQUÍ ESTÁ EL CAMBIO: AGREGAMOS UN ENCABEZADO CON LOGO ---
+        // Asegúrate de que la ruta de la imagen sea correcta (/IMG/logo PD.jpeg)
         let html = `
-            <p><strong>Medidas:</strong> ${datos.ancho}x${datos.alto} (${datos.areaCobrar.toFixed(2)} m²) - Cant: ${datos.cant}</p>
-            <p style="font-size: 0.9em; color: #555;">${datos.productoNombre} | ${datos.telaNombre}</p>
-            <hr>
-            
-            <div class="fila-precio">
-                <span class="etiqueta">Importe Persianas:</span> 
-                <span>$${datos.totalMateriales.toFixed(2)}</span>
-            </div>
-            
-            ${datos.totalMotores > 0 ? 
-                `<div class="fila-precio" style="color: #0d47a1;">
-                    <span class="etiqueta">Importe Motor:</span> 
-                    <span>$${datos.totalMotores.toFixed(2)}</span>
-                 </div>` 
-                : ''
-            }
+            <div id="contenido-pdf" style="padding: 10px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="/IMG/logo PD.jpeg" style="width: 100px; margin-bottom: 10px;">
+                    <h2 style="margin: 0; color: #001f3f;">Cotización Formal</h2>
+                    <p style="color: #666; font-size: 0.9em;">Fecha: ${new Date().toLocaleDateString()}</p>
+                </div>
+                
+                <p><strong>Cliente:</strong> ${datos.cliente}</p>
+                <p><strong>Sistema:</strong> ${datos.productoNombre} | <strong>Tela:</strong> ${datos.telaNombre}</p>
+                <p><strong>Medidas:</strong> ${datos.ancho}x${datos.alto} (${datos.areaCobrar.toFixed(2)} m²) - Cant: ${datos.cant}</p>
+                <hr>
+                
+                <div class="fila-precio"><span class="etiqueta">Importe Persianas:</span> <span>$${datos.totalMateriales.toFixed(2)}</span></div>
+                
+                ${datos.totalMotores > 0 ? 
+                    `<div class="fila-precio" style="color: #0d47a1;"><span class="etiqueta">Importe Motor:</span> <span>$${datos.totalMotores.toFixed(2)}</span></div>` 
+                    : ''}
 
-            <div class="fila-precio" style="border-top: 1px solid #eee; margin-top:5px; padding-top:5px; font-weight: bold;">
-                <span class="etiqueta">Costo Neto Total:</span> 
-                <span>$${datos.costoNetoTotal.toFixed(2)}</span>
-            </div>
+                <div class="fila-precio" style="border-top: 1px solid #eee; margin-top:5px; font-weight: bold;">
+                    <span class="etiqueta">Costo Neto:</span> <span>$${datos.costoNetoTotal.toFixed(2)}</span>
+                </div>
 
-            <div class="fila-precio" style="color: green;">
-                <span class="etiqueta">+ Utilidad (${datos.porcentajeUtilidad}%):</span> 
-                <span>$${datos.montoUtilidad.toFixed(2)}</span>
-            </div>
-        `;
+                <div class="fila-precio" style="color: green;">
+                    <span class="etiqueta">+ Utilidad:</span> <span>$${datos.montoUtilidad.toFixed(2)}</span>
+                </div>
 
-        if (datos.porcentajeDescuento > 0) {
-            html += `<div class="fila-precio" style="color: #dc3545;">
-                        <span class="etiqueta">- Descuento (${datos.porcentajeDescuento}%):</span> 
-                        <span>-$${datos.montoDescuento.toFixed(2)}</span>
-                     </div>`;
-        }
+                ${datos.porcentajeDescuento > 0 ? 
+                    `<div class="fila-precio" style="color: #dc3545;"><span class="etiqueta">- Descuento:</span> <span>-$${datos.montoDescuento.toFixed(2)}</span></div>` 
+                    : ''}
 
-        // Insertamos los gastos aquí
-        html += htmlGastos;
+                ${htmlGastos}
 
-        html += `
-            <div class="fila-precio" style="font-weight:bold; margin-top:5px; border-top: 2px solid #ccc; padding-top: 10px;">
-                <span class="etiqueta">Subtotal Base:</span> <span>$${datos.baseImponible.toFixed(2)}</span>
-            </div>
-            <div class="fila-precio" style="font-size: 0.9em; color: #666;">
-                <span class="etiqueta">+ IVA (16%):</span> <span>$${datos.iva.toFixed(2)}</span>
-            </div>
-            <div style="text-align:right; font-size:1.5em; font-weight:bold; margin-top:10px; color: #333;">
-                Total Venta: $${datos.granTotal.toFixed(2)}
+                <div class="fila-precio" style="font-weight:bold; margin-top:10px; border-top: 2px solid #001f3f; padding-top: 10px; font-size: 1.2em;">
+                    <span class="etiqueta">TOTAL A PAGAR:</span> <span>$${datos.granTotal.toFixed(2)}</span>
+                </div>
+                
+                <p style="text-align: center; font-size: 0.8em; color: #888; margin-top: 30px;">
+                    Gracias por su preferencia. Esta cotización tiene una vigencia de 15 días.
+                </p>
             </div>
         `;
 
         document.getElementById('resultado-cotizacion').style.display = 'block';
         document.getElementById('detalle-contenido').innerHTML = html;
+    }
+
+    // --- 2. NUEVA FUNCIÓN PARA DESCARGAR EL PDF ---
+    function generarPDF() {
+        // Seleccionamos lo que queremos imprimir
+        const elemento = document.getElementById('detalle-contenido');
+        
+        // Configuramos las opciones
+        const opciones = {
+            margin:       10, // Margen en mm
+            filename:     'Cotizacion_PersianasDelta.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 }, // Mejora la calidad de la imagen
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // ¡Generamos el PDF!
+        html2pdf().set(opciones).from(elemento).save();
     }
 
     // --- GUARDAR ---
