@@ -130,6 +130,11 @@ app.get('/productos', async (req, res) => {
     }
 });
 
+// Ruta para VER LA LISTA DE PRODUCTOS
+app.get('/productos.html', protegerRuta, (req, res) => {
+    res.sendFile(path.join(__dirname, 'privado', 'productos.html'));
+});
+
 // ==========================================
 
 const PORT = 3000;

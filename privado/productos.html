@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Productos</title>
+    <link rel="stylesheet" href="/style.css"> <style>
+        .container { max-width: 800px; margin: 50px auto; padding: 20px; }
+        
+        /* Estilos de la Tabla */
+        .tabla-productos {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden; /* Para que las esquinas redondeadas funcionen */
+        }
+
+        .tabla-productos th, .tabla-productos td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tabla-productos th {
+            background-color: #001f3f; /* Tu color azul corporativo */
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        .tabla-productos tr:hover {
+            background-color: #f1f1f1; /* Efecto al pasar el mouse */
+        }
+
+        .precio {
+            color: #28a745; /* Verde dinero */
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .badge {
+            background-color: #e2e6ea;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/IMG/logo.jpeg" alt="Logo">
+            </div>
+            <nav class="nav-links">
+                <a href="/logout" class="btn-logout">Cerrar Sesión</a>
+                <a href="/inicio.html">Inicio</a>
+                <a href="/productos.html" style="font-weight: bold; text-decoration: underline;">Productos</a>
+                <a href="/clientes.html">Clientes</a>
+                <div class="dropdown">
+                    <button class="dropbtn">Cotizaciones ▼</button>
+                    <div class="dropdown-content">
+                        <a href="/cotizaciones.html">Nueva Cotización</a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1 style="color: #333; border-bottom: 2px solid #001f3f; padding-bottom: 10px;">
+            📦 Catálogo de Precios Base
+        </h1>
+        <p style="color: #666; margin-bottom: 20px;">Estos son los precios base configurados en tu sistema.</p>
+
+        <table class="tabla-productos">
+            <thead>
+                <tr>
+                    <th>Nombre del Producto</th>
+                    <th>ID de Sistema</th>
+                    <th>Precio Base ($)</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpo-tabla">
+                <tr><td colspan="3">Cargando productos...</td></tr>
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="/inicio.html" class="hero-button" style="text-decoration: none;">⬅ Volver al Cotizador</a>
+        </div>
+    </div>
+
+    <script>
+        async function cargarLista() {
+            try {
+                // 1. Pedimos los datos a tu API existente
+                const respuesta = await fetch('/productos');
+                const productos = await respuesta.json();
+
+                // 2. Ubicamos la tabla
+                const tbody = document.getElementById('cuerpo-tabla');
+                tbody.innerHTML = ''; // Limpiamos el mensaje de carga
+
+                // 3. Llenamos la tabla
+                productos.forEach(prod => {
+                    const fila = `
+                        <tr>
+                            <td>
+                                <strong>${prod.nombre}</strong>
+                            </td>
+                            <td><span class="badge">${prod._id.slice(-6)}</span></td> <td class="precio">$${prod.precio.toFixed(2)}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += fila;
+                });
+
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="3" style="color:red;">Error al cargar datos.</td></tr>';
+            }
+        }
+
+        // Ejecutar al abrir la página
+        cargarLista();
+    </script>
+
+</body>
+</html>
