@@ -4,6 +4,8 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const path = require('path'); // <--- AGREGA ESTO AL PRINCIPIO
+
+const app = express();
 /** seguridad */
 
 // --- CONFIGURACIÓN DE SESIÓN ---
@@ -11,7 +13,10 @@ app.use(session({
     secret: 'Ingegarcia', // Cambia esto por una frase secreta tuya
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: true } // 
+    cookie: { secure: false, 
+    maxAge: 1000*60*60
+    } // 
+    
 }));
 
 // --- MIDDLEWARE DE PROTECCIÓN (El Guardia de Seguridad) ---
@@ -27,7 +32,7 @@ function protegerRuta(req, res, next) {
 
 
 
-const app = express();
+
 app.use(cors());
 app.use(express.json());
 // Esto hace que Node.js sirva tus archivos HTML automáticamente
