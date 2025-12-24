@@ -191,6 +191,7 @@
             const resTelas = await fetch('/telas'); 
             telasDB = await resTelas.json();
             const selTela = document.getElementById('select-tela');
+            selTela.innerHTML = '<option value="">-- Seleccione --</option>';
             // NOTA: Usamos t._id en lugar de t.id
             telasDB.forEach(t => selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t._id)));
             
