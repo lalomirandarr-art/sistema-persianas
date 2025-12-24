@@ -210,6 +210,21 @@ app.delete('/cotizaciones', async (req, res) => {
     }
 });
 
+const telaSchema = new mongoose.Schema({
+    nombre: String,
+    precioExtra: Number // El costo extra que se suma (ej: 0 o 100)
+});
+const Tela = mongoose.model('Tela', telaSchema);
+
+app.get('/telas', async (req, res) => {
+    try {
+        const telas = await Tela.find();
+        res.json(telas);
+    } catch (error) {
+        res.status(500).send("Error al obtener telas");
+    }
+});
+
 
 
 app.listen(PORT, () => console.log(`Servidor listo en http://localhost:${PORT}`));

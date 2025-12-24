@@ -163,10 +163,7 @@
        // --- VARIABLES GLOBALES ---
    let productosDB = [];
    let motoresDB = [];
-    const telasDB = [
-        { id: 1, nombre: "Malla Solar 5%", precioExtra: 0 },
-        { id: 2, nombre: "Blackout", precioExtra: 100 }
-    ];
+    const telasDB = [];
 
     async function inicializar() {
         // Llenar Utilidad
@@ -190,8 +187,15 @@
             selProd.innerHTML = '<option value="">-- Seleccione --</option>';
             productosDB.forEach(p => selProd.add(new Option(`${p.nombre} (Base: $${p.precio})`, p._id)));
             
+            // 2. TELAS (NUEVO FETCH)
+            const resTelas = await fetch('/telas'); 
+            telasDB = await resTelas.json();
             const selTela = document.getElementById('select-tela');
-            telasDB.forEach(t => selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t.id)));
+            // NOTA: Usamos t._id en lugar de t.id
+            telasDB.forEach(t => selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t._id)));
+            
+            
+
 
             // --- NUEVO: Cargar Motores ---
             const resMotores = await fetch('/motores'); // Asegurate de crear esta ruta en Node
@@ -255,7 +259,7 @@
    function obtenerDatosYCalcular() {
         // Recolección de datos
         const idProd = document.getElementById('select-producto').value;
-        const idTela = parseInt(document.getElementById('select-tela').value);
+        const idTela = (document.getElementById('select-tela').value);
         // Motor
         const usaMotor = document.getElementById('check-motor').checked;
         const idMotor = document.getElementById('select-motor').value;
@@ -296,7 +300,7 @@
 
         // --- CÁLCULOS MATEMÁTICOS ---
         const prod = productosDB.find(p => p._id === idProd);
-        const tela = telasDB.find(t => t.id === idTela);
+        const tela = telasDB.find(t => t._id === idTela);
         
         // Lógica Motor
         let motorObj = null;
