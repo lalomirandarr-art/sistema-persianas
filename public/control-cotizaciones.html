@@ -84,7 +84,7 @@
         </table>
     </div>
 
-    <script>
+   <script>
         async function cargarHistorial() {
             const tabla = document.querySelector('#tabla-cotizaciones tbody');
             
@@ -120,6 +120,14 @@
                         }
                     }
 
+                    // --- NUEVA LÓGICA DE IVA ---
+                    let infoIVA = '';
+                    if (c.iva && c.iva > 0) {
+                        infoIVA = `<div style="font-size: 0.75em; color: #666; font-weight: normal; margin-top: 4px;">✔ Incluye IVA: $${c.iva.toFixed(2)}</div>`;
+                    } else {
+                        infoIVA = `<div style="font-size: 0.75em; color: #ccc; font-weight: normal; margin-top: 4px; font-style: italic;">(Sin IVA)</div>`;
+                    }
+
                     const fila = `
                         <tr>
                             <td><strong>${c.cliente}</strong><br><span class="fecha">${fecha}</span></td>
@@ -129,7 +137,11 @@
                             <td class="utilidad">$${montoUtilidad.toFixed(2)} <br><span style="font-size:0.8em; color:#666;">${porcentajeUtil}</span></td>
                             <td>${infoDescuento}</td>
                             <td>${infoGastos}</td>
-                            <td class="total">$${c.total.toFixed(2)}</td>
+                            
+                            <td class="total">
+                                $${c.total.toFixed(2)}
+                                ${infoIVA}
+                            </td>
                             
                             <td style="text-align: center;">
                                 <button class="btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Eliminar Cotización">
@@ -147,15 +159,11 @@
             }
         }
 
-        // --- FUNCIÓN DE BORRADO ---
+        // --- FUNCIÓN DE BORRADO (IGUAL QUE ANTES) ---
         async function confirmarBorrado(id) {
-            // 1. Pedimos la contraseña al usuario
             const password = prompt("🔒 ACCESO RESTRINGIDO\nPara eliminar esta cotización, ingresa la contraseña de administrador:");
-            
-            // Si el usuario da Cancelar o no escribe nada, no hacemos nada
             if (!password) return;
 
-            // 2. Enviamos la orden al servidor
             try {
                 const res = await fetch('/cotizaciones', {
                     method: 'DELETE',
@@ -167,9 +175,9 @@
 
                 if (data.exito) {
                     alert("✅ " + data.mensaje);
-                    cargarHistorial(); // Recargamos la tabla para que desaparezca
+                    cargarHistorial(); 
                 } else {
-                    alert("⛔ Error: " + data.mensaje); // "Contraseña incorrecta"
+                    alert("⛔ Error: " + data.mensaje); 
                 }
 
             } catch (error) {
