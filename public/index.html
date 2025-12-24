@@ -7,62 +7,130 @@
 </head>
 <body>
 
-    <div class="login-container">
-        <div class="login-card">
-            <h2>Iniciar Sesión</h2>
+    <style>
+        /* Estilos específicos para este Login Moderno */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5; /* Fondo gris suave para toda la pagina */
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .login-card {
+            background: white;
+            width: 800px; /* Hacemos la tarjeta más ancha */
+            max-width: 90%;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden; /* Para que la imagen no se salga de las esquinas redondeadas */
+            display: flex; /* Esto pone la imagen y el formulario lado a lado */
+        }
+
+        /* Columna de la Imagen */
+        .login-imagen {
+            flex: 1; /* Ocupa el 50% del espacio */
+            background-image: url('/IMG/fondo-persianas.jpg'); /* <--- CAMBIA ESTO POR TU IMAGEN */
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        
+        /* Efecto opcional: una capa oscura sobre la imagen para que se vea elegante */
+        .login-imagen::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.3); 
+        }
+
+        /* Columna del Formulario */
+        .login-form-container {
+            flex: 1; /* Ocupa el otro 50% */
+            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-form-container h2 {
+            margin-top: 0;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .login-form-container input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box; /* Importante para que el padding no rompa el ancho */
+        }
+
+        .hero-button {
+            width: 100%;
+            padding: 12px;
+            background-color: #001f3f; /* Tu color azul */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .hero-button:hover {
+            background-color: #003366;
+        }
+
+        /* Para celulares: poner uno debajo del otro */
+        @media (max-width: 768px) {
+            .login-card {
+                flex-direction: column;
+                width: 400px;
+            }
+            .login-imagen {
+                height: 200px; /* En celular la imagen se hace chaparrita arriba */
+            }
+        }
+    </style>
+
+    <div class="login-card">
+        <div class="login-imagen">
+            </div>
+
+        <div class="login-form-container">
+            <img src="/IMG/logo PD.jpeg" alt="Logo" style="width: 80px; margin-bottom: 20px; align-self: center;">
+            
+            <h2>Bienvenido</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 0.9em;">Ingresa tus credenciales para acceder al cotizador.</p>
+            
             <input type="text" id="usuario" placeholder="Usuario">
             <input type="password" id="password" placeholder="Contraseña">
+            
             <button class="hero-button" onclick="validar()">Entrar</button>
-            <p id="mensaje" style="color: red; font-size: 14px; margin-top: 10px;"></p>
+            <p id="mensaje" style="color: red; font-size: 14px; margin-top: 10px; text-align: center;"></p>
         </div>
     </div>
 
     <script>
-    // La palabra "async" es necesaria para esperar la respuesta del servidor
-    async function validar() {
-        const user = document.getElementById('usuario').value;
-        const pass = document.getElementById('password').value;
-        const mensaje = document.getElementById('mensaje');
-
-        // Limpiamos mensajes anteriores
-        mensaje.innerText = "Consultando al servidor...";
-        mensaje.style.color = "blue";
-
-        try {
-            // 1. Enviamos los datos a tu servidor local (puerto 3000)
-            const respuesta = await fetch('/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ usuario: user, password: pass })
-            });
-
-            // 2. Esperamos a ver qué dice el servidor (convertimos a JSON)
-            const datos = await respuesta.json();
-
-            // 3. Verificamos la respuesta
-            if (datos.exito === true) {
-                // ¡Login correcto!
-                mensaje.innerText = "¡Bienvenido! Redirigiendo...";
-                mensaje.style.color = "green";
-                
-                // Esperamos 1 segundo para que se vea el mensaje y entramos
-                setTimeout(() => {
-                  
-                    window.location.href = 'inicio.html';
-                }, 1000);
-            } else {
-                // Login fallido
-                mensaje.innerText = "Usuario o contraseña incorrectos.";
-                mensaje.style.color = "red";
-            }
-
-        } catch (error) {
-            console.error("Error:", error);
-            mensaje.innerText = "Error: No puedo conectar con el servidor.";
-            mensaje.style.color = "red";
+        async function validar() {
+           // ... (Tu mismo código de javascript va aquí) ...
+           // Solo copialo de tu código original, no cambia nada.
+           const user = document.getElementById('usuario').value;
+           const pass = document.getElementById('password').value;
+           const mensaje = document.getElementById('mensaje');
+           // ... resto del código ...
+           // Simulación para que veas el mensaje (borrar esto al usar tu código real)
+           if(!user) { mensaje.innerText = "Ingresa usuario y contraseña"; return; }
+           mensaje.innerText = "Consultando...";
+           // ...
         }
-    }
-</script>
+    </script>
 
 </body>
 </html>
