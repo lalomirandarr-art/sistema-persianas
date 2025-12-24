@@ -117,18 +117,59 @@
         </div>
     </div>
 
-    <script>
+   <script>
         async function validar() {
-           // ... (Tu mismo código de javascript va aquí) ...
-           // Solo copialo de tu código original, no cambia nada.
-           const user = document.getElementById('usuario').value;
-           const pass = document.getElementById('password').value;
-           const mensaje = document.getElementById('mensaje');
-           // ... resto del código ...
-           // Simulación para que veas el mensaje (borrar esto al usar tu código real)
-           if(!user) { mensaje.innerText = "Ingresa usuario y contraseña"; return; }
-           mensaje.innerText = "Consultando...";
-           // ...
+            const user = document.getElementById('usuario').value;
+            const pass = document.getElementById('password').value;
+            const mensaje = document.getElementById('mensaje');
+
+            // 1. Validar que no estén vacíos
+            if (!user || !pass) {
+                mensaje.innerText = "Por favor ingresa usuario y contraseña.";
+                mensaje.style.color = "red";
+                return;
+            }
+
+            // 2. Mensaje de carga
+            mensaje.innerText = "Consultando al servidor...";
+            mensaje.style.color = "#001f3f"; // Azul oscuro
+
+            try {
+                // 3. Enviamos los datos a tu servidor
+                const respuesta = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario: user, password: pass })
+                });
+
+                // 4. Leemos la respuesta
+                if (!respuesta.ok) {
+                    throw new Error("Error en la conexión con el servidor");
+                }
+                
+                const datos = await respuesta.json();
+
+                // 5. Verificamos si es correcto
+                if (datos.exito === true) {
+                    // ¡Login correcto!
+                    mensaje.innerText = "¡Bienvenido! Redirigiendo...";
+                    mensaje.style.color = "green";
+                    
+                    // Esperamos 1 segundo y entramos
+                    setTimeout(() => {
+                        window.location.href = 'inicio.html';
+                    }, 1000);
+                } else {
+                    // Login fallido (contraseña mal)
+                    mensaje.innerText = "Usuario o contraseña incorrectos.";
+                    mensaje.style.color = "red";
+                }
+
+            } catch (error) {
+                console.error("Error:", error);
+                mensaje.innerText = "Error: No se pudo conectar con el sistema.";
+                mensaje.style.color = "red";
+            }
         }
     </script>
 
