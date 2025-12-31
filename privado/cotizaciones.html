@@ -74,8 +74,16 @@
 
         <div class="campo">
             <label>2. Tela (Costo Extra):</label>
-            <select id="select-tela"></select>
+            <select id="select-tela" onchange="actualizarListaColores()"></select>
         </div>
+
+        <div class="campo">
+            <label>3. Color de la Tela:</label>
+            <select id="select-color">
+                <option value="">-- Primero seleccione una tela --</option>
+            </select>
+        </div>
+
 
         <div class="grid-medidas">
             <div class="campo">
@@ -284,6 +292,7 @@
         const porcentajeUtilidad = parseInt(document.getElementById('select-utilidad').value);
         const porcentajeDescuento = parseInt(document.getElementById('select-descuento').value);
         const aplicarIva = document.getElementById('check-iva').checked;
+        const colorNombre = document.getElementById('select-color').value;
 
         if(!idProd || !idTela || !ancho || !alto) return null; 
 
@@ -342,7 +351,7 @@
             cliente, productoNombre: prod.nombre, telaNombre: tela.nombre,
             motorNombre: motorObj ? motorObj.nombre : "Sin Motor",
             ancho, alto, cant, areaCobrar, 
-            quienCotiza,
+            quienCotiza,colorNombre,
             // NUEVOS CAMPOS PARA EL DESGLOSE:
             totalMateriales, 
             totalMotores,
@@ -395,7 +404,7 @@
                 <div style="font-family: Arial, sans-serif;">
                     <p><strong>Atendido por:</strong> ${datos.quienCotiza}</p>
                     <p><strong>Cliente:</strong> ${datos.cliente}</p>
-                    <p><strong>Sistema:</strong> ${datos.productoNombre} | <strong>Tela:</strong> ${datos.telaNombre}</p>
+                    <p><strong>Sistema:</strong> ${datos.productoNombre} | <strong>Tela:</strong> ${datos.telaNombre} | <strong>Color:</strong> ${datos.colorNombre}</p>
                     <p><strong>Medidas:</strong> ${datos.ancho}x${datos.alto} (${datos.areaCobrar.toFixed(2)} m²) - Cant: ${datos.cant}</p>
                     <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
                     
@@ -458,7 +467,7 @@
             // Enviamos los gastos
             gastosAdicionales: datos.listaGastos,
             totalGastosAdicionales: datos.totalGastosAdicionales,
-
+            color: datos.colorNombre,
             total: datos.granTotal
         };
 
@@ -493,54 +502,83 @@
            // Si este producto no lleva telas, déjalo vacío o no lo pongas en la lista
        ]
    };
-
+   // --- 🆕 NUEVA CONFIGURACIÓN: COLORES ---
+   // Izquierda: Nombre exacto de la TELA
+   // Derecha: Lista de colores disponibles
+   const configuracionColores = {
+       "Tela Sheer White": [
+        "Blanco Puro",
+         "Hueso", "Marfil"
+        ],
+       "Malla Solar 5%": [
+        "Blanco", "Beige", 
+        "Gris", "Charcoal", 
+        "Negro"
+        ],
+       "Tela Blackout Gris": [
+        "Gris Claro",
+        "Gris Oxford", 
+        "Plata"],  
+   };
    // --- FUNCIÓN DE FILTRADO EXACTO ---
+   // --- FUNCIÓN DE FILTRADO DE TELAS (Modificada) ---
    function actualizarListaTelas() {
        const idProd = document.getElementById('select-producto').value;
        const selTela = document.getElementById('select-tela');
-       
-       // 1. Limpiar el select
-       selTela.innerHTML = '<option value="">-- Seleccione Tela --</option>';
+       const selColor = document.getElementById('select-color'); // <--- Referencia al color
 
-       // 2. Buscar qué producto eligieron
+       // 1. Limpiar selects
+       selTela.innerHTML = '<option value="">-- Seleccione Tela --</option>';
+       selColor.innerHTML = '<option value="">-- Primero seleccione una tela --</option>'; // <--- Limpiamos color también
+
        const productoSeleccionado = productosDB.find(p => p._id === idProd);
-       
        if (!productoSeleccionado) return; 
 
-       // 3. OBTENER LAS REGLAS
-       // Buscamos si existe una regla para este nombre de producto exacto
-       const nombreProd = productoSeleccionado.nombre; // Nombre tal cual viene de la BD
-       
-       // Verificamos si definimos telas para este producto en nuestra variable 'configuracionTelas'
+       const nombreProd = productoSeleccionado.nombre; 
        const telasPermitidas = configuracionTelas[nombreProd];
 
        let telasFiltradas = [];
-
        if (telasPermitidas) {
-           // SI HAY REGLA: Filtramos las telas que estén en la lista permitida
-           telasFiltradas = telasDB.filter(tela => {
-               // Devuelve true si el nombre de la tela está en nuestra lista de permitidas
-               return telasPermitidas.includes(tela.nombre);
-           });
-       } else {
-           // SI NO HAY REGLA DEFINIDA:
-           // Opción A: Mostrar todas (descomenta la siguiente línea si quieres eso)
-           // telasFiltradas = telasDB;
-           
-           // Opción B: No mostrar ninguna (más seguro para evitar errores)
-           telasFiltradas = [];
+           telasFiltradas = telasDB.filter(tela => telasPermitidas.includes(tela.nombre));
        }
 
-       // 4. Llenar el select
        if (telasFiltradas.length === 0) {
-           // Si no hay reglas o no hay telas coincidentes
-           selTela.innerHTML = '<option value="">-- No hay telas configuradas para este producto --</option>';
+           selTela.innerHTML = '<option value="">-- No hay telas configuradas --</option>';
        } else {
            telasFiltradas.forEach(t => {
                selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t._id));
            });
        }
    }
+
+   // --- 🆕 NUEVA FUNCIÓN: FILTRADO DE COLORES ---
+   function actualizarListaColores() {
+       const idTela = document.getElementById('select-tela').value;
+       const selColor = document.getElementById('select-color');
+       
+       // 1. Limpiar select
+       selColor.innerHTML = '<option value="">-- Seleccione Color --</option>';
+
+       // 2. Buscar tela seleccionada
+       const telaSeleccionada = telasDB.find(t => t._id === idTela);
+       
+       if (!telaSeleccionada) return;
+
+       // 3. Buscar colores en la configuración
+       const nombreTela = telaSeleccionada.nombre;
+       const coloresPermitidos = configuracionColores[nombreTela];
+
+       if (coloresPermitidos && coloresPermitidos.length > 0) {
+           coloresPermitidos.forEach(color => {
+               // El valor y el texto son iguales en este caso
+               selColor.add(new Option(color, color));
+           });
+       } else {
+           selColor.innerHTML = '<option value="N/A">Sin colores definidos</option>';
+       }
+   }
+
+   
     </script>
 </body>
 </html>
