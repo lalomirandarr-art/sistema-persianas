@@ -1,3 +1,10 @@
+
+// Agrega esta línea HASTA ARRIBA, antes de const express...
+require('dotenv').config(); 
+
+const express = require('express');
+// ... el resto de tus imports ...
+
 // server.js - Versión con Usuarios y Productos
 const express = require('express');
 const cors = require('cors');
@@ -9,8 +16,10 @@ const app = express();
 /** seguridad */
 
 // --- CONFIGURACIÓN DE SESIÓN ---
+// Busca donde dice secret: 'Ingegarcia' y cámbialo por:
 app.use(session({
-    secret: 'Ingegarcia', // Cambia esto por una frase secreta tuya
+    secret: process.env.SESSION_SECRET, // <--- Lee del archivo oculto
+    // ..., // Cambia esto por una frase secreta tuya
     resave: false,
     saveUninitialized: false,
     cookie: { secure: false, 
