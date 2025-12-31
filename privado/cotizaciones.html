@@ -354,12 +354,12 @@
     }
 
     // --- MOSTRAR RESULTADOS ---
-    // --- 1. MODIFICAMOS CALCULAR PARA QUE INCLUYA EL LOGO EN EL REPORTE ---
+    // Reemplaza tu función calcular() por esta nueva versión:
     function calcular() {
         const datos = obtenerDatosYCalcular();
         if(!datos) return; 
 
-        // Gastos extra
+        // 1. Preparar HTML de Gastos (Igual que antes)
         let htmlGastos = '';
         if (datos.totalGastosAdicionales > 0) {
             htmlGastos = `<div class="fila-precio" style="color: #6610f2; border-bottom: 1px dashed #ccc; padding-bottom:5px;">
@@ -367,8 +367,21 @@
                           </div>`;
         }
 
-        // --- CAMBIO CLAVE: Nombre de imagen sencillo y sin espacios ---
-        // Asegúrate de que tu carpeta se llame 'IMG' (mayúsculas) y el archivo 'logo.jpeg' (minúsculas)
+        // 2. NUEVO: Preparar HTML del IVA
+        let htmlIva = '';
+        if (datos.iva > 0) {
+            // Si se cobró IVA, lo mostramos explícitamente
+            htmlIva = `<div class="fila-precio" style="color: #856404;">
+                           <span class="etiqueta">+ IVA (16%):</span> <span>$${datos.iva.toFixed(2)}</span>
+                       </div>`;
+        } else {
+            // Si NO se cobró IVA, mostramos un aviso discreto
+            htmlIva = `<div class="fila-precio" style="color: #aaa; font-style: italic; font-size: 0.9em;">
+                           <span class="etiqueta">IVA:</span> <span>No incluido (0%)</span>
+                       </div>`;
+        }
+
+        // 3. Generar el HTML completo
         let html = `
             <div id="contenido-pdf" style="padding: 20px; background-color: white; width: 100%; box-sizing: border-box;">
                 
@@ -406,6 +419,7 @@
 
                     ${htmlGastos}
 
+                    ${htmlIva}
                     <div class="fila-precio" style="font-weight:bold; margin-top:10px; border-top: 2px solid #001f3f; padding-top: 10px; font-size: 1.2em;">
                         <span class="etiqueta">TOTAL A PAGAR:</span> <span>$${datos.granTotal.toFixed(2)}</span>
                     </div>
@@ -420,7 +434,6 @@
         document.getElementById('resultado-cotizacion').style.display = 'block';
         document.getElementById('detalle-contenido').innerHTML = html;
     }
-
 
 
     // --- GUARDAR ---
