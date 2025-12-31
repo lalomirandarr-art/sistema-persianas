@@ -2,7 +2,6 @@
 // Agrega esta línea HASTA ARRIBA, antes de const express...
 require('dotenv').config(); 
 
-const express = require('express');
 // ... el resto de tus imports ...
 
 // server.js - Versión con Usuarios y Productos
@@ -51,7 +50,7 @@ app.use(express.static('public'));
 // ... AQUÍ SIGUE TU CÓDIGO DE MONGODB IGUAL QUE ANTES ...
 // (No borres tu conexión a la base de datos ni tus rutas)
 
-const uri = "mongodb+srv://lalomirandarr_2005:Lalette2005.@cluster0.tzwlyxr.mongodb.net/?appName=Cluster0";
+const uri = process.env.MONGODB_URI;
 
 
 mongoose.connect(uri)
