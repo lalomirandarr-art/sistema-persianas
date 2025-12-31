@@ -55,6 +55,11 @@
     <div class="cotizador-container">
         <h1>💰 Cotizador Comercial</h1>
         
+        <div class="campo-formulario">
+    <label for="quienCotiza">¿Quién cotiza?</label>
+    <input type="text" id="quienCotiza" placeholder="Ej. Lalo Miranda">
+</div>
+
         <div class="campo">
             <label>Cliente:</label>
             <input type="text" id="cliente" placeholder="Nombre del cliente">
@@ -268,7 +273,7 @@
         const idTela = document.getElementById('select-tela').value; 
         const usaMotor = document.getElementById('check-motor').checked;
         const idMotor = document.getElementById('select-motor').value;
-        
+        const quienCotiza = document.getElementById('quienCotiza').value;
         const ancho = parseFloat(document.getElementById('ancho').value);
         const alto = parseFloat(document.getElementById('alto').value);
         const cant = parseInt(document.getElementById('cantidad').value);
@@ -334,7 +339,7 @@
             cliente, productoNombre: prod.nombre, telaNombre: tela.nombre,
             motorNombre: motorObj ? motorObj.nombre : "Sin Motor",
             ancho, alto, cant, areaCobrar, 
-            
+            quienCotiza,
             // NUEVOS CAMPOS PARA EL DESGLOSE:
             totalMateriales, 
             totalMotores,
@@ -419,7 +424,7 @@
         const datos = obtenerDatosYCalcular();
         if(!datos) return; 
         if(!datos.cliente) { alert("Falta el cliente"); return; }
-
+        if(!datos.quienCotiza) { alert("Dinos quién está cotizando"); return; }
         const paquete = {
             cliente: datos.cliente,
             producto: datos.productoNombre,
@@ -431,7 +436,7 @@
             precioConUtilidad: datos.precioConUtilidad,
             porcentajeDescuento: datos.porcentajeDescuento,
             motor: datos.motorNombre,
-            
+            quienCotiza: datos.quienCotiza,
             // Enviamos los gastos
             gastosAdicionales: datos.listaGastos,
             totalGastosAdicionales: datos.totalGastosAdicionales,
