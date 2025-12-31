@@ -155,6 +155,7 @@ const cotizacionSchema = new mongoose.Schema({
     cliente: String,
     producto: String,
     tela: String,
+    quienCotiza: String,
     medidas: {
         ancho: Number,
         alto: Number
