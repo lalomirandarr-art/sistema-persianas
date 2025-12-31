@@ -302,7 +302,8 @@ app.delete('/cotizaciones', async (req, res) => {
 
 const telaSchema = new mongoose.Schema({
     nombre: String,
-    precioExtra: Number // El costo extra que se suma (ej: 0 o 100)
+    precioExtra: Number, // El costo extra que se suma (ej: 0 o 100)
+    productos: [String]
 });
 const Tela = mongoose.model('Tela', telaSchema);
 

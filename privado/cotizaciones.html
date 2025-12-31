@@ -494,47 +494,41 @@
     // --- 🆕 CONFIGURACIÓN MANUAL DE TELAS ---
    // Aquí escribes EXACTAMENTE el nombre del producto (izquierda)
    // y la lista de telas permitidas para él (derecha).
-   const configuracionTelas = {
-       "Persiana Sheer Elegance": [
-           "Tela Sheer White", 
-           "Malla Solar 5%"
-       ],
-       "Persiana Blackout Premium": [
-           "Tela Blackout Gris", 
-           "Malla Solar 5%"
-       ],
-       "Persiana Antibacteriana": [
-           "Malla Solar 5%"
-       ],
-       "Motorización Básica": [
-           // Si este producto no lleva telas, déjalo vacío o no lo pongas en la lista
-       ]
-   };
+ 
   
    // --- FUNCIÓN DE FILTRADO EXACTO ---
    // --- FUNCIÓN DE FILTRADO DE TELAS (Modificada) ---
+   // --- FUNCIÓN DINÁMICA DE TELAS (DESDE MONGO) ---
    function actualizarListaTelas() {
        const idProd = document.getElementById('select-producto').value;
        const selTela = document.getElementById('select-tela');
-       const selColor = document.getElementById('select-color'); // <--- Referencia al color
+       
+       // También limpiamos colores porque al cambiar tela, cambian colores
+       const selColor = document.getElementById('select-color'); 
+       if(selColor) selColor.innerHTML = '<option value="">-- Primero seleccione una tela --</option>';
 
-       // 1. Limpiar selects
+       // 1. Limpiar select
        selTela.innerHTML = '<option value="">-- Seleccione Tela --</option>';
-       selColor.innerHTML = '<option value="">-- Primero seleccione una tela --</option>'; // <--- Limpiamos color también
 
+       // 2. Buscar producto seleccionado
        const productoSeleccionado = productosDB.find(p => p._id === idProd);
+       
        if (!productoSeleccionado) return; 
 
-       const nombreProd = productoSeleccionado.nombre; 
-       const telasPermitidas = configuracionTelas[nombreProd];
+       const nombreProd = productoSeleccionado.nombre;
 
-       let telasFiltradas = [];
-       if (telasPermitidas) {
-           telasFiltradas = telasDB.filter(tela => telasPermitidas.includes(tela.nombre));
-       }
+       // 3. FILTRAR: Buscamos telas que incluyan este producto en su lista "productos"
+       const telasFiltradas = telasDB.filter(tela => {
+           // Verificamos si la tela tiene la lista definida y si el producto está en ella
+           if (tela.productos && Array.isArray(tela.productos)) {
+               return tela.productos.includes(nombreProd);
+           }
+           return false; // Si la tela no tiene configuración, no la mostramos
+       });
 
+       // 4. Llenar el select
        if (telasFiltradas.length === 0) {
-           selTela.innerHTML = '<option value="">-- No hay telas configuradas --</option>';
+           selTela.innerHTML = '<option value="">-- No hay telas disponibles para este producto --</option>';
        } else {
            telasFiltradas.forEach(t => {
                selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t._id));
