@@ -166,7 +166,7 @@ const cotizacionSchema = new mongoose.Schema({
     porcentajeUtilidad: Number, // El porcentaje elegido (ej: 50)
     precioConUtilidad: Number,  // El precio de venta
     porcentajeDescuento: Number,
-
+    iva: Number,
 gastosAdicionales: [{
         descripcion: String,
         monto: Number
