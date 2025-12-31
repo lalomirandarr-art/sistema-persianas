@@ -67,7 +67,9 @@
 
         <div class="campo">
             <label>1. Producto (Costo Base):</label>
-            <select id="select-producto"><option>Cargando...</option></select>
+            <select id="select-producto" onchange="actualizarListaTelas()">
+    <option>Cargando...</option>
+</select>
         </div>
 
         <div class="campo">
@@ -200,10 +202,11 @@
             // 2. TELAS (NUEVO FETCH)
             const resTelas = await fetch('/telas'); 
             telasDB = await resTelas.json();
+
+
             const selTela = document.getElementById('select-tela');
             selTela.innerHTML = '<option value="">-- Seleccione --</option>';
             // NOTA: Usamos t._id en lugar de t.id
-            telasDB.forEach(t => selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t._id)));
             
             
 
@@ -456,6 +459,58 @@
             else alert("Error: " + r.mensaje);
         } catch (e) { console.error(e); alert("Error de conexión"); }
     }
+
+    // --- 🆕 NUEVA FUNCIÓN: FILTRAR TELAS ---
+   function actualizarListaTelas() {
+       const idProd = document.getElementById('select-producto').value;
+       const selTela = document.getElementById('select-tela');
+       
+       // 1. Limpiar el select de telas
+       selTela.innerHTML = '<option value="">-- Seleccione Tela --</option>';
+
+       // 2. Buscar el producto seleccionado para saber su nombre
+       const productoSeleccionado = productosDB.find(p => p._id === idProd);
+       
+       if (!productoSeleccionado) return; // Si no hay producto, no hacemos nada
+
+       // 3. FILTRAR: Aquí definimos la lógica.
+       // Vamos a crear una lista temporal 'telasFiltradas'
+       
+       const nombreProd = productoSeleccionado.nombre.toLowerCase(); // Convertimos a minúsculas para comparar fácil
+       
+       let telasFiltradas = telasDB.filter(tela => {
+           const nombreTela = tela.nombre.toLowerCase();
+
+           // --- REGLAS DE NEGOCIO (Aquí configuras tu lógica) ---
+           
+           // A. Si es Sheer, solo mostrar telas Sheer
+           if (nombreProd.includes("sheer")) {
+               return nombreTela.includes("sheer");
+           }
+           
+           // B. Si es Blackout, solo mostrar telas Blackout
+           if (nombreProd.includes("blackout")) {
+               return nombreTela.includes("blackout"); 
+           }
+
+           // C. Si es Enrollable Solar, mostrar telas "Solar" o "Screen"
+           if (nombreProd.includes("solar") || nombreProd.includes("enrollable")) {
+               return nombreTela.includes("solar") || nombreTela.includes("screen") || nombreTela.includes("malla");
+           }
+
+           // D. Por defecto (si no coincide ninguna regla), MOSTRAR TODAS (o ninguna, tú decides)
+           return true; 
+       });
+
+       // 4. Llenar el select con las telas que pasaron el filtro
+       if (telasFiltradas.length === 0) {
+           selTela.innerHTML = '<option value="">-- No hay telas disponibles para este producto --</option>';
+       } else {
+           telasFiltradas.forEach(t => {
+               selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t._id));
+           });
+       }
+   }
     </script>
 </body>
 </html>
