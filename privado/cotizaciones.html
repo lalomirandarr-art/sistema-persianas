@@ -184,6 +184,8 @@
    let productosDB = [];
    let motoresDB = [];
    let telasDB = [];
+   let coloresDB = [];
+
 
     async function inicializar() {
         // Llenar Utilidad
@@ -224,6 +226,12 @@
             motoresDB = await resMotores.json();
             const selMotor = document.getElementById('select-motor');
             motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
+
+
+            const resColores = await fetch('/colores');
+            coloresDB = await resColores.json(); // Guardamos todos los colores en memoria
+            console.log("🎨 Colores cargados:", coloresDB.length);
+
         } catch (e) { console.error(e); }
     }
     inicializar();
@@ -502,24 +510,7 @@
            // Si este producto no lleva telas, déjalo vacío o no lo pongas en la lista
        ]
    };
-   // --- 🆕 NUEVA CONFIGURACIÓN: COLORES ---
-   // Izquierda: Nombre exacto de la TELA
-   // Derecha: Lista de colores disponibles
-   const configuracionColores = {
-       "Tela Sheer White": [
-        "Blanco Puro",
-         "Hueso", "Marfil"
-        ],
-       "Malla Solar 5%": [
-        "Blanco", "Beige", 
-        "Gris", "Charcoal", 
-        "Negro"
-        ],
-       "Tela Blackout Gris": [
-        "Gris Claro",
-        "Gris Oxford", 
-        "Plata"],  
-   };
+  
    // --- FUNCIÓN DE FILTRADO EXACTO ---
    // --- FUNCIÓN DE FILTRADO DE TELAS (Modificada) ---
    function actualizarListaTelas() {
@@ -552,6 +543,7 @@
    }
 
    // --- 🆕 NUEVA FUNCIÓN: FILTRADO DE COLORES ---
+   // --- FUNCIÓN DINÁMICA DE COLORES ---
    function actualizarListaColores() {
        const idTela = document.getElementById('select-tela').value;
        const selColor = document.getElementById('select-color');
@@ -559,22 +551,24 @@
        // 1. Limpiar select
        selColor.innerHTML = '<option value="">-- Seleccione Color --</option>';
 
-       // 2. Buscar tela seleccionada
+       // 2. Buscar la tela seleccionada en la BD local
        const telaSeleccionada = telasDB.find(t => t._id === idTela);
        
        if (!telaSeleccionada) return;
 
-       // 3. Buscar colores en la configuración
-       const nombreTela = telaSeleccionada.nombre;
-       const coloresPermitidos = configuracionColores[nombreTela];
+       const nombreTelaActual = telaSeleccionada.nombre;
 
-       if (coloresPermitidos && coloresPermitidos.length > 0) {
-           coloresPermitidos.forEach(color => {
-               // El valor y el texto son iguales en este caso
-               selColor.add(new Option(color, color));
+       // 3. FILTRAR: Buscamos en la BD de colores los que coincidan con esta tela
+       // (Comparamos el campo 'telaNombre' que pusimos en Mongo con el nombre de la tela actual)
+       const coloresFiltrados = coloresDB.filter(c => c.telaNombre === nombreTelaActual);
+
+       // 4. Llenar el select
+       if (coloresFiltrados.length > 0) {
+           coloresFiltrados.forEach(c => {
+               selColor.add(new Option(c.nombre, c.nombre));
            });
        } else {
-           selColor.innerHTML = '<option value="N/A">Sin colores definidos</option>';
+           selColor.innerHTML = '<option value="N/A">-- Sin colores registrados --</option>';
        }
    }
 

@@ -246,6 +246,33 @@ app.get('/motores', async (req, res) => {
     }
 });
 
+//colorschema//
+
+// ==========================================
+//              ZONA DE COLORES (NUEVO)
+// ==========================================
+
+// 1. El Molde (Schema)
+// Guardamos el nombre del color y el nombre EXACTO de la tela a la que pertenece
+const colorSchema = new mongoose.Schema({
+    nombre: String,      // Ej: "Blanco Puro"
+    telaNombre: String   // Ej: "Tela Sheer White" (Debe coincidir con la BD de Telas)
+});
+
+const Color = mongoose.model('Color', colorSchema);
+
+// 2. La Ruta (API) para obtener colores
+app.get('/colores', async (req, res) => {
+    try {
+        const colores = await Color.find();
+        res.json(colores);
+    } catch (error) {
+        res.status(500).json({ error: "Error al obtener colores" });
+    }
+});
+
+
+
 
 // --- NUEVA RUTA: BORRAR COTIZACIÓN (CON SEGURIDAD) ---
 app.delete('/cotizaciones', async (req, res) => {
