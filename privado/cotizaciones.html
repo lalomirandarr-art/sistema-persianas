@@ -424,7 +424,7 @@
         const datos = obtenerDatosYCalcular();
         if(!datos) return; 
         if(!datos.cliente) { alert("Falta el cliente"); return; }
-        if(!datos.quienCotiza) { alert("Dinos quién está cotizando"); return; }
+        if(!datos.quienCotiza) { alert("⚠️ Por favor escribe quién está haciendo la cotización."); return; }
         const paquete = {
             cliente: datos.cliente,
             producto: datos.productoNombre,
