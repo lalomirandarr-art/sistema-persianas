@@ -372,6 +372,7 @@
        // --- 4. GENERAR PDF (ARREGLADO) ---
       // --- 4. GENERAR PDF (TÉCNICA DE CLONACIÓN) ---
       // --- 4. GENERAR PDF (CORREGIDO: ANCHO Y VISIBILIDAD) ---
+       // --- 4. GENERAR PDF (VERSIÓN FINAL CORREGIDA) ---
        function generarPDF() {
             // A. VALIDAR
             if (carritoItems.length === 0) {
@@ -385,7 +386,7 @@
             
             const totales = calcularTotalesGlobales(); 
 
-            // B. LLENAR DATOS EN LA PLANTILLA ORIGINAL
+            // B. LLENAR DATOS EN LA PLANTILLA ORIGINAL (Invisible)
             document.getElementById('pdf-cliente-nombre').innerText = nombreCliente;
             document.getElementById('pdf-fecha').innerText = fechaHoy;
             document.getElementById('pdf-folio').innerText = folio;
@@ -432,34 +433,34 @@
             const elementoOriginal = document.getElementById('plantilla-pdf');
             const elementoClon = elementoOriginal.cloneNode(true);
             
-            // --- AJUSTES CLAVE ---
+            // --- AJUSTES CRÍTICOS ---
             elementoClon.style.display = 'block';
             elementoClon.style.position = 'absolute';
             elementoClon.style.top = '0px';
             elementoClon.style.left = '0px';
             
-            // 1. ANCHO REDUCIDO: 700px asegura que quepa en hoja Carta (evita corte derecho)
+            // 1. ANCHO: 700px asegura que quepa en hoja Carta sin cortarse
             elementoClon.style.width = '700px'; 
             
-            // 2. Z-INDEX ALTO: Lo traemos al frente para asegurar que se renderice (evita hoja blanca)
+            // 2. VISIBILIDAD: Lo ponemos ENCIMA de todo (9999) para asegurar que el navegador lo dibuje
             elementoClon.style.zIndex = '9999'; 
             elementoClon.style.background = 'white';
             
             document.body.appendChild(elementoClon);
 
             const opt = {
-                margin:       0.3, // Margen seguro
+                margin:       0.3, 
                 filename:     `Cotizacion_${nombreCliente}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, scrollY: 0 }, 
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
+            // Generamos el PDF y luego borramos el clon inmediatamente
             html2pdf().set(opt).from(elementoClon).save().then(function() {
                 document.body.removeChild(elementoClon);
             });
         }
-
        // --- 5. GUARDAR EN BD ---
        async function guardarCotizacionCompleta() {
            if(carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
