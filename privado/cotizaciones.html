@@ -199,10 +199,9 @@
        // --- VARIABLES GLOBALES ---
        let productosDB = [], motoresDB = [], telasDB = [], coloresDB = [];
        
-       // 🛒 EL CARRITO DE COMPRAS (Aquí se guardan las persianas)
        let carritoItems = []; 
 
-       // Inicialización (Cargar datos del server)
+       // Inicialización
        async function inicializar() {
            const selUtil = document.getElementById('select-utilidad');
            for(let i=0; i<=400; i+=10) {
@@ -234,7 +233,7 @@
        }
        inicializar();
 
-       // --- 1. FUNCIÓN PARA AGREGAR AL CARRITO ---
+       // --- 1. AGREGAR AL CARRITO ---
        function agregarAlCarrito() {
            const idProd = document.getElementById('select-producto').value;
            const idTela = document.getElementById('select-tela').value;
@@ -290,7 +289,7 @@
            actualizarTablaCarrito();
        }
 
-       // --- 2. DIBUJAR TABLA DEL CARRITO ---
+       // --- 2. DIBUJAR TABLA ---
        function actualizarTablaCarrito() {
            const tbody = document.querySelector('#tabla-items tbody');
            tbody.innerHTML = '';
@@ -327,7 +326,7 @@
            actualizarTablaCarrito();
        }
 
-       // --- 3. CÁLCULO DE TOTALES GLOBALES ---
+       // --- 3. TOTALES GLOBALES ---
        function calcularTotalesGlobales() {
            let subtotalProductos = carritoItems.reduce((sum, item) => sum + item.total, 0);
            let totalGastos = 0;
@@ -350,7 +349,6 @@
            const iva = aplicarIva ? baseImponible * 0.16 : 0;
            const granTotal = baseImponible + iva;
 
-           // Actualizar vista HTML normal
            document.getElementById('lbl-subtotal-items').innerText = `$${subtotalProductos.toFixed(2)}`;
            const lblGastos = document.getElementById('lbl-gastos');
            if(totalGastos > 0) {
@@ -371,29 +369,24 @@
            return { subtotalProductos, totalGastos, listaGastos, iva, granTotal };
        }
 
-       // --- 4. GENERAR PDF (CORREGIDO) ---
+       // --- 4. GENERAR PDF (ARREGLADO) ---
        function generarPDF() {
-            // A. VALIDAR
             if (carritoItems.length === 0) {
                 alert("No hay productos para generar el PDF.");
                 return;
             }
 
-            // B. OBTENER DATOS
             const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
             const fechaHoy = new Date().toLocaleDateString('es-MX');
-            // Generar folio aleatorio
             const folio = "COT-" + Math.floor(Math.random() * 10000);
             
-            // C. CALCULAR TOTALES
             const totales = calcularTotalesGlobales(); 
 
-            // D. LLENAR ENCABEZADO OCULTO
+            // Llenar datos en la plantilla oculta
             document.getElementById('pdf-cliente-nombre').innerText = nombreCliente;
             document.getElementById('pdf-fecha').innerText = fechaHoy;
             document.getElementById('pdf-folio').innerText = folio;
 
-            // E. LLENAR TABLA
             const tablaBody = document.getElementById('pdf-tabla-body');
             tablaBody.innerHTML = ''; 
 
@@ -417,7 +410,6 @@
                 tablaBody.innerHTML += fila;
             });
 
-            // Gastos Extra
             if(totales.totalGastos > 0) {
                 totales.listaGastos.forEach(g => {
                     let filaGasto = `
@@ -429,14 +421,16 @@
                 });
             }
 
-            // Totales Finales
             document.getElementById('pdf-subtotal').innerText = `$${(totales.subtotalProductos + totales.totalGastos).toFixed(2)}`;
             document.getElementById('pdf-iva').innerText = `$${totales.iva.toFixed(2)}`;
             document.getElementById('pdf-total').innerText = `$${totales.granTotal.toFixed(2)}`;
 
-            // F. GENERAR PDF (Sin toggle de display)
+            // --- LÓGICA CRÍTICA PARA EVITAR PDF EN BLANCO ---
             const elemento = document.getElementById('plantilla-pdf');
             
+            // 1. Mostrar elemento
+            elemento.style.display = 'block';
+
             const opt = {
                 margin:       0.3,
                 filename:     `Cotizacion_${nombreCliente}.pdf`,
@@ -445,8 +439,10 @@
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
-            // Simplemente generamos, ya que el elemento existe (aunque esté fuera de pantalla)
-            html2pdf().set(opt).from(elemento).save();
+            // 2. Generar y LUEGO ocultar
+            html2pdf().set(opt).from(elemento).save().then(function() {
+                elemento.style.display = 'none'; // Ocultar solo cuando termine
+            });
         }
 
        // --- 5. GUARDAR EN BD ---
@@ -485,7 +481,7 @@
            } catch(e) { alert("Error de conexión"); console.error(e); }
        }
 
-       // Helpers visuales
+       // Helpers
        function actualizarListaTelas() {
            const idProd = document.getElementById('select-producto').value;
            const selTela = document.getElementById('select-tela');
@@ -525,7 +521,7 @@
        }
     </script>
 
-   <div id="plantilla-pdf" style="position: absolute; top: -9999px; left: -9999px; width: 800px; font-family: 'Arial', sans-serif; color: #333; background: white;">
+    <div id="plantilla-pdf" style="display: none; width: 800px; font-family: 'Arial', sans-serif; color: #333; background: white;">
         
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 15px; margin-bottom: 20px;">
             <div style="width: 40%;">
@@ -563,7 +559,7 @@
                 </tr>
             </thead>
             <tbody id="pdf-tabla-body">
-                </tbody>
+            </tbody>
         </table>
 
         <div style="margin-top: 20px; display: flex; justify-content: space-between;">
@@ -594,12 +590,6 @@
             </div>
         </div>
     </div>
-        </div>
-    </div>
-</div>
-
-
-
 
 </body>
 </html>
