@@ -7,32 +7,28 @@
     <style>
         .historial-container { padding: 40px; max-width: 1400px; margin: auto; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); font-size: 0.85em; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); font-size: 0.9em; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: middle; }
         th { background-color: #001f3f; color: white; }
         tr:hover { background-color: #f8f9fa; }
         
-        .badge { padding: 3px 8px; border-radius: 10px; font-size: 0.85em; background: #e2e6ea; color: #333; }
-        .fecha { color: #666; font-size: 0.9em; }
-        
-        .costo { color: #dc3545; } 
-        .utilidad { color: #28a745; font-weight: bold; } 
-        .descuento { color: #d63384; font-weight: bold; } 
-        .extras { color: #6610f2; font-weight: bold; } 
+        .fecha { color: #666; font-size: 0.9em; display: block; margin-top: 4px;}
         .total { font-weight: bold; font-size: 1.1em; color: #000; }
-        .detalle-gastos { font-size: 0.85em; color: #555; margin-top: 4px; border-left: 2px solid #ccc; padding-left: 5px; 
-            max-width: 150px; min-width: 120px; white-space: normal; overflow-wrap: break-word; word-wrap: break-word;}
 
-        /* Estilo del Botón Borrar */
+        /* Estilo del Botón Borrar (ajustado para estar junto al precio) */
         .btn-borrar {
             background-color: transparent; border: 1px solid #dc3545; color: #dc3545;
-            padding: 5px 10px; border-radius: 5px; cursor: pointer; transition: all 0.3s;
+            padding: 4px 8px; border-radius: 5px; cursor: pointer; transition: all 0.3s;
+            margin-left: 10px; font-size: 0.8em;
         }
         .btn-borrar:hover { background-color: #dc3545; color: white; }
-
-        /* Estilo para items múltiples en la tabla */
-        .item-lista { border-bottom: 1px solid #eee; margin-bottom: 4px; padding-bottom: 4px; }
-        .item-lista:last-child { border-bottom: none; }
+        
+        /* Centrado de columnas específicas */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        
+        /* Estilo para el ID */
+        .id-row { font-weight: bold; color: #001f3f; background: #eef2f5; padding: 5px 10px; border-radius: 4px; display: inline-block;}
     </style>
 </head>
 <body>
@@ -61,7 +57,7 @@
     </header>
 
     <div class="historial-container">
-        <h1>📊 Historial Detallado de Cotizaciones</h1>
+        <h1>📊 Historial Resumido de Cotizaciones</h1>
         
         <div style="background-color: #f1f3f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end;">
             <div style="flex: 1; min-width: 200px;">
@@ -86,16 +82,11 @@
         <table id="tabla-cotizaciones">
             <thead>
                 <tr>
-                    <th>Fecha / Cliente</th>
+                    <th style="width: 50px;" class="text-center">#</th>
+                    <th>Cliente / Fecha</th>
                     <th>Cotizador</th>
-                    <th>Producto(s)</th>
-                    <th>Medidas</th>
-                    <th>Costo Neto</th>
-                    <th>Utilidad</th>
-                    <th>Descuento</th>
-                    <th>Gastos Extra</th>
-                    <th>Venta Final</th>
-                    <th style="text-align: center;">Acción</th> 
+                    <th class="text-center">Cant. Persianas</th>
+                    <th class="text-right">Gran Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -119,108 +110,63 @@
         }
     }
 
-    // 2. DIBUJAR LA TABLA (CORREGIDO PARA MULTI-PRODUCTO)
+    // 2. DIBUJAR LA TABLA (SIMPLIFICADA A 5 COLUMNAS)
     function renderizarTabla(datos) {
         const tabla = document.querySelector('#tabla-cotizaciones tbody');
         
         if (datos.length === 0) {
-            tabla.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 20px; color: #666;">No se encontraron coincidencias.</td></tr>';
+            tabla.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #666;">No se encontraron coincidencias.</td></tr>';
             return;
         }
 
         tabla.innerHTML = ''; 
         
-        datos.forEach(c => {
+        // Agregamos el index para el número de fila (ID visual)
+        datos.forEach((c, index) => {
+            
+            // --- A. FECHA ---
             const fecha = new Date(c.fecha).toLocaleDateString('es-MX', { 
                 month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' 
             });
 
+            // --- B. COTIZADOR ---
             const cotizador = c.quienCotiza ? c.quienCotiza : '<span style="color:#ccc;">---</span>';
             
-            // --- LÓGICA HÍBRIDA (NUEVO vs VIEJO) ---
-            let celdaProducto = '';
-            let celdaMedidas = '';
-            let celdaCosto = '';
-            let celdaUtilidad = '';
-
-            // CASO 1: COTIZACIÓN NUEVA (Carrito con 'items')
+            // --- C. CANTIDAD DE PERSIANAS (Lógica Mixta) ---
+            let cantidadTotal = 0;
             if (c.items && c.items.length > 0) {
+                // Si es cotización nueva (array de items), sumamos las cantidades
                 c.items.forEach(item => {
-                    celdaProducto += `<div class="item-lista">
-                                        <strong>${item.producto}</strong> <span style="font-size:0.9em; color:#666;">(${item.tela})</span>
-                                        ${item.color ? `<br><small>🎨 ${item.color}</small>` : ''}
-                                      </div>`;
-                    
-                    celdaMedidas += `<div class="item-lista">
-                                        ${item.medidas.ancho} x ${item.medidas.alto} <small>(Cant: ${item.cantidad})</small>
-                                     </div>`;
+                    cantidadTotal += Number(item.cantidad) || 0;
                 });
-                // En cotizaciones múltiples, estos datos son complejos de mostrar por celda,
-                // mostramos un resumen o indicativo.
-                celdaCosto = `<span style="font-style:italic; color:#888;">(Ver Detalle)</span>`;
-                celdaUtilidad = `<span style="font-style:italic; color:#888;">(Múltiple)</span>`;
-            
             } else {
-                // CASO 2: COTIZACIÓN ANTIGUA (Estructura plana)
-                const prodNombre = c.producto || 'Producto Desconocido';
-                const telaNombre = c.tela || '';
-                celdaProducto = `${prodNombre}<br><span class="badge">${telaNombre}</span>`;
-                
-                if(c.medidas) {
-                    celdaMedidas = `${c.medidas.ancho} x ${c.medidas.alto} m<br>Cant: ${c.cantidad}`;
-                } else {
-                    celdaMedidas = 'N/A';
-                }
-
-                celdaCosto = c.costoNeto ? `$${c.costoNeto.toFixed(2)}` : 'N/A';
-                const montoUtil = c.montoUtilidad || (c.precioConUtilidad && c.costoNeto ? c.precioConUtilidad - c.costoNeto : 0);
-                const porcentajeUtil = c.porcentajeUtilidad ? `(${c.porcentajeUtilidad}%)` : '';
-                celdaUtilidad = `$${montoUtil.toFixed(2)} <br><span style="font-size:0.8em; color:#666;">${porcentajeUtil}</span>`;
+                // Si es cotización vieja (sin array), usamos la cantidad directa
+                cantidadTotal = Number(c.cantidad) || 0;
             }
 
-            // --- FIN LÓGICA HÍBRIDA ---
-
-            // Descuentos y Gastos (Globales)
-            let infoDescuento = c.porcentajeDescuento > 0 ? `<span class="descuento">-${c.porcentajeDescuento}%</span>` : '<span style="color:#ccc;">-</span>';
-            
-            let infoGastos = '<span style="color:#ccc;">-</span>';
-            if (c.totalGastosAdicionales > 0) {
-                infoGastos = `<span class="extras">+$${c.totalGastosAdicionales.toFixed(2)}</span>`;
-                if (c.gastosAdicionales && c.gastosAdicionales.length > 0) {
-                    infoGastos += `<div class="detalle-gastos">`;
-                    c.gastosAdicionales.forEach(g => { infoGastos += `<div>• ${g.descripcion}: $${g.monto}</div>`; });
-                    infoGastos += `</div>`;
-                }
-            }
-
-            let infoIVA = '';
-            if (c.iva && c.iva > 0) {
-                infoIVA = `<div style="font-size: 0.75em; color: #666; font-weight: normal; margin-top: 4px;">✔ Incluye IVA: $${c.iva.toFixed(2)}</div>`;
-            } else {
-                infoIVA = `<div style="font-size: 0.75em; color: #ccc; font-weight: normal; margin-top: 4px; font-style: italic;">(Sin IVA)</div>`;
-            }
-
+            // --- D. TOTAL ---
             const totalFinal = c.total ? c.total : 0;
+            
+            // Info de IVA pequeña para acompañar al total
+            let infoIVA = c.iva && c.iva > 0 ? '(c/IVA)' : '';
 
             const fila = `
                 <tr>
-                    <td><strong>${c.cliente}</strong><br><span class="fecha">${fecha}</span></td>
-                    <td style="color: #007bff; font-weight: bold;">${cotizador}</td>
+                    <td class="text-center"><span class="id-row">${index + 1}</span></td>
                     
-                    <td>${celdaProducto}</td>
-                    <td>${celdaMedidas}</td>
-                    <td class="costo">${celdaCosto}</td>
-                    <td class="utilidad">${celdaUtilidad}</td>
-                    
-                    <td>${infoDescuento}</td>
-                    <td>${infoGastos}</td>
-                    
-                    <td class="total">
-                        $${totalFinal.toFixed(2)}
-                        ${infoIVA}
+                    <td>
+                        <strong>${c.cliente}</strong>
+                        <span class="fecha">${fecha}</span>
                     </td>
                     
-                    <td style="text-align: center;">
+                    <td style="color: #007bff; font-weight: 500;">${cotizador}</td>
+                    
+                    <td class="text-center" style="font-size: 1.1em;">
+                        ${cantidadTotal} pzas
+                    </td>
+                    
+                    <td class="text-right">
+                        <span class="total">$${totalFinal.toFixed(2)}</span> <small>${infoIVA}</small>
                         <button class="btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Eliminar Cotización">
                             🗑️
                         </button>
