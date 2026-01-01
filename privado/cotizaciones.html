@@ -3,44 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cotizador con Utilidad</title>
+    <title>Cotizador Multi-Producto</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .cotizador-container { padding: 50px 20px; max-width: 800px; margin: auto; }
+        .cotizador-container { padding: 40px; max-width: 1000px; margin: auto; }
         .grid-medidas { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
         .campo { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
         select, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
         
-        .resultado-box { 
-            margin-top: 30px; 
-            padding: 25px; 
-            background-color: #f8f9fa; 
-            border-radius: 10px; 
-            border-left: 6px solid #28a745; /* Verde dinero */
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        /* Estilos nuevos para la sección de agregar */
+        .seccion-agregar {
+            background-color: #ffffff;
+            border: 2px solid #e0e0e0;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
         }
+
+        .tabla-carrito {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+        .tabla-carrito th { background: #001f3f; color: white; padding: 10px; text-align: left; }
+        .tabla-carrito td { border-bottom: 1px solid #ddd; padding: 10px; }
         
-        /* Estilos para los renglones de precios */
-        .fila-precio { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1em; }
-        .fila-destacada { font-weight: bold; color: #007bff; font-size: 1.3em; border-top: 1px solid #ccc; padding-top: 10px; margin-top: 10px;}
-        .etiqueta { color: #555; }
+        .panel-totales {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: right;
+            margin-top: 20px;
+            border-top: 4px solid #28a745;
+        }
+        .gran-total { font-size: 1.5em; font-weight: bold; color: #001f3f; }
     </style>
 </head>
 <body>
 
    <header class="header">
     <div class="nav-container">
-        <div class="logo">
-            <img src="/IMG/logo.jpeg" alt="Logo">
-        </div>
-        
+        <div class="logo"><img src="/IMG/logo.jpeg" alt="Logo"></div>
         <nav class="nav-links">
             <a href="/index.html" class="btn-logout">Cerrar Sesión</a>
             <a href="/inicio.html">Inicio</a>
             <a href="/productos.html">Productos</a>
             <a href="/clientes.html">Clientes</a>
-            
             <div class="dropdown">
                 <button class="dropbtn">Cotizaciones ▼</button>
                 <div class="dropdown-content">
@@ -53,430 +64,359 @@
     </header>
 
     <div class="cotizador-container">
-        <h1>💰 Cotizador Comercial</h1>
+        <h1>🛒 Cotizador Multi-Producto</h1>
         
-        <div class="campo-formulario">
-            <label for="quienCotiza">¿Quién cotiza?</label>
-            <input type="text" id="quienCotiza" placeholder="Ej. Lalo Miranda">
-        </div>
-
-        <div class="campo">
-            <label>Cliente:</label>
-            <input type="text" id="cliente" placeholder="Nombre del cliente">
-        </div>
-
-        <div class="campo">
-            <label>1. Producto (Costo Base):</label>
-            <select id="select-producto" onchange="actualizarListaTelas()">
-                <option>Cargando...</option>
-            </select>
-        </div>
-
-        <div class="campo">
-            <label>2. Tela (Costo Extra):</label>
-            <select id="select-tela" onchange="actualizarListaColores()"></select>
-        </div>
-
-        <div class="campo">
-            <label>3. Color de la Tela:</label>
-            <select id="select-color">
-                <option value="">-- Primero seleccione una tela --</option>
-            </select>
-        </div>
-
-
-        <div class="grid-medidas">
-            <div class="campo">
-                <label>Ancho (m):</label>
-                <input type="number" id="ancho" step="0.01">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label>¿Quién cotiza?</label>
+                <input type="text" id="quienCotiza" placeholder="Ej. Lalo Miranda">
             </div>
-            <div class="campo">
-                <label>Alto (m):</label>
-                <input type="number" id="alto" step="0.01">
-            </div>
-            <div class="campo">
-                <label>Cantidad:</label>
-                <input type="number" id="cantidad" value="1" min="1">
+            <div>
+                <label>Cliente:</label>
+                <input type="text" id="cliente" placeholder="Nombre del cliente">
             </div>
         </div>
 
-        <div class="campo" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #90caf9;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <input type="checkbox" id="check-motor" onchange="toggleMotor()" style="width: 20px; height: 20px;">
-                <label for="check-motor" style="margin:0; font-weight:bold; cursor:pointer; color: #0d47a1;">
-                    ⚙️ ¿Agregar Motorización?
-                </label>
-            </div>
-
-            <div id="panel-motor" style="display: none; margin-top: 15px;">
-                <label>Selecciona el tipo de Motor:</label>
-                <select id="select-motor">
-                    <option value="">-- Seleccionar Motor --</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="campo" style="background: #e0f7fa; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #4dd0e1;">
-            <h3 style="margin-top: 0; margin-bottom: 15px; color: #006064; font-size: 1.1em;">🔧 Accesorios y Mandos</h3>
+        <div class="seccion-agregar">
+            <h3 style="margin-top:0; border-bottom: 2px solid #eee; padding-bottom: 10px;">1. Configurar Producto</h3>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div>
-                    <label for="accesorio-color">Color de Accesorios:</label>
-                    <select id="accesorio-color">
-                        <option value="Blanco">Blanco</option>
-                        <option value="Chocolate">Chocolate</option>
-                        <option value="Ivory">Ivory</option>
-                        <option value="Plata">Plata</option>
-                    </select>
+            <div class="campo">
+                <label>Producto:</label>
+                <select id="select-producto" onchange="actualizarListaTelas()"><option>Cargando...</option></select>
+            </div>
+
+            <div class="grid-medidas">
+                <div class="campo">
+                    <label>Tela:</label>
+                    <select id="select-tela" onchange="actualizarListaColores()"></select>
                 </div>
-                <div>
-                    <label for="accesorio-mando">Ubicación del Mando:</label>
-                    <select id="accesorio-mando">
-                        <option value="Derecho">Derecho</option>
-                        <option value="Izquierdo">Izquierdo</option>
-                        <option value="Ambos">Ambos</option>
-                        <option value="Sin mandos">Sin mandos</option>
-                    </select>
+                <div class="campo">
+                    <label>Color:</label>
+                    <select id="select-color"><option value="">-- Selecciona --</option></select>
+                </div>
+            </div>
+
+            <div class="grid-medidas">
+                <div class="campo"><label>Ancho (m):</label><input type="number" id="ancho" step="0.01"></div>
+                <div class="campo"><label>Alto (m):</label><input type="number" id="alto" step="0.01"></div>
+                <div class="campo"><label>Cantidad:</label><input type="number" id="cantidad" value="1" min="1"></div>
+            </div>
+
+            <div class="campo" style="background: #e3f2fd; padding: 10px; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="check-motor" onchange="toggleMotor()" style="width: 20px; height: 20px;">
+                    <label for="check-motor" style="margin:0; color: #0d47a1;">⚙️ ¿Con Motor?</label>
+                </div>
+                <div id="panel-motor" style="display: none; margin-top: 10px;">
+                    <select id="select-motor"><option value="">-- Seleccionar Motor --</option></select>
+                </div>
+            </div>
+
+            <div class="campo" style="background: #e0f7fa; padding: 10px; border-radius: 8px; margin-top: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label>Color Accesorios:</label>
+                        <select id="accesorio-color">
+                            <option value="Blanco">Blanco</option><option value="Chocolate">Chocolate</option>
+                            <option value="Ivory">Ivory</option><option value="Plata">Plata</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Mando:</label>
+                        <select id="accesorio-mando">
+                            <option value="Derecho">Derecho</option><option value="Izquierdo">Izquierdo</option>
+                            <option value="Ambos">Ambos</option><option value="Sin mandos">Sin mandos</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-medidas" style="margin-top: 10px;">
+                <div><label>Utilidad (%):</label><select id="select-utilidad"></select></div>
+                <div><label>Descuento (%):</label><select id="select-descuento"></select></div>
+                <div style="display: flex; align-items: flex-end;">
+                    <button class="hero-button" onclick="agregarAlCarrito()" style="background-color: #28a745; width: 100%;">
+                        ➕ Añadir Persiana
+                    </button>
                 </div>
             </div>
         </div>
-        <div class="campo" style="background: #e9ecef; padding: 15px; border-radius: 8px;">
-            <label>📈 Porcentaje de Utilidad:</label>
-            <select id="select-utilidad">
-                </select>
-        </div>
-            <div class="campo" style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin-top: 10px;">
-            <label style="color: #0c5460;">📉 Porcentaje de Descuento:</label>
-            <select id="select-descuento">
-                </select>
-         </div>
-                
-        <div class="campo" style="background: #e2e3e5; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 5px solid #6c757d;">
+        <h3>📝 Lista de Productos</h3>
+        <table class="tabla-carrito" id="tabla-items">
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Medidas</th>
+                    <th>Cant</th>
+                    <th>Precio Unitario</th>
+                    <th>Total</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="6" style="text-align:center; color:#888;">No has agregado productos aún.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="panel-totales">
             
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                <input type="checkbox" id="check-gastos" onchange="toggleGastos()" style="width: 20px; height: 20px;">
-                <label for="check-gastos" style="margin:0; font-weight:bold; cursor:pointer;">¿Hay Gastos Adicionales?</label>
+            <div style="margin-bottom: 15px; text-align: left;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                    <input type="checkbox" id="check-gastos" onchange="toggleGastos()" style="width: 20px;">
+                    <label for="check-gastos" style="margin:0;">¿Gastos Extra (Instalación, Envío)?</label>
+                </div>
+                <div id="panel-gastos" style="display: none; padding-left: 20px;">
+                    <label>Cantidad de gastos:</label>
+                    <select id="cantidad-gastos" onchange="generarCamposGastos()" style="width: 100px;">
+                        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                    </select>
+                    <div id="contenedor-inputs-gastos" style="margin-top:5px;"></div>
+                </div>
             </div>
 
-            <div id="panel-gastos" style="display: none; padding-left: 20px;">
-                <label>¿Cuántos gastos agregarás?</label>
-                <select id="cantidad-gastos" onchange="generarCamposGastos()" style="width: 100px; margin-bottom: 10px;">
-                    <option value="0">0</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                </select>
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <input type="checkbox" id="check-iva" checked onchange="calcularTotalesGlobales()" style="width: 20px;">
+                <label for="check-iva" style="margin:0; font-weight:bold;">Aplicar 16% IVA</label>
+            </div>
 
-                <div id="contenedor-inputs-gastos"></div>
+            <p>Subtotal Productos: <span id="lbl-subtotal-items">$0.00</span></p>
+            <p id="lbl-gastos" style="color: #6610f2; display:none;">+ Gastos Extra: <span>$0.00</span></p>
+            <p id="lbl-iva" style="color: #856404;">+ IVA (16%): <span>$0.00</span></p>
+            <hr>
+            <p class="gran-total">Total a Pagar: <span id="lbl-gran-total">$0.00</span></p>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button class="hero-button" onclick="generarPDF()" style="background-color: #dc3545;">📄 PDF</button>
+                <button class="hero-button" onclick="guardarCotizacionCompleta()" style="background-color: #001f3f;">💾 Guardar Todo</button>
             </div>
         </div>
 
-        <div class="campo" style="display: flex; align-items: center; gap: 10px; background: #fff3cd; padding: 10px; border-radius: 8px;">
-            <input type="checkbox" id="check-iva" checked style="width: 25px; height: 25px; cursor: pointer;">
-            <label for="check-iva" style="margin:0; cursor: pointer; color: #856404; font-weight: bold;">
-                Aplicar 16% de IVA
-            </label>
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="hero-button" onclick="calcular()">Calcular</button>
-            <button class="hero-button" onclick="guardar()" style="background-color: #6c757d;">💾 Guardar</button>
-        </div>
-
-        <div id="resultado-cotizacion" class="resultado-box" style="display: none;">
-            <h3>Detalle Financiero:</h3>
-            <div id="detalle-contenido"></div>
-        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <script>
        // --- VARIABLES GLOBALES ---
-       let productosDB = [];
-       let motoresDB = [];
-       let telasDB = [];
-       let coloresDB = [];
+       let productosDB = [], motoresDB = [], telasDB = [], coloresDB = [];
+       
+       // 🛒 EL CARRITO DE COMPRAS (Aquí se guardan las persianas)
+       let carritoItems = []; 
 
+       // Inicialización (Cargar datos del server)
        async function inicializar() {
-           // Llenar Utilidad
+           // Llenar selects de utilidad/descuento
            const selUtil = document.getElementById('select-utilidad');
            for(let i=0; i<=400; i+=10) {
-               let opt = new Option(`${i}% de Utilidad`, i);
+               let opt = new Option(`${i}% Utilidad`, i);
                if(i === 50) opt.selected = true; 
                selUtil.add(opt);
            }
-           // Llenar Descuento
            const selDesc = document.getElementById('select-descuento');
-           for(let i=0; i<=50; i++) {
-               selDesc.add(new Option(`${i}% de Descuento`, i));
-           }
+           for(let i=0; i<=50; i++) selDesc.add(new Option(`${i}% Descuento`, i));
 
-           // Cargar BD
+           // Cargar datos reales
            try {
-               const res = await fetch('/productos');
-               productosDB = await res.json();
+               const [resP, resT, resM, resC] = await Promise.all([
+                   fetch('/productos'), fetch('/telas'), fetch('/motores'), fetch('/colores')
+               ]);
+               
+               productosDB = await resP.json();
+               telasDB = await resT.json();
+               motoresDB = await resM.json();
+               coloresDB = await resC.json();
+
                const selProd = document.getElementById('select-producto');
                selProd.innerHTML = '<option value="">-- Seleccione --</option>';
-               productosDB.forEach(p => selProd.add(new Option(`${p.nombre} (Base: $${p.precio})`, p._id)));
+               productosDB.forEach(p => selProd.add(new Option(p.nombre, p._id)));
                
-               const resTelas = await fetch('/telas'); 
-               telasDB = await resTelas.json();
-
-               const resMotores = await fetch('/motores'); 
-               motoresDB = await resMotores.json();
                const selMotor = document.getElementById('select-motor');
                motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
 
-               const resColores = await fetch('/colores');
-               coloresDB = await resColores.json(); 
-               console.log("🎨 Colores cargados:", coloresDB.length);
-
-           } catch (e) { console.error(e); }
+           } catch (e) { console.error(e); alert("Error cargando datos"); }
        }
        inicializar();
 
-       // --- FUNCIONES VISUALES ---
-       function toggleMotor() {
-           const check = document.getElementById('check-motor');
-           const panel = document.getElementById('panel-motor');
-           const select = document.getElementById('select-motor');
-
-           if (check.checked) {
-               panel.style.display = 'block';
-           } else {
-               panel.style.display = 'none';
-               select.value = ""; 
-           }
-       }
-       
-       function toggleGastos() {
-           const check = document.getElementById('check-gastos');
-           const panel = document.getElementById('panel-gastos');
-           const contenedor = document.getElementById('contenedor-inputs-gastos');
-           const select = document.getElementById('cantidad-gastos');
-
-           if (check.checked) {
-               panel.style.display = 'block';
-           } else {
-               panel.style.display = 'none';
-               select.value = "0"; 
-               contenedor.innerHTML = ""; 
-           }
-       }
-
-       function generarCamposGastos() {
-           const cantidad = parseInt(document.getElementById('cantidad-gastos').value);
-           const contenedor = document.getElementById('contenedor-inputs-gastos');
-           contenedor.innerHTML = ""; 
-
-           for(let i=1; i<=cantidad; i++) {
-               const div = document.createElement('div');
-               div.style.display = "flex";
-               div.style.gap = "10px";
-               div.style.marginBottom = "10px";
-
-               div.innerHTML = `
-                   <input type="text" id="gasto-desc-${i}" placeholder="Descripción Gasto ${i} " style="flex: 2;">
-                   <input type="number" id="gasto-monto-${i}" placeholder="$ Costo" style="flex: 1;">
-               `;
-               contenedor.appendChild(div);
-           }
-       }
-
-       function obtenerDatosYCalcular() {
+       // --- 1. FUNCIÓN PARA AGREGAR AL CARRITO ---
+       function agregarAlCarrito() {
+           // a) Validar campos mínimos
            const idProd = document.getElementById('select-producto').value;
-           const idTela = document.getElementById('select-tela').value; 
-           const usaMotor = document.getElementById('check-motor').checked;
-           const idMotor = document.getElementById('select-motor').value;
-           const quienCotiza = document.getElementById('quienCotiza').value;
+           const idTela = document.getElementById('select-tela').value;
            const ancho = parseFloat(document.getElementById('ancho').value);
            const alto = parseFloat(document.getElementById('alto').value);
            const cant = parseInt(document.getElementById('cantidad').value);
-           const cliente = document.getElementById('cliente').value;
-           const porcentajeUtilidad = parseInt(document.getElementById('select-utilidad').value);
-           const porcentajeDescuento = parseInt(document.getElementById('select-descuento').value);
-           const aplicarIva = document.getElementById('check-iva').checked;
-           const colorNombre = document.getElementById('select-color').value;
 
-           // 👇 NUEVOS DATOS DE ACCESORIOS 👇
-           const accesorioColor = document.getElementById('accesorio-color').value;
-           const accesorioMando = document.getElementById('accesorio-mando').value;
-
-           if(!idProd || !idTela || !ancho || !alto) return null; 
-
-           // Gastos
-           let listaGastos = [];
-           let totalGastosAdicionales = 0;
-           if (document.getElementById('check-gastos').checked) {
-                const cantidad = parseInt(document.getElementById('cantidad-gastos').value);
-                for(let i=1; i<=cantidad; i++) {
-                    const desc = document.getElementById(`gasto-desc-${i}`).value;
-                    const monto = parseFloat(document.getElementById(`gasto-monto-${i}`).value) || 0;
-                    if(desc || monto > 0) {
-                        listaGastos.push({ descripcion: desc, monto: monto });
-                        totalGastosAdicionales += monto;
-                    }
-                }
+           if(!idProd || !idTela || !ancho || !alto || !cant) {
+               alert("Por favor completa los campos del producto.");
+               return;
            }
 
-           // Cálculos
-           const prod = productosDB.find(p => p._id === idProd);
-           const tela = telasDB.find(t => t._id === idTela);
+           // b) Buscar objetos en BD
+           const prodObj = productosDB.find(p => p._id === idProd);
+           const telaObj = telasDB.find(t => t._id === idTela);
+           const color = document.getElementById('select-color').value;
            
+           // c) Motor
+           const usaMotor = document.getElementById('check-motor').checked;
+           const idMotor = document.getElementById('select-motor').value;
            let motorObj = null;
-           let costoMotorUnitario = 0;
-           if (usaMotor && idMotor) {
+           let precioMotor = 0;
+           if(usaMotor && idMotor) {
                motorObj = motoresDB.find(m => m._id === idMotor);
-               if (motorObj) costoMotorUnitario = motorObj.precio;
+               precioMotor = motorObj.precio;
            }
-           let totalMotores = costoMotorUnitario * cant; 
 
+           // d) Accesorios
+           const accColor = document.getElementById('accesorio-color').value;
+           const accMando = document.getElementById('accesorio-mando').value;
+
+           // e) Finanzas DEL PRODUCTO
+           const pctUtilidad = parseInt(document.getElementById('select-utilidad').value);
+           const pctDescuento = parseInt(document.getElementById('select-descuento').value);
+
+           // CÁLCULOS UNITARIOS
            let area = ancho * alto;
-           let areaCobrar = area < 1 ? 1 : area; 
-           let costoMaterialUnitario = (prod.precio + tela.precioExtra) * areaCobrar;
-           let totalMateriales = costoMaterialUnitario * cant; 
-
-           let costoNetoTotal = totalMateriales + totalMotores;
-           let montoUtilidad = costoNetoTotal * (porcentajeUtilidad / 100);
-           let precioConUtilidad = costoNetoTotal + montoUtilidad;
-           let montoDescuento = precioConUtilidad * (porcentajeDescuento / 100);
-           let precioConDescuento = precioConUtilidad - montoDescuento;
-
-           let baseImponible = precioConDescuento + totalGastosAdicionales;
-           let iva = 0;
-           if (aplicarIva) iva = baseImponible * 0.16;
-           let granTotal = baseImponible + iva;
-
-           return {
-               cliente, productoNombre: prod.nombre, telaNombre: tela.nombre,
-               motorNombre: motorObj ? motorObj.nombre : "Sin Motor",
-               ancho, alto, cant, areaCobrar, 
-               quienCotiza, colorNombre,
-               // 👇 AGREGAMOS LOS ACCESORIOS AL OBJETO DE DATOS 👇
-               accesorioColor, accesorioMando,
-               
-               totalMateriales, totalMotores,
-               costoNetoTotal, porcentajeUtilidad, montoUtilidad, precioConUtilidad,
-               porcentajeDescuento, montoDescuento, precioConDescuento,
-               listaGastos, totalGastosAdicionales, baseImponible, iva, granTotal
-           };
-       }
-
-       function calcular() {
-           const datos = obtenerDatosYCalcular();
-           if(!datos) return; 
-
-           let htmlGastos = '';
-           if (datos.totalGastosAdicionales > 0) {
-               htmlGastos = `<div class="fila-precio" style="color: #6610f2; border-bottom: 1px dashed #ccc; padding-bottom:5px;">
-                               <span class="etiqueta">+ Gastos Adicionales:</span> <span>$${datos.totalGastosAdicionales.toFixed(2)}</span>
-                             </div>`;
-           }
-
-           let htmlIva = '';
-           if (datos.iva > 0) {
-               htmlIva = `<div class="fila-precio" style="color: #856404;">
-                              <span class="etiqueta">+ IVA (16%):</span> <span>$${datos.iva.toFixed(2)}</span>
-                          </div>`;
-           } else {
-               htmlIva = `<div class="fila-precio" style="color: #aaa; font-style: italic; font-size: 0.9em;">
-                              <span class="etiqueta">IVA:</span> <span>No incluido (0%)</span>
-                          </div>`;
-           }
-
-           let html = `
-               <div id="contenido-pdf" style="padding: 20px; background-color: white; width: 100%; box-sizing: border-box;">
-                   
-                   <div style="text-align: center; margin-bottom: 20px;">
-                       <img src="/IMG/logo.jpeg" style="width: 120px; display: block; margin: 0 auto 10px auto;">
-                       <h2 style="margin: 0; color: #001f3f;">Cotización Formal</h2>
-                       <p style="color: #666; font-size: 0.9em;">Fecha: ${new Date().toLocaleDateString()}</p>
-                   </div>
-                   
-                   <div style="font-family: Arial, sans-serif;">
-                       <p><strong>Atendido por:</strong> ${datos.quienCotiza}</p>
-                       <p><strong>Cliente:</strong> ${datos.cliente}</p>
-                       <p><strong>Sistema:</strong> ${datos.productoNombre} | <strong>Tela:</strong> ${datos.telaNombre} | <strong>Color:</strong> ${datos.colorNombre}</p>
-                       
-                       <p style="background: #f1f3f5; padding: 5px; border-radius: 4px; font-size: 0.9em;">
-                           <strong>Accesorios:</strong> ${datos.accesorioColor} | <strong>Mando:</strong> ${datos.accesorioMando}
-                       </p>
-                       
-                       <p><strong>Medidas:</strong> ${datos.ancho}x${datos.alto} (${datos.areaCobrar.toFixed(2)} m²) - Cant: ${datos.cant}</p>
-                       <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
-                       
-                       <div class="fila-precio"><span class="etiqueta">Importe Persianas:</span> <span>$${datos.totalMateriales.toFixed(2)}</span></div>
-                       
-                       ${datos.totalMotores > 0 ? 
-                           `<div class="fila-precio" style="color: #0d47a1;"><span class="etiqueta">Importe Motor:</span> <span>$${datos.totalMotores.toFixed(2)}</span></div>` 
-                           : ''}
-
-                       <div class="fila-precio" style="border-top: 1px solid #eee; margin-top:5px; font-weight: bold;">
-                           <span class="etiqueta">Costo Neto:</span> <span>$${datos.costoNetoTotal.toFixed(2)}</span>
-                       </div>
-
-                       <div id="fila-utilidad" class="fila-precio" style="color: green;">
-                           <span class="etiqueta">+ Utilidad:</span> <span>$${datos.montoUtilidad.toFixed(2)}</span>
-                       </div>
-
-                       ${datos.porcentajeDescuento > 0 ? 
-                           `<div class="fila-precio" style="color: #dc3545;"><span class="etiqueta">- Descuento:</span> <span>-$${datos.montoDescuento.toFixed(2)}</span></div>` 
-                           : ''}
-
-                       ${htmlGastos}
-                       ${htmlIva}
-                       
-                       <div class="fila-precio" style="font-weight:bold; margin-top:10px; border-top: 2px solid #001f3f; padding-top: 10px; font-size: 1.2em;">
-                           <span class="etiqueta">TOTAL A PAGAR:</span> <span>$${datos.granTotal.toFixed(2)}</span>
-                       </div>
-                   </div>
-                   
-                   <p style="text-align: center; font-size: 0.8em; color: #888; margin-top: 30px;">
-                       Gracias por su preferencia. Esta cotización tiene una vigencia de 15 días.
-                   </p>
-               </div>
-           `;
-
-           document.getElementById('resultado-cotizacion').style.display = 'block';
-           document.getElementById('detalle-contenido').innerHTML = html;
-       }
-
-       async function guardar() {
-           const datos = obtenerDatosYCalcular();
-           if(!datos) return; 
-           if(!datos.cliente) { alert("Falta el cliente"); return; }
-           if(!datos.quienCotiza) { alert("⚠️ Por favor escribe quién está haciendo la cotización."); return; }
+           if(area < 1) area = 1; // Mínimo de cobro 1m2
            
+           // Costo Base = (Precio Prod + Precio Tela) * m2 + Motor
+           const costoBaseUnitario = ((prodObj.precio + telaObj.precioExtra) * area) + precioMotor;
+           
+           // Aplicar Utilidad
+           const precioConUtilidad = costoBaseUnitario + (costoBaseUnitario * (pctUtilidad / 100));
+           
+           // Aplicar Descuento
+           const precioFinalUnitario = precioConUtilidad - (precioConUtilidad * (pctDescuento / 100));
+           
+           // Total de la línea
+           const totalLinea = precioFinalUnitario * cant;
+
+           // f) CREAR OBJETO ITEM
+           const item = {
+               producto: prodObj.nombre,
+               tela: telaObj.nombre,
+               color: color,
+               medidas: { ancho, alto, areaCobrada: area },
+               cantidad: cant,
+               motor: motorObj ? motorObj.nombre : "Manual",
+               accesorios: { color: accColor, mando: accMando },
+               financiero: { costoBase: costoBaseUnitario, utilidad: pctUtilidad, descuento: pctDescuento },
+               precioUnitario: precioFinalUnitario,
+               total: totalLinea
+           };
+
+           // g) GUARDAR EN CARRITO Y LIMPIAR
+           carritoItems.push(item);
+           actualizarTablaCarrito();
+           // (Opcional) Limpiar campos aquí...
+       }
+
+       // --- 2. DIBUJAR TABLA DEL CARRITO ---
+       function actualizarTablaCarrito() {
+           const tbody = document.querySelector('#tabla-items tbody');
+           tbody.innerHTML = '';
+
+           if(carritoItems.length === 0) {
+               tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Vacío</td></tr>';
+               calcularTotalesGlobales();
+               return;
+           }
+
+           carritoItems.forEach((item, index) => {
+               const fila = `
+                   <tr>
+                       <td>
+                           <strong>${item.producto}</strong><br>
+                           <small>${item.tela} - ${item.color}</small><br>
+                           <small>${item.motor} | Acc: ${item.accesorios.color}</small>
+                       </td>
+                       <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
+                       <td>${item.cantidad}</td>
+                       <td>$${item.precioUnitario.toFixed(2)}</td>
+                       <td style="font-weight:bold;">$${item.total.toFixed(2)}</td>
+                       <td><button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer;">🗑️</button></td>
+                   </tr>
+               `;
+               tbody.innerHTML += fila;
+           });
+
+           calcularTotalesGlobales();
+       }
+
+       function eliminarItem(index) {
+           carritoItems.splice(index, 1);
+           actualizarTablaCarrito();
+       }
+
+       // --- 3. CÁLCULO DE TOTALES GLOBALES (GASTOS E IVA) ---
+       function calcularTotalesGlobales() {
+           // 1. Sumar subtotales de productos
+           let subtotalProductos = carritoItems.reduce((sum, item) => sum + item.total, 0);
+
+           // 2. Sumar Gastos Adicionales
+           let totalGastos = 0;
+           let listaGastos = [];
+           if (document.getElementById('check-gastos').checked) {
+               const cant = parseInt(document.getElementById('cantidad-gastos').value);
+               for(let i=1; i<=cant; i++) {
+                   const desc = document.getElementById(`gasto-desc-${i}`)?.value;
+                   const monto = parseFloat(document.getElementById(`gasto-monto-${i}`)?.value) || 0;
+                   if(monto > 0) {
+                       totalGastos += monto;
+                       listaGastos.push({ descripcion: desc, monto: monto });
+                   }
+               }
+           }
+
+           // 3. Calcular IVA Global
+           const aplicarIva = document.getElementById('check-iva').checked;
+           const baseImponible = subtotalProductos + totalGastos;
+           const iva = aplicarIva ? baseImponible * 0.16 : 0;
+           const granTotal = baseImponible + iva;
+
+           // 4. Actualizar Etiquetas
+           document.getElementById('lbl-subtotal-items').innerText = `$${subtotalProductos.toFixed(2)}`;
+           
+           const lblGastos = document.getElementById('lbl-gastos');
+           if(totalGastos > 0) {
+               lblGastos.style.display = 'block';
+               lblGastos.querySelector('span').innerText = `$${totalGastos.toFixed(2)}`;
+           } else {
+               lblGastos.style.display = 'none';
+           }
+
+           const lblIva = document.getElementById('lbl-iva');
+           if(aplicarIva) {
+               lblIva.innerHTML = `+ IVA (16%): <span>$${iva.toFixed(2)}</span>`;
+               lblIva.style.color = '#856404';
+           } else {
+               lblIva.innerHTML = `IVA: <span>No incluido</span>`;
+               lblIva.style.color = '#ccc';
+           }
+
+           document.getElementById('lbl-gran-total').innerText = `$${granTotal.toFixed(2)}`;
+
+           return { subtotalProductos, totalGastos, listaGastos, iva, granTotal };
+       }
+
+       // --- 4. GUARDAR TODO EN EL SERVIDOR ---
+       async function guardarCotizacionCompleta() {
+           if(carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
+           
+           const cliente = document.getElementById('cliente').value;
+           const quienCotiza = document.getElementById('quienCotiza').value;
+           if(!cliente || !quienCotiza) { alert("Faltan datos del cliente o cotizador."); return; }
+
+           const globales = calcularTotalesGlobales();
+
            const paquete = {
-               cliente: datos.cliente,
-               producto: datos.productoNombre,
-               tela: datos.telaNombre,
-               medidas: { ancho: datos.ancho, alto: datos.alto },
-               cantidad: datos.cant,
-               costoNeto: datos.costoNetoTotal,
-               porcentajeUtilidad: datos.porcentajeUtilidad,
-               precioConUtilidad: datos.precioConUtilidad,
-               porcentajeDescuento: datos.porcentajeDescuento,
-               iva: datos.iva,
-               motor: datos.motorNombre,
-               quienCotiza: datos.quienCotiza,
-               gastosAdicionales: datos.listaGastos,
-               totalGastosAdicionales: datos.totalGastosAdicionales,
-               color: datos.colorNombre,
+               cliente: cliente,
+               quienCotiza: quienCotiza,
+               items: carritoItems, // Enviamos el ARRAY completo
                
-               // 👇 ENVIAMOS LOS NUEVOS DATOS AL SERVIDOR 👇
-               accesorioColor: datos.accesorioColor,
-               accesorioMando: datos.accesorioMando,
-               
-               total: datos.granTotal
+               // Datos Globales
+               gastosAdicionales: globales.listaGastos,
+               totalGastosAdicionales: globales.totalGastos,
+               iva: globales.iva,
+               total: globales.granTotal
            };
 
            try {
@@ -486,58 +426,94 @@
                    body: JSON.stringify(paquete)
                });
                const r = await res.json();
-               if(r.exito) alert("✅ Guardado con éxito");
-               else alert("Error: " + r.mensaje);
-           } catch (e) { console.error(e); alert("Error de conexión"); }
+               if(r.exito) {
+                   alert("✅ Cotización guardada con éxito");
+                   // Opcional: Reiniciar todo
+                   carritoItems = [];
+                   actualizarTablaCarrito();
+                   document.getElementById('cliente').value = '';
+               } else {
+                   alert("Error: " + r.mensaje);
+               }
+           } catch(e) { alert("Error de conexión"); console.error(e); }
        }
 
+       // --- EXTRAS (Listas dependientes) ---
        function actualizarListaTelas() {
            const idProd = document.getElementById('select-producto').value;
            const selTela = document.getElementById('select-tela');
-           const selColor = document.getElementById('select-color'); 
-           if(selColor) selColor.innerHTML = '<option value="">-- Primero seleccione una tela --</option>';
-
-           selTela.innerHTML = '<option value="">-- Seleccione Tela --</option>';
-
-           const productoSeleccionado = productosDB.find(p => p._id === idProd);
-           if (!productoSeleccionado) return; 
-
-           const nombreProd = productoSeleccionado.nombre;
-
-           const telasFiltradas = telasDB.filter(tela => {
-               if (tela.productos && Array.isArray(tela.productos)) {
-                   return tela.productos.includes(nombreProd);
-               }
-               return false; 
-           });
-
-           if (telasFiltradas.length === 0) {
-               selTela.innerHTML = '<option value="">-- No hay telas disponibles para este producto --</option>';
-           } else {
-               telasFiltradas.forEach(t => {
-                   selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t._id));
-               });
-           }
+           selTela.innerHTML = '<option value="">-- Seleccione --</option>';
+           const prod = productosDB.find(p => p._id === idProd);
+           if(!prod) return;
+           
+           // Filtro por lista de productos permitidos en la tela
+           const telas = telasDB.filter(t => t.productos && t.productos.includes(prod.nombre));
+           telas.forEach(t => selTela.add(new Option(`${t.nombre} (+$${t.precioExtra})`, t._id)));
+           
+           actualizarListaColores();
        }
 
        function actualizarListaColores() {
            const idTela = document.getElementById('select-tela').value;
            const selColor = document.getElementById('select-color');
-           selColor.innerHTML = '<option value="">-- Seleccione Color --</option>';
+           selColor.innerHTML = '<option value="">-- Seleccione --</option>';
+           const tela = telasDB.find(t => t._id === idTela);
+           if(!tela) return;
 
-           const telaSeleccionada = telasDB.find(t => t._id === idTela);
-           if (!telaSeleccionada) return;
+           const colores = coloresDB.filter(c => c.telaNombre === tela.nombre);
+           colores.forEach(c => selColor.add(new Option(c.nombre, c.nombre)));
+       }
 
-           const nombreTelaActual = telaSeleccionada.nombre;
-           const coloresFiltrados = coloresDB.filter(c => c.telaNombre === nombreTelaActual);
-
-           if (coloresFiltrados.length > 0) {
-               coloresFiltrados.forEach(c => {
-                   selColor.add(new Option(c.nombre, c.nombre));
-               });
-           } else {
-               selColor.innerHTML = '<option value="N/A">-- Sin colores registrados --</option>';
+       // Helpers visuales
+       function toggleMotor() {
+           document.getElementById('panel-motor').style.display = document.getElementById('check-motor').checked ? 'block' : 'none';
+       }
+       function toggleGastos() {
+           document.getElementById('panel-gastos').style.display = document.getElementById('check-gastos').checked ? 'block' : 'none';
+           // Re-calcular si se oculta
+           calcularTotalesGlobales();
+       }
+       function generarCamposGastos() {
+           const cant = parseInt(document.getElementById('cantidad-gastos').value);
+           const cont = document.getElementById('contenedor-inputs-gastos');
+           cont.innerHTML = '';
+           for(let i=1; i<=cant; i++) {
+               cont.innerHTML += `<div style="display:flex; gap:10px; margin-bottom:5px;">
+                   <input id="gasto-desc-${i}" placeholder="Desc." style="flex:2">
+                   <input id="gasto-monto-${i}" type="number" placeholder="$" style="flex:1" onchange="calcularTotalesGlobales()">
+               </div>`;
            }
+       }
+       
+       // Generar PDF (Versión Multi-Item Simplificada)
+       function generarPDF() {
+           if(carritoItems.length === 0) { alert("Carrito vacío"); return; }
+           const globales = calcularTotalesGlobales();
+           const cliente = document.getElementById('cliente').value;
+           
+           // Generar filas de tabla
+           let filasHTML = carritoItems.map(item => `
+               <tr>
+                   <td>${item.producto}<br><small>${item.tela} ${item.color}</small></td>
+                   <td>${item.medidas.ancho}x${item.medidas.alto}</td>
+                   <td>${item.cantidad}</td>
+                   <td>$${item.precioUnitario.toFixed(2)}</td>
+                   <td>$${item.total.toFixed(2)}</td>
+               </tr>`).join('');
+
+           const contenido = `
+               <div style="padding:20px; font-family:Arial;">
+                   <h2>Cotización para: ${cliente}</h2>
+                   <table style="width:100%; border-collapse:collapse; margin-top:20px;">
+                       <tr style="background:#001f3f; color:white;"><th>Prod</th><th>Med</th><th>Cant</th><th>P.Unit</th><th>Total</th></tr>
+                       ${filasHTML}
+                   </table>
+                   <div style="text-align:right; margin-top:20px;">
+                       <h3>Total: $${globales.granTotal.toFixed(2)}</h3>
+                   </div>
+               </div>
+           `;
+           html2pdf().from(contenido).save();
        }
     </script>
 </body>
