@@ -160,6 +160,8 @@ const cotizacionSchema = new mongoose.Schema({
         ancho: Number,
         alto: Number
     },
+    accesorioColor: String,
+    accesorioMando: String,
     cantidad: Number,
     // --- NUEVOS CAMPOS ---
     costoNeto: Number,      // Precio sin utilidad

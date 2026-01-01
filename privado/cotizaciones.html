@@ -56,9 +56,9 @@
         <h1>💰 Cotizador Comercial</h1>
         
         <div class="campo-formulario">
-    <label for="quienCotiza">¿Quién cotiza?</label>
-    <input type="text" id="quienCotiza" placeholder="Ej. Lalo Miranda">
-</div>
+            <label for="quienCotiza">¿Quién cotiza?</label>
+            <input type="text" id="quienCotiza" placeholder="Ej. Lalo Miranda">
+        </div>
 
         <div class="campo">
             <label>Cliente:</label>
@@ -68,8 +68,8 @@
         <div class="campo">
             <label>1. Producto (Costo Base):</label>
             <select id="select-producto" onchange="actualizarListaTelas()">
-    <option>Cargando...</option>
-</select>
+                <option>Cargando...</option>
+            </select>
         </div>
 
         <div class="campo">
@@ -100,7 +100,7 @@
             </div>
         </div>
 
-                        <div class="campo" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #90caf9;">
+        <div class="campo" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #90caf9;">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <input type="checkbox" id="check-motor" onchange="toggleMotor()" style="width: 20px; height: 20px;">
                 <label for="check-motor" style="margin:0; font-weight:bold; cursor:pointer; color: #0d47a1;">
@@ -116,8 +116,30 @@
             </div>
         </div>
 
-                
-
+        <div class="campo" style="background: #e0f7fa; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #4dd0e1;">
+            <h3 style="margin-top: 0; margin-bottom: 15px; color: #006064; font-size: 1.1em;">🔧 Accesorios y Mandos</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label for="accesorio-color">Color de Accesorios:</label>
+                    <select id="accesorio-color">
+                        <option value="Blanco">Blanco</option>
+                        <option value="Chocolate">Chocolate</option>
+                        <option value="Ivory">Ivory</option>
+                        <option value="Plata">Plata</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="accesorio-mando">Ubicación del Mando:</label>
+                    <select id="accesorio-mando">
+                        <option value="Derecho">Derecho</option>
+                        <option value="Izquierdo">Izquierdo</option>
+                        <option value="Ambos">Ambos</option>
+                        <option value="Sin mandos">Sin mandos</option>
+                    </select>
+                </div>
+            </div>
+        </div>
         <div class="campo" style="background: #e9ecef; padding: 15px; border-radius: 8px;">
             <label>📈 Porcentaje de Utilidad:</label>
             <select id="select-utilidad">
@@ -129,7 +151,7 @@
                 </select>
          </div>
                 
-                <div class="campo" style="background: #e2e3e5; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 5px solid #6c757d;">
+        <div class="campo" style="background: #e2e3e5; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 5px solid #6c757d;">
             
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                 <input type="checkbox" id="check-gastos" onchange="toggleGastos()" style="width: 20px; height: 20px;">
@@ -157,17 +179,15 @@
         </div>
 
         <div class="campo" style="display: flex; align-items: center; gap: 10px; background: #fff3cd; padding: 10px; border-radius: 8px;">
-    <input type="checkbox" id="check-iva" checked style="width: 25px; height: 25px; cursor: pointer;">
-    <label for="check-iva" style="margin:0; cursor: pointer; color: #856404; font-weight: bold;">
-        Aplicar 16% de IVA
-    </label>
-</div>
+            <input type="checkbox" id="check-iva" checked style="width: 25px; height: 25px; cursor: pointer;">
+            <label for="check-iva" style="margin:0; cursor: pointer; color: #856404; font-weight: bold;">
+                Aplicar 16% de IVA
+            </label>
+        </div>
 
         <div style="display: flex; gap: 10px; margin-top: 20px;">
             <button class="hero-button" onclick="calcular()">Calcular</button>
             <button class="hero-button" onclick="guardar()" style="background-color: #6c757d;">💾 Guardar</button>
-           
-    </button>
         </div>
 
         <div id="resultado-cotizacion" class="resultado-box" style="display: none;">
@@ -176,397 +196,349 @@
         </div>
     </div>
 
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <script>
        // --- VARIABLES GLOBALES ---
-   let productosDB = [];
-   let motoresDB = [];
-   let telasDB = [];
-   let coloresDB = [];
+       let productosDB = [];
+       let motoresDB = [];
+       let telasDB = [];
+       let coloresDB = [];
 
-
-    async function inicializar() {
-        // Llenar Utilidad
-        const selUtil = document.getElementById('select-utilidad');
-        for(let i=0; i<=400; i+=10) {
-            let opt = new Option(`${i}% de Utilidad`, i);
-            if(i === 50) opt.selected = true; 
-            selUtil.add(opt);
-        }
-        // Llenar Descuento
-        const selDesc = document.getElementById('select-descuento');
-        for(let i=0; i<=50; i++) {
-            selDesc.add(new Option(`${i}% de Descuento`, i));
-        }
-
-        // Cargar BD
-        try {
-            const res = await fetch('/productos');
-            productosDB = await res.json();
-            const selProd = document.getElementById('select-producto');
-            selProd.innerHTML = '<option value="">-- Seleccione --</option>';
-            productosDB.forEach(p => selProd.add(new Option(`${p.nombre} (Base: $${p.precio})`, p._id)));
-            
-            // 2. TELAS (NUEVO FETCH)
-            const resTelas = await fetch('/telas'); 
-            telasDB = await resTelas.json();
-
-
-            const selTela = document.getElementById('select-tela');
-            selTela.innerHTML = '<option value="">-- Seleccione --</option>';
-            // NOTA: Usamos t._id en lugar de t.id
-            
-            
-
-
-            // --- NUEVO: Cargar Motores ---
-            const resMotores = await fetch('/motores'); // Asegurate de crear esta ruta en Node
-            motoresDB = await resMotores.json();
-            const selMotor = document.getElementById('select-motor');
-            motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
-
-
-            const resColores = await fetch('/colores');
-            coloresDB = await resColores.json(); // Guardamos todos los colores en memoria
-            console.log("🎨 Colores cargados:", coloresDB.length);
-
-        } catch (e) { console.error(e); }
-    }
-    inicializar();
-
-    // --- FUNCIONES VISUALES NUEVAS ---
-    function toggleMotor() {
-        const check = document.getElementById('check-motor');
-        const panel = document.getElementById('panel-motor');
-        const select = document.getElementById('select-motor');
-
-        if (check.checked) {
-            panel.style.display = 'block';
-        } else {
-            panel.style.display = 'none';
-            select.value = ""; // Resetear selección al ocultar
-        }
-    }
-    // 1. Mostrar u Ocultar el panel
-    function toggleGastos() {
-        const check = document.getElementById('check-gastos');
-        const panel = document.getElementById('panel-gastos');
-        const contenedor = document.getElementById('contenedor-inputs-gastos');
-        const select = document.getElementById('cantidad-gastos');
-
-        if (check.checked) {
-            panel.style.display = 'block';
-        } else {
-            panel.style.display = 'none';
-            select.value = "0"; // Resetear
-            contenedor.innerHTML = ""; // Borrar campos
-        }
-    }
-
-    // 2. Generar los renglones de inputs (Descripción y Precio)
-    function generarCamposGastos() {
-        const cantidad = parseInt(document.getElementById('cantidad-gastos').value);
-        const contenedor = document.getElementById('contenedor-inputs-gastos');
-        contenedor.innerHTML = ""; // Limpiar antes de dibujar
-
-        for(let i=1; i<=cantidad; i++) {
-            const div = document.createElement('div');
-            div.style.display = "flex";
-            div.style.gap = "10px";
-            div.style.marginBottom = "10px";
-
-            div.innerHTML = `
-                <input type="text" id="gasto-desc-${i}" placeholder="Descripción Gasto ${i} " style="flex: 2;">
-                <input type="number" id="gasto-monto-${i}" placeholder="$ Costo" style="flex: 1;">
-            `;
-            contenedor.appendChild(div);
-        }
-    }
-
-
-   function obtenerDatosYCalcular() {
-        // --- RECOLECCIÓN DE DATOS (Igual que antes) ---
-        const idProd = document.getElementById('select-producto').value;
-        const idTela = document.getElementById('select-tela').value; 
-        const usaMotor = document.getElementById('check-motor').checked;
-        const idMotor = document.getElementById('select-motor').value;
-        const quienCotiza = document.getElementById('quienCotiza').value;
-        const ancho = parseFloat(document.getElementById('ancho').value);
-        const alto = parseFloat(document.getElementById('alto').value);
-        const cant = parseInt(document.getElementById('cantidad').value);
-        const cliente = document.getElementById('cliente').value;
-        const porcentajeUtilidad = parseInt(document.getElementById('select-utilidad').value);
-        const porcentajeDescuento = parseInt(document.getElementById('select-descuento').value);
-        const aplicarIva = document.getElementById('check-iva').checked;
-        const colorNombre = document.getElementById('select-color').value;
-
-        if(!idProd || !idTela || !ancho || !alto) return null; 
-
-        // Gastos Adicionales (Igual que antes)
-        let listaGastos = [];
-        let totalGastosAdicionales = 0;
-        if (document.getElementById('check-gastos').checked) {
-             const cantidad = parseInt(document.getElementById('cantidad-gastos').value);
-             for(let i=1; i<=cantidad; i++) {
-                 const desc = document.getElementById(`gasto-desc-${i}`).value;
-                 const monto = parseFloat(document.getElementById(`gasto-monto-${i}`).value) || 0;
-                 if(desc || monto > 0) {
-                     listaGastos.push({ descripcion: desc, monto: monto });
-                     totalGastosAdicionales += monto;
-                 }
-             }
-        }
-
-        // --- CÁLCULOS SEPARADOS ---
-        const prod = productosDB.find(p => p._id === idProd);
-        const tela = telasDB.find(t => t._id === idTela);
-        
-        // A. Calcular Motores
-        let motorObj = null;
-        let costoMotorUnitario = 0;
-        if (usaMotor && idMotor) {
-            motorObj = motoresDB.find(m => m._id === idMotor);
-            if (motorObj) costoMotorUnitario = motorObj.precio;
-        }
-        let totalMotores = costoMotorUnitario * cant; // <--- TOTAL SOLO MOTORES
-
-        // B. Calcular Persianas (Material)
-        let area = ancho * alto;
-        let areaCobrar = area < 1 ? 1 : area; 
-        let costoMaterialUnitario = (prod.precio + tela.precioExtra) * areaCobrar;
-        let totalMateriales = costoMaterialUnitario * cant; // <--- TOTAL SOLO PERSIANAS
-
-        // C. Costo Neto (La suma de ambos)
-        let costoNetoTotal = totalMateriales + totalMotores;
-
-        // D. Utilidad
-        let montoUtilidad = costoNetoTotal * (porcentajeUtilidad / 100);
-        let precioConUtilidad = costoNetoTotal + montoUtilidad;
-
-        // E. Descuento
-        let montoDescuento = precioConUtilidad * (porcentajeDescuento / 100);
-        let precioConDescuento = precioConUtilidad - montoDescuento;
-
-        // F. Finales
-        let baseImponible = precioConDescuento + totalGastosAdicionales;
-        let iva = 0;
-        if (aplicarIva) iva = baseImponible * 0.16;
-        let granTotal = baseImponible + iva;
-
-        return {
-            cliente, productoNombre: prod.nombre, telaNombre: tela.nombre,
-            motorNombre: motorObj ? motorObj.nombre : "Sin Motor",
-            ancho, alto, cant, areaCobrar, 
-            quienCotiza,colorNombre,
-            // NUEVOS CAMPOS PARA EL DESGLOSE:
-            totalMateriales, 
-            totalMotores,
-            
-            costoNetoTotal, porcentajeUtilidad, montoUtilidad, precioConUtilidad,
-            porcentajeDescuento, montoDescuento, precioConDescuento,
-            listaGastos, totalGastosAdicionales, baseImponible, iva, granTotal
-        };
-    }
-
-    // --- MOSTRAR RESULTADOS ---
-    // Reemplaza tu función calcular() por esta nueva versión:
-    function calcular() {
-        const datos = obtenerDatosYCalcular();
-        if(!datos) return; 
-
-        // 1. Preparar HTML de Gastos (Igual que antes)
-        let htmlGastos = '';
-        if (datos.totalGastosAdicionales > 0) {
-            htmlGastos = `<div class="fila-precio" style="color: #6610f2; border-bottom: 1px dashed #ccc; padding-bottom:5px;">
-                            <span class="etiqueta">+ Gastos Adicionales:</span> <span>$${datos.totalGastosAdicionales.toFixed(2)}</span>
-                          </div>`;
-        }
-
-        // 2. NUEVO: Preparar HTML del IVA
-        let htmlIva = '';
-        if (datos.iva > 0) {
-            // Si se cobró IVA, lo mostramos explícitamente
-            htmlIva = `<div class="fila-precio" style="color: #856404;">
-                           <span class="etiqueta">+ IVA (16%):</span> <span>$${datos.iva.toFixed(2)}</span>
-                       </div>`;
-        } else {
-            // Si NO se cobró IVA, mostramos un aviso discreto
-            htmlIva = `<div class="fila-precio" style="color: #aaa; font-style: italic; font-size: 0.9em;">
-                           <span class="etiqueta">IVA:</span> <span>No incluido (0%)</span>
-                       </div>`;
-        }
-
-        // 3. Generar el HTML completo
-        let html = `
-            <div id="contenido-pdf" style="padding: 20px; background-color: white; width: 100%; box-sizing: border-box;">
-                
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <img src="/IMG/logo.jpeg" style="width: 120px; display: block; margin: 0 auto 10px auto;">
-                    
-                    <h2 style="margin: 0; color: #001f3f;">Cotización Formal</h2>
-                    <p style="color: #666; font-size: 0.9em;">Fecha: ${new Date().toLocaleDateString()}</p>
-                </div>
-                
-                <div style="font-family: Arial, sans-serif;">
-                    <p><strong>Atendido por:</strong> ${datos.quienCotiza}</p>
-                    <p><strong>Cliente:</strong> ${datos.cliente}</p>
-                    <p><strong>Sistema:</strong> ${datos.productoNombre} | <strong>Tela:</strong> ${datos.telaNombre} | <strong>Color:</strong> ${datos.colorNombre}</p>
-                    <p><strong>Medidas:</strong> ${datos.ancho}x${datos.alto} (${datos.areaCobrar.toFixed(2)} m²) - Cant: ${datos.cant}</p>
-                    <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
-                    
-                    <div class="fila-precio"><span class="etiqueta">Importe Persianas:</span> <span>$${datos.totalMateriales.toFixed(2)}</span></div>
-                    
-                    ${datos.totalMotores > 0 ? 
-                        `<div class="fila-precio" style="color: #0d47a1;"><span class="etiqueta">Importe Motor:</span> <span>$${datos.totalMotores.toFixed(2)}</span></div>` 
-                        : ''}
-
-                    <div class="fila-precio" style="border-top: 1px solid #eee; margin-top:5px; font-weight: bold;">
-                        <span class="etiqueta">Costo Neto:</span> <span>$${datos.costoNetoTotal.toFixed(2)}</span>
-                    </div>
-
-                    <div id="fila-utilidad" class="fila-precio" style="color: green;">
-                        <span class="etiqueta">+ Utilidad:</span> <span>$${datos.montoUtilidad.toFixed(2)}</span>
-                    </div>
-
-                    ${datos.porcentajeDescuento > 0 ? 
-                        `<div class="fila-precio" style="color: #dc3545;"><span class="etiqueta">- Descuento:</span> <span>-$${datos.montoDescuento.toFixed(2)}</span></div>` 
-                        : ''}
-
-                    ${htmlGastos}
-
-                    ${htmlIva}
-                    <div class="fila-precio" style="font-weight:bold; margin-top:10px; border-top: 2px solid #001f3f; padding-top: 10px; font-size: 1.2em;">
-                        <span class="etiqueta">TOTAL A PAGAR:</span> <span>$${datos.granTotal.toFixed(2)}</span>
-                    </div>
-                </div>
-                
-                <p style="text-align: center; font-size: 0.8em; color: #888; margin-top: 30px;">
-                    Gracias por su preferencia. Esta cotización tiene una vigencia de 15 días.
-                </p>
-            </div>
-        `;
-
-        document.getElementById('resultado-cotizacion').style.display = 'block';
-        document.getElementById('detalle-contenido').innerHTML = html;
-    }
-
-
-    // --- GUARDAR ---
-    async function guardar() {
-        const datos = obtenerDatosYCalcular();
-        if(!datos) return; 
-        if(!datos.cliente) { alert("Falta el cliente"); return; }
-        if(!datos.quienCotiza) { alert("⚠️ Por favor escribe quién está haciendo la cotización."); return; }
-        const paquete = {
-            cliente: datos.cliente,
-            producto: datos.productoNombre,
-            tela: datos.telaNombre,
-            medidas: { ancho: datos.ancho, alto: datos.alto },
-            cantidad: datos.cant,
-            costoNeto: datos.costoNetoTotal,
-            porcentajeUtilidad: datos.porcentajeUtilidad,
-            precioConUtilidad: datos.precioConUtilidad,
-            porcentajeDescuento: datos.porcentajeDescuento,
-            iva: datos.iva,
-            motor: datos.motorNombre,
-            quienCotiza: datos.quienCotiza,
-            // Enviamos los gastos
-            gastosAdicionales: datos.listaGastos,
-            totalGastosAdicionales: datos.totalGastosAdicionales,
-            color: datos.colorNombre,
-            total: datos.granTotal
-        };
-
-        try {
-            const res = await fetch('/cotizaciones', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(paquete)
-            });
-            const r = await res.json();
-            if(r.exito) alert("✅ Guardado con éxito");
-            else alert("Error: " + r.mensaje);
-        } catch (e) { console.error(e); alert("Error de conexión"); }
-    }
-
-    // --- 🆕 CONFIGURACIÓN MANUAL DE TELAS ---
-   // Aquí escribes EXACTAMENTE el nombre del producto (izquierda)
-   // y la lista de telas permitidas para él (derecha).
- 
-  
-   // --- FUNCIÓN DE FILTRADO EXACTO ---
-   // --- FUNCIÓN DE FILTRADO DE TELAS (Modificada) ---
-   // --- FUNCIÓN DINÁMICA DE TELAS (DESDE MONGO) ---
-   function actualizarListaTelas() {
-       const idProd = document.getElementById('select-producto').value;
-       const selTela = document.getElementById('select-tela');
-       
-       // También limpiamos colores porque al cambiar tela, cambian colores
-       const selColor = document.getElementById('select-color'); 
-       if(selColor) selColor.innerHTML = '<option value="">-- Primero seleccione una tela --</option>';
-
-       // 1. Limpiar select
-       selTela.innerHTML = '<option value="">-- Seleccione Tela --</option>';
-
-       // 2. Buscar producto seleccionado
-       const productoSeleccionado = productosDB.find(p => p._id === idProd);
-       
-       if (!productoSeleccionado) return; 
-
-       const nombreProd = productoSeleccionado.nombre;
-
-       // 3. FILTRAR: Buscamos telas que incluyan este producto en su lista "productos"
-       const telasFiltradas = telasDB.filter(tela => {
-           // Verificamos si la tela tiene la lista definida y si el producto está en ella
-           if (tela.productos && Array.isArray(tela.productos)) {
-               return tela.productos.includes(nombreProd);
+       async function inicializar() {
+           // Llenar Utilidad
+           const selUtil = document.getElementById('select-utilidad');
+           for(let i=0; i<=400; i+=10) {
+               let opt = new Option(`${i}% de Utilidad`, i);
+               if(i === 50) opt.selected = true; 
+               selUtil.add(opt);
            }
-           return false; // Si la tela no tiene configuración, no la mostramos
-       });
+           // Llenar Descuento
+           const selDesc = document.getElementById('select-descuento');
+           for(let i=0; i<=50; i++) {
+               selDesc.add(new Option(`${i}% de Descuento`, i));
+           }
 
-       // 4. Llenar el select
-       if (telasFiltradas.length === 0) {
-           selTela.innerHTML = '<option value="">-- No hay telas disponibles para este producto --</option>';
-       } else {
-           telasFiltradas.forEach(t => {
-               selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t._id));
-           });
+           // Cargar BD
+           try {
+               const res = await fetch('/productos');
+               productosDB = await res.json();
+               const selProd = document.getElementById('select-producto');
+               selProd.innerHTML = '<option value="">-- Seleccione --</option>';
+               productosDB.forEach(p => selProd.add(new Option(`${p.nombre} (Base: $${p.precio})`, p._id)));
+               
+               const resTelas = await fetch('/telas'); 
+               telasDB = await resTelas.json();
+
+               const resMotores = await fetch('/motores'); 
+               motoresDB = await resMotores.json();
+               const selMotor = document.getElementById('select-motor');
+               motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
+
+               const resColores = await fetch('/colores');
+               coloresDB = await resColores.json(); 
+               console.log("🎨 Colores cargados:", coloresDB.length);
+
+           } catch (e) { console.error(e); }
        }
-   }
+       inicializar();
 
-   // --- 🆕 NUEVA FUNCIÓN: FILTRADO DE COLORES ---
-   // --- FUNCIÓN DINÁMICA DE COLORES ---
-   function actualizarListaColores() {
-       const idTela = document.getElementById('select-tela').value;
-       const selColor = document.getElementById('select-color');
-       
-       // 1. Limpiar select
-       selColor.innerHTML = '<option value="">-- Seleccione Color --</option>';
+       // --- FUNCIONES VISUALES ---
+       function toggleMotor() {
+           const check = document.getElementById('check-motor');
+           const panel = document.getElementById('panel-motor');
+           const select = document.getElementById('select-motor');
 
-       // 2. Buscar la tela seleccionada en la BD local
-       const telaSeleccionada = telasDB.find(t => t._id === idTela);
-       
-       if (!telaSeleccionada) return;
-
-       const nombreTelaActual = telaSeleccionada.nombre;
-
-       // 3. FILTRAR: Buscamos en la BD de colores los que coincidan con esta tela
-       // (Comparamos el campo 'telaNombre' que pusimos en Mongo con el nombre de la tela actual)
-       const coloresFiltrados = coloresDB.filter(c => c.telaNombre === nombreTelaActual);
-
-       // 4. Llenar el select
-       if (coloresFiltrados.length > 0) {
-           coloresFiltrados.forEach(c => {
-               selColor.add(new Option(c.nombre, c.nombre));
-           });
-       } else {
-           selColor.innerHTML = '<option value="N/A">-- Sin colores registrados --</option>';
+           if (check.checked) {
+               panel.style.display = 'block';
+           } else {
+               panel.style.display = 'none';
+               select.value = ""; 
+           }
        }
-   }
+       
+       function toggleGastos() {
+           const check = document.getElementById('check-gastos');
+           const panel = document.getElementById('panel-gastos');
+           const contenedor = document.getElementById('contenedor-inputs-gastos');
+           const select = document.getElementById('cantidad-gastos');
 
-   
+           if (check.checked) {
+               panel.style.display = 'block';
+           } else {
+               panel.style.display = 'none';
+               select.value = "0"; 
+               contenedor.innerHTML = ""; 
+           }
+       }
+
+       function generarCamposGastos() {
+           const cantidad = parseInt(document.getElementById('cantidad-gastos').value);
+           const contenedor = document.getElementById('contenedor-inputs-gastos');
+           contenedor.innerHTML = ""; 
+
+           for(let i=1; i<=cantidad; i++) {
+               const div = document.createElement('div');
+               div.style.display = "flex";
+               div.style.gap = "10px";
+               div.style.marginBottom = "10px";
+
+               div.innerHTML = `
+                   <input type="text" id="gasto-desc-${i}" placeholder="Descripción Gasto ${i} " style="flex: 2;">
+                   <input type="number" id="gasto-monto-${i}" placeholder="$ Costo" style="flex: 1;">
+               `;
+               contenedor.appendChild(div);
+           }
+       }
+
+       function obtenerDatosYCalcular() {
+           const idProd = document.getElementById('select-producto').value;
+           const idTela = document.getElementById('select-tela').value; 
+           const usaMotor = document.getElementById('check-motor').checked;
+           const idMotor = document.getElementById('select-motor').value;
+           const quienCotiza = document.getElementById('quienCotiza').value;
+           const ancho = parseFloat(document.getElementById('ancho').value);
+           const alto = parseFloat(document.getElementById('alto').value);
+           const cant = parseInt(document.getElementById('cantidad').value);
+           const cliente = document.getElementById('cliente').value;
+           const porcentajeUtilidad = parseInt(document.getElementById('select-utilidad').value);
+           const porcentajeDescuento = parseInt(document.getElementById('select-descuento').value);
+           const aplicarIva = document.getElementById('check-iva').checked;
+           const colorNombre = document.getElementById('select-color').value;
+
+           // 👇 NUEVOS DATOS DE ACCESORIOS 👇
+           const accesorioColor = document.getElementById('accesorio-color').value;
+           const accesorioMando = document.getElementById('accesorio-mando').value;
+
+           if(!idProd || !idTela || !ancho || !alto) return null; 
+
+           // Gastos
+           let listaGastos = [];
+           let totalGastosAdicionales = 0;
+           if (document.getElementById('check-gastos').checked) {
+                const cantidad = parseInt(document.getElementById('cantidad-gastos').value);
+                for(let i=1; i<=cantidad; i++) {
+                    const desc = document.getElementById(`gasto-desc-${i}`).value;
+                    const monto = parseFloat(document.getElementById(`gasto-monto-${i}`).value) || 0;
+                    if(desc || monto > 0) {
+                        listaGastos.push({ descripcion: desc, monto: monto });
+                        totalGastosAdicionales += monto;
+                    }
+                }
+           }
+
+           // Cálculos
+           const prod = productosDB.find(p => p._id === idProd);
+           const tela = telasDB.find(t => t._id === idTela);
+           
+           let motorObj = null;
+           let costoMotorUnitario = 0;
+           if (usaMotor && idMotor) {
+               motorObj = motoresDB.find(m => m._id === idMotor);
+               if (motorObj) costoMotorUnitario = motorObj.precio;
+           }
+           let totalMotores = costoMotorUnitario * cant; 
+
+           let area = ancho * alto;
+           let areaCobrar = area < 1 ? 1 : area; 
+           let costoMaterialUnitario = (prod.precio + tela.precioExtra) * areaCobrar;
+           let totalMateriales = costoMaterialUnitario * cant; 
+
+           let costoNetoTotal = totalMateriales + totalMotores;
+           let montoUtilidad = costoNetoTotal * (porcentajeUtilidad / 100);
+           let precioConUtilidad = costoNetoTotal + montoUtilidad;
+           let montoDescuento = precioConUtilidad * (porcentajeDescuento / 100);
+           let precioConDescuento = precioConUtilidad - montoDescuento;
+
+           let baseImponible = precioConDescuento + totalGastosAdicionales;
+           let iva = 0;
+           if (aplicarIva) iva = baseImponible * 0.16;
+           let granTotal = baseImponible + iva;
+
+           return {
+               cliente, productoNombre: prod.nombre, telaNombre: tela.nombre,
+               motorNombre: motorObj ? motorObj.nombre : "Sin Motor",
+               ancho, alto, cant, areaCobrar, 
+               quienCotiza, colorNombre,
+               // 👇 AGREGAMOS LOS ACCESORIOS AL OBJETO DE DATOS 👇
+               accesorioColor, accesorioMando,
+               
+               totalMateriales, totalMotores,
+               costoNetoTotal, porcentajeUtilidad, montoUtilidad, precioConUtilidad,
+               porcentajeDescuento, montoDescuento, precioConDescuento,
+               listaGastos, totalGastosAdicionales, baseImponible, iva, granTotal
+           };
+       }
+
+       function calcular() {
+           const datos = obtenerDatosYCalcular();
+           if(!datos) return; 
+
+           let htmlGastos = '';
+           if (datos.totalGastosAdicionales > 0) {
+               htmlGastos = `<div class="fila-precio" style="color: #6610f2; border-bottom: 1px dashed #ccc; padding-bottom:5px;">
+                               <span class="etiqueta">+ Gastos Adicionales:</span> <span>$${datos.totalGastosAdicionales.toFixed(2)}</span>
+                             </div>`;
+           }
+
+           let htmlIva = '';
+           if (datos.iva > 0) {
+               htmlIva = `<div class="fila-precio" style="color: #856404;">
+                              <span class="etiqueta">+ IVA (16%):</span> <span>$${datos.iva.toFixed(2)}</span>
+                          </div>`;
+           } else {
+               htmlIva = `<div class="fila-precio" style="color: #aaa; font-style: italic; font-size: 0.9em;">
+                              <span class="etiqueta">IVA:</span> <span>No incluido (0%)</span>
+                          </div>`;
+           }
+
+           let html = `
+               <div id="contenido-pdf" style="padding: 20px; background-color: white; width: 100%; box-sizing: border-box;">
+                   
+                   <div style="text-align: center; margin-bottom: 20px;">
+                       <img src="/IMG/logo.jpeg" style="width: 120px; display: block; margin: 0 auto 10px auto;">
+                       <h2 style="margin: 0; color: #001f3f;">Cotización Formal</h2>
+                       <p style="color: #666; font-size: 0.9em;">Fecha: ${new Date().toLocaleDateString()}</p>
+                   </div>
+                   
+                   <div style="font-family: Arial, sans-serif;">
+                       <p><strong>Atendido por:</strong> ${datos.quienCotiza}</p>
+                       <p><strong>Cliente:</strong> ${datos.cliente}</p>
+                       <p><strong>Sistema:</strong> ${datos.productoNombre} | <strong>Tela:</strong> ${datos.telaNombre} | <strong>Color:</strong> ${datos.colorNombre}</p>
+                       
+                       <p style="background: #f1f3f5; padding: 5px; border-radius: 4px; font-size: 0.9em;">
+                           <strong>Accesorios:</strong> ${datos.accesorioColor} | <strong>Mando:</strong> ${datos.accesorioMando}
+                       </p>
+                       
+                       <p><strong>Medidas:</strong> ${datos.ancho}x${datos.alto} (${datos.areaCobrar.toFixed(2)} m²) - Cant: ${datos.cant}</p>
+                       <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
+                       
+                       <div class="fila-precio"><span class="etiqueta">Importe Persianas:</span> <span>$${datos.totalMateriales.toFixed(2)}</span></div>
+                       
+                       ${datos.totalMotores > 0 ? 
+                           `<div class="fila-precio" style="color: #0d47a1;"><span class="etiqueta">Importe Motor:</span> <span>$${datos.totalMotores.toFixed(2)}</span></div>` 
+                           : ''}
+
+                       <div class="fila-precio" style="border-top: 1px solid #eee; margin-top:5px; font-weight: bold;">
+                           <span class="etiqueta">Costo Neto:</span> <span>$${datos.costoNetoTotal.toFixed(2)}</span>
+                       </div>
+
+                       <div id="fila-utilidad" class="fila-precio" style="color: green;">
+                           <span class="etiqueta">+ Utilidad:</span> <span>$${datos.montoUtilidad.toFixed(2)}</span>
+                       </div>
+
+                       ${datos.porcentajeDescuento > 0 ? 
+                           `<div class="fila-precio" style="color: #dc3545;"><span class="etiqueta">- Descuento:</span> <span>-$${datos.montoDescuento.toFixed(2)}</span></div>` 
+                           : ''}
+
+                       ${htmlGastos}
+                       ${htmlIva}
+                       
+                       <div class="fila-precio" style="font-weight:bold; margin-top:10px; border-top: 2px solid #001f3f; padding-top: 10px; font-size: 1.2em;">
+                           <span class="etiqueta">TOTAL A PAGAR:</span> <span>$${datos.granTotal.toFixed(2)}</span>
+                       </div>
+                   </div>
+                   
+                   <p style="text-align: center; font-size: 0.8em; color: #888; margin-top: 30px;">
+                       Gracias por su preferencia. Esta cotización tiene una vigencia de 15 días.
+                   </p>
+               </div>
+           `;
+
+           document.getElementById('resultado-cotizacion').style.display = 'block';
+           document.getElementById('detalle-contenido').innerHTML = html;
+       }
+
+       async function guardar() {
+           const datos = obtenerDatosYCalcular();
+           if(!datos) return; 
+           if(!datos.cliente) { alert("Falta el cliente"); return; }
+           if(!datos.quienCotiza) { alert("⚠️ Por favor escribe quién está haciendo la cotización."); return; }
+           
+           const paquete = {
+               cliente: datos.cliente,
+               producto: datos.productoNombre,
+               tela: datos.telaNombre,
+               medidas: { ancho: datos.ancho, alto: datos.alto },
+               cantidad: datos.cant,
+               costoNeto: datos.costoNetoTotal,
+               porcentajeUtilidad: datos.porcentajeUtilidad,
+               precioConUtilidad: datos.precioConUtilidad,
+               porcentajeDescuento: datos.porcentajeDescuento,
+               iva: datos.iva,
+               motor: datos.motorNombre,
+               quienCotiza: datos.quienCotiza,
+               gastosAdicionales: datos.listaGastos,
+               totalGastosAdicionales: datos.totalGastosAdicionales,
+               color: datos.colorNombre,
+               
+               // 👇 ENVIAMOS LOS NUEVOS DATOS AL SERVIDOR 👇
+               accesorioColor: datos.accesorioColor,
+               accesorioMando: datos.accesorioMando,
+               
+               total: datos.granTotal
+           };
+
+           try {
+               const res = await fetch('/cotizaciones', {
+                   method: 'POST',
+                   headers: {'Content-Type': 'application/json'},
+                   body: JSON.stringify(paquete)
+               });
+               const r = await res.json();
+               if(r.exito) alert("✅ Guardado con éxito");
+               else alert("Error: " + r.mensaje);
+           } catch (e) { console.error(e); alert("Error de conexión"); }
+       }
+
+       function actualizarListaTelas() {
+           const idProd = document.getElementById('select-producto').value;
+           const selTela = document.getElementById('select-tela');
+           const selColor = document.getElementById('select-color'); 
+           if(selColor) selColor.innerHTML = '<option value="">-- Primero seleccione una tela --</option>';
+
+           selTela.innerHTML = '<option value="">-- Seleccione Tela --</option>';
+
+           const productoSeleccionado = productosDB.find(p => p._id === idProd);
+           if (!productoSeleccionado) return; 
+
+           const nombreProd = productoSeleccionado.nombre;
+
+           const telasFiltradas = telasDB.filter(tela => {
+               if (tela.productos && Array.isArray(tela.productos)) {
+                   return tela.productos.includes(nombreProd);
+               }
+               return false; 
+           });
+
+           if (telasFiltradas.length === 0) {
+               selTela.innerHTML = '<option value="">-- No hay telas disponibles para este producto --</option>';
+           } else {
+               telasFiltradas.forEach(t => {
+                   selTela.add(new Option(`${t.nombre} (+ $${t.precioExtra})`, t._id));
+               });
+           }
+       }
+
+       function actualizarListaColores() {
+           const idTela = document.getElementById('select-tela').value;
+           const selColor = document.getElementById('select-color');
+           selColor.innerHTML = '<option value="">-- Seleccione Color --</option>';
+
+           const telaSeleccionada = telasDB.find(t => t._id === idTela);
+           if (!telaSeleccionada) return;
+
+           const nombreTelaActual = telaSeleccionada.nombre;
+           const coloresFiltrados = coloresDB.filter(c => c.telaNombre === nombreTelaActual);
+
+           if (coloresFiltrados.length > 0) {
+               coloresFiltrados.forEach(c => {
+                   selColor.add(new Option(c.nombre, c.nombre));
+               });
+           } else {
+               selColor.innerHTML = '<option value="N/A">-- Sin colores registrados --</option>';
+           }
+       }
     </script>
 </body>
 </html>
