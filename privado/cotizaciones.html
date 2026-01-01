@@ -193,7 +193,7 @@
 
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <script>
        // --- VARIABLES GLOBALES ---
@@ -204,7 +204,6 @@
 
        // Inicialización (Cargar datos del server)
        async function inicializar() {
-           // Llenar selects de utilidad/descuento
            const selUtil = document.getElementById('select-utilidad');
            for(let i=0; i<=400; i+=10) {
                let opt = new Option(`${i}% Utilidad`, i);
@@ -214,7 +213,6 @@
            const selDesc = document.getElementById('select-descuento');
            for(let i=0; i<=50; i++) selDesc.add(new Option(`${i}% Descuento`, i));
 
-           // Cargar datos reales
            try {
                const [resP, resT, resM, resC] = await Promise.all([
                    fetch('/productos'), fetch('/telas'), fetch('/motores'), fetch('/colores')
@@ -232,13 +230,12 @@
                const selMotor = document.getElementById('select-motor');
                motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
 
-           } catch (e) { console.error(e); alert("Error cargando datos"); }
+           } catch (e) { console.error(e); alert("Error cargando datos (asegúrate de correr el servidor)"); }
        }
        inicializar();
 
        // --- 1. FUNCIÓN PARA AGREGAR AL CARRITO ---
        function agregarAlCarrito() {
-           // a) Validar campos mínimos
            const idProd = document.getElementById('select-producto').value;
            const idTela = document.getElementById('select-tela').value;
            const ancho = parseFloat(document.getElementById('ancho').value);
@@ -250,12 +247,10 @@
                return;
            }
 
-           // b) Buscar objetos en BD
            const prodObj = productosDB.find(p => p._id === idProd);
            const telaObj = telasDB.find(t => t._id === idTela);
            const color = document.getElementById('select-color').value;
            
-           // c) Motor
            const usaMotor = document.getElementById('check-motor').checked;
            const idMotor = document.getElementById('select-motor').value;
            let motorObj = null;
@@ -265,31 +260,19 @@
                precioMotor = motorObj.precio;
            }
 
-           // d) Accesorios
            const accColor = document.getElementById('accesorio-color').value;
            const accMando = document.getElementById('accesorio-mando').value;
-
-           // e) Finanzas DEL PRODUCTO
            const pctUtilidad = parseInt(document.getElementById('select-utilidad').value);
            const pctDescuento = parseInt(document.getElementById('select-descuento').value);
 
-           // CÁLCULOS UNITARIOS
            let area = ancho * alto;
-           if(area < 1) area = 1; // Mínimo de cobro 1m2
+           if(area < 1) area = 1; 
            
-           // Costo Base = (Precio Prod + Precio Tela) * m2 + Motor
            const costoBaseUnitario = ((prodObj.precio + telaObj.precioExtra) * area) + precioMotor;
-           
-           // Aplicar Utilidad
            const precioConUtilidad = costoBaseUnitario + (costoBaseUnitario * (pctUtilidad / 100));
-           
-           // Aplicar Descuento
            const precioFinalUnitario = precioConUtilidad - (precioConUtilidad * (pctDescuento / 100));
-           
-           // Total de la línea
            const totalLinea = precioFinalUnitario * cant;
 
-           // f) CREAR OBJETO ITEM
            const item = {
                producto: prodObj.nombre,
                tela: telaObj.nombre,
@@ -303,10 +286,8 @@
                total: totalLinea
            };
 
-           // g) GUARDAR EN CARRITO Y LIMPIAR
            carritoItems.push(item);
            actualizarTablaCarrito();
-           // (Opcional) Limpiar campos aquí...
        }
 
        // --- 2. DIBUJAR TABLA DEL CARRITO ---
@@ -346,14 +327,12 @@
            actualizarTablaCarrito();
        }
 
-       // --- 3. CÁLCULO DE TOTALES GLOBALES (GASTOS E IVA) ---
+       // --- 3. CÁLCULO DE TOTALES GLOBALES ---
        function calcularTotalesGlobales() {
-           // 1. Sumar subtotales de productos
            let subtotalProductos = carritoItems.reduce((sum, item) => sum + item.total, 0);
-
-           // 2. Sumar Gastos Adicionales
            let totalGastos = 0;
            let listaGastos = [];
+           
            if (document.getElementById('check-gastos').checked) {
                const cant = parseInt(document.getElementById('cantidad-gastos').value);
                for(let i=1; i<=cant; i++) {
@@ -366,15 +345,13 @@
                }
            }
 
-           // 3. Calcular IVA Global
            const aplicarIva = document.getElementById('check-iva').checked;
            const baseImponible = subtotalProductos + totalGastos;
            const iva = aplicarIva ? baseImponible * 0.16 : 0;
            const granTotal = baseImponible + iva;
 
-           // 4. Actualizar Etiquetas
+           // Actualizar vista HTML normal
            document.getElementById('lbl-subtotal-items').innerText = `$${subtotalProductos.toFixed(2)}`;
-           
            const lblGastos = document.getElementById('lbl-gastos');
            if(totalGastos > 0) {
                lblGastos.style.display = 'block';
@@ -386,33 +363,109 @@
            const lblIva = document.getElementById('lbl-iva');
            if(aplicarIva) {
                lblIva.innerHTML = `+ IVA (16%): <span>$${iva.toFixed(2)}</span>`;
-               lblIva.style.color = '#856404';
            } else {
                lblIva.innerHTML = `IVA: <span>No incluido</span>`;
-               lblIva.style.color = '#ccc';
            }
-
            document.getElementById('lbl-gran-total').innerText = `$${granTotal.toFixed(2)}`;
 
            return { subtotalProductos, totalGastos, listaGastos, iva, granTotal };
        }
 
-       // --- 4. GUARDAR TODO EN EL SERVIDOR ---
+       // --- 4. GENERAR PDF (CORREGIDO) ---
+       function generarPDF() {
+            // A. VALIDAR
+            if (carritoItems.length === 0) {
+                alert("No hay productos para generar el PDF.");
+                return;
+            }
+
+            // B. OBTENER DATOS
+            const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
+            const fechaHoy = new Date().toLocaleDateString('es-MX');
+            const folio = "COT-" + Math.floor(Math.random() * 10000);
+            
+            // Usamos la función central de totales para obtener los números exactos
+            const totales = calcularTotalesGlobales(); 
+
+            // C. LLENAR ENCABEZADO OCULTO
+            document.getElementById('pdf-cliente-nombre').innerText = nombreCliente;
+            document.getElementById('pdf-fecha').innerText = fechaHoy;
+            document.getElementById('pdf-folio').innerText = folio;
+
+            // D. LLENAR TABLA
+            const tablaBody = document.getElementById('pdf-tabla-body');
+            tablaBody.innerHTML = ''; 
+
+            carritoItems.forEach(item => {
+                // Crear fila principal
+                let fila = `
+                    <tr style="border-bottom: 1px solid #17a2b8;">
+                        <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.producto}</td>
+                        <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.tela}</td>
+                        <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.color}</td>
+                        <td style="padding: 8px; text-align: center; border-right: 1px solid #17a2b8;">${item.cantidad}</td>
+                        <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
+                        <td style="padding: 8px; text-align: right;">$${item.total.toFixed(2)}</td>
+                    </tr>
+                `;
+                
+                // Agregar fila de detalles (Accesorios/Motor)
+                fila += `
+                    <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.9em; background-color: #f9f9f9;">
+                        <td colspan="6" style="padding: 4px 8px;">
+                            <em>▸ Accesorios: ${item.accesorios.color}, Mando ${item.accesorios.mando} 
+                            ${item.motor !== 'Manual' ? ' | ⚙️ ' + item.motor : ''}</em>
+                        </td>
+                    </tr>
+                `;
+                tablaBody.innerHTML += fila;
+            });
+
+            // E. GASTOS EXTRA EN TABLA (Si existen)
+            if(totales.totalGastos > 0) {
+                totales.listaGastos.forEach(g => {
+                    let filaGasto = `
+                    <tr style="border-bottom: 1px solid #17a2b8; background-color: #eef;">
+                        <td colspan="5" style="padding: 8px; text-align: right; border-right: 1px solid #17a2b8;"><strong>${g.descripcion || 'Gasto Adicional'}:</strong></td>
+                        <td style="padding: 8px; text-align: right;">$${g.monto.toFixed(2)}</td>
+                    </tr>`;
+                    tablaBody.innerHTML += filaGasto;
+                });
+            }
+
+            // F. LLENAR TOTALES FINALES
+            document.getElementById('pdf-subtotal').innerText = `$${(totales.subtotalProductos + totales.totalGastos).toFixed(2)}`;
+            document.getElementById('pdf-iva').innerText = `$${totales.iva.toFixed(2)}`;
+            document.getElementById('pdf-total').innerText = `$${totales.granTotal.toFixed(2)}`;
+
+            // G. GENERAR IMAGEN Y DESCARGAR
+            const elemento = document.getElementById('plantilla-pdf');
+            const opt = {
+                margin:       0.3,
+                filename:     `Cotizacion_${nombreCliente}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true }, 
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+
+            elemento.style.display = 'block'; // Mostrar temporalmente
+            html2pdf().set(opt).from(elemento).save().then(() => {
+                elemento.style.display = 'none'; // Ocultar
+            });
+        }
+
+       // --- 5. GUARDAR EN BD ---
        async function guardarCotizacionCompleta() {
            if(carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
-           
            const cliente = document.getElementById('cliente').value;
            const quienCotiza = document.getElementById('quienCotiza').value;
            if(!cliente || !quienCotiza) { alert("Faltan datos del cliente o cotizador."); return; }
 
            const globales = calcularTotalesGlobales();
-
            const paquete = {
                cliente: cliente,
                quienCotiza: quienCotiza,
-               items: carritoItems, // Enviamos el ARRAY completo
-               
-               // Datos Globales
+               items: carritoItems,
                gastosAdicionales: globales.listaGastos,
                totalGastosAdicionales: globales.totalGastos,
                iva: globales.iva,
@@ -428,7 +481,6 @@
                const r = await res.json();
                if(r.exito) {
                    alert("✅ Cotización guardada con éxito");
-                   // Opcional: Reiniciar todo
                    carritoItems = [];
                    actualizarTablaCarrito();
                    document.getElementById('cliente').value = '';
@@ -438,39 +490,31 @@
            } catch(e) { alert("Error de conexión"); console.error(e); }
        }
 
-       // --- EXTRAS (Listas dependientes) ---
+       // Helpers visuales
        function actualizarListaTelas() {
            const idProd = document.getElementById('select-producto').value;
            const selTela = document.getElementById('select-tela');
            selTela.innerHTML = '<option value="">-- Seleccione --</option>';
            const prod = productosDB.find(p => p._id === idProd);
            if(!prod) return;
-           
-           // Filtro por lista de productos permitidos en la tela
            const telas = telasDB.filter(t => t.productos && t.productos.includes(prod.nombre));
            telas.forEach(t => selTela.add(new Option(`${t.nombre} (+$${t.precioExtra})`, t._id)));
-           
            actualizarListaColores();
        }
-
        function actualizarListaColores() {
            const idTela = document.getElementById('select-tela').value;
            const selColor = document.getElementById('select-color');
            selColor.innerHTML = '<option value="">-- Seleccione --</option>';
            const tela = telasDB.find(t => t._id === idTela);
            if(!tela) return;
-
            const colores = coloresDB.filter(c => c.telaNombre === tela.nombre);
            colores.forEach(c => selColor.add(new Option(c.nombre, c.nombre)));
        }
-
-       // Helpers visuales
        function toggleMotor() {
            document.getElementById('panel-motor').style.display = document.getElementById('check-motor').checked ? 'block' : 'none';
        }
        function toggleGastos() {
            document.getElementById('panel-gastos').style.display = document.getElementById('check-gastos').checked ? 'block' : 'none';
-           // Re-calcular si se oculta
            calcularTotalesGlobales();
        }
        function generarCamposGastos() {
@@ -484,196 +528,77 @@
                </div>`;
            }
        }
-       
-       // Generar PDF (Versión Multi-Item Simplificada)
-       function generarPDF() {
-           if(carritoItems.length === 0) { alert("Carrito vacío"); return; }
-           const globales = calcularTotalesGlobales();
-           const cliente = document.getElementById('cliente').value;
-           
-           // Generar filas de tabla
-           let filasHTML = carritoItems.map(item => `
-               <tr>
-                   <td>${item.producto}<br><small>${item.tela} ${item.color}</small></td>
-                   <td>${item.medidas.ancho}x${item.medidas.alto}</td>
-                   <td>${item.cantidad}</td>
-                   <td>$${item.precioUnitario.toFixed(2)}</td>
-                   <td>$${item.total.toFixed(2)}</td>
-               </tr>`).join('');
-
-           const contenido = `
-               <div style="padding:20px; font-family:Arial;">
-                   <h2>Cotización para: ${cliente}</h2>
-                   <table style="width:100%; border-collapse:collapse; margin-top:20px;">
-                       <tr style="background:#001f3f; color:white;"><th>Prod</th><th>Med</th><th>Cant</th><th>P.Unit</th><th>Total</th></tr>
-                       ${filasHTML}
-                   </table>
-                   <div style="text-align:right; margin-top:20px;">
-                       <h3>Total: $${globales.granTotal.toFixed(2)}</h3>
-                   </div>
-               </div>
-           `;
-           html2pdf().from(contenido).save();
-       }
-
-
-                function generarPDF() {
-    // 1. OBTENER DATOS DEL FORMULARIO ACTUAL
-    // Ajusta estos IDs según cómo se llamen tus inputs en cotizaciones.html
-    const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
-    const fechaHoy = new Date().toLocaleDateString('es-MX');
-    
-    // Generar un folio aleatorio o secuencial (puedes ajustarlo)
-    const folio = "COT-" + Math.floor(Math.random() * 10000);
-
-    // 2. LLENAR LA PLANTILLA OCULTA
-    document.getElementById('pdf-cliente-nombre').innerText = nombreCliente;
-    document.getElementById('pdf-fecha').innerText = fechaHoy;
-    document.getElementById('pdf-folio').innerText = folio;
-
-    const tablaBody = document.getElementById('pdf-tabla-body');
-    tablaBody.innerHTML = ''; // Limpiar tabla previa
-
-    let subtotalGeneral = 0;
-
-    // ASUMO QUE TIENES UNA VARIABLE 'carrito' O 'listaProductos' CON LOS ITEMS
-    // Si no la tienes global, adáptalo para leer de tu tabla HTML visible
-    if (typeof carrito === 'undefined' || carrito.length === 0) {
-        alert("No hay productos para generar el PDF.");
-        return;
-    }
-
-    carrito.forEach(item => {
-        // Calcular precio total del item
-        const totalItem = item.precio * item.cantidad; // O como calcules el total
-        subtotalGeneral += totalItem;
-
-        // Crear fila principal
-        let fila = `
-            <tr style="border-bottom: 1px solid #17a2b8;">
-                <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.producto}</td>
-                <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.tela || 'N/A'}</td>
-                <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.color || 'Por Definir'}</td>
-                <td style="padding: 8px; text-align: center; border-right: 1px solid #17a2b8;">${item.cantidad}</td>
-                <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.ancho}m x ${item.alto}m</td>
-                <td style="padding: 8px; text-align: right;">$${totalItem.toFixed(2)}</td>
-            </tr>
-        `;
-        
-        // Agregar fila de "Accesorios/Notas" como en la imagen (Opcional)
-        fila += `
-            <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.9em;">
-                <td colspan="6" style="padding: 4px 8px;">
-                    <em>Notas/Accesorios: Mando ${item.mando || 'Derecho'}, Cadena ${item.cadena || 'Plástica'}</em>
-                </td>
-            </tr>
-        `;
-
-        tablaBody.innerHTML += fila;
-    });
-
-    // 3. CALCULAR TOTALES
-    const iva = subtotalGeneral * 0.16; // Asumiendo 16% IVA
-    const granTotal = subtotalGeneral + iva;
-
-    document.getElementById('pdf-subtotal').innerText = `$${subtotalGeneral.toFixed(2)}`;
-    document.getElementById('pdf-iva').innerText = `$${iva.toFixed(2)}`;
-    document.getElementById('pdf-total').innerText = `$${granTotal.toFixed(2)}`;
-
-    // 4. GENERAR EL PDF
-    const elemento = document.getElementById('plantilla-pdf');
-    
-    // Hacemos visible temporalmente el clon para la foto, o configuramos html2pdf
-    // La librería maneja elementos ocultos, pero a veces es mejor clonar.
-    // Configuración:
-    const opt = {
-        margin:       0.5,
-        filename:     `Cotizacion_${nombreCliente}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 }, // Mayor escala = mejor calidad
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
-
-    // Truco: Mostrar el div momentáneamente para que html2pdf lo capture bien si hay problemas de renderizado
-    elemento.style.display = 'block';
-    
-    html2pdf().set(opt).from(elemento).save().then(() => {
-        elemento.style.display = 'none'; // Ocultar de nuevo al terminar
-    });
-}
-
-
-
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-
-                    <div id="plantilla-pdf" style="display: none; width: 800px; font-family: 'Arial', sans-serif; color: #333;">
-    
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 15px; margin-bottom: 20px;">
-        <div style="width: 40%;">
-            <img src="/IMG/logoPD.jpeg" alt="Persianas Delta" style="max-width: 150px;">
-            <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 5px;">PRIVACIDAD CON ESTILO</div>
-        </div>
-        <div style="width: 60%; text-align: right; font-size: 0.8em;">
-            <h1 style="margin: 0; font-weight: normal; font-size: 1.8em; letter-spacing: 3px;">PERSIANAS DELTA</h1>
-            <p style="margin: 5px 0;">CDMX 5519337007 / QRO 4427878273 / https://persianasdelta.com/</p>
-            <p style="margin: 0; font-weight: bold;">VENTAS@PERSIANASDELTA.COM</p>
-        </div>
-    </div>
-
-    <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.9em;">
-        <div>
-            <strong style="color: #001f3f;">COTIZACIÓN:</strong> <span id="pdf-folio">001-2025</span><br>
-            <strong style="color: #001f3f;">CLIENTE:</strong> <br>
-            <span id="pdf-cliente-nombre">Nombre del Cliente</span>
-        </div>
-        <div style="text-align: right;">
-            <strong style="color: #001f3f;">FECHA:</strong> <br>
-            <span id="pdf-fecha">DD/MM/AAAA</span>
-        </div>
-    </div>
-
-    <table style="width: 100%; border-collapse: collapse; font-size: 0.8em; border: 2px solid #17a2b8;">
-        <thead>
-            <tr style="color: #001f3f; text-align: center;">
-                <th style="border: 1px solid #17a2b8; padding: 8px;">TIPO DE PERSIANA</th>
-                <th style="border: 1px solid #17a2b8; padding: 8px;">TELA</th>
-                <th style="border: 1px solid #17a2b8; padding: 8px;">COLOR</th>
-                <th style="border: 1px solid #17a2b8; padding: 8px;">CANT.</th>
-                <th style="border: 1px solid #17a2b8; padding: 8px;">MEDIDAS</th>
-                <th style="border: 1px solid #17a2b8; padding: 8px;">TOTAL</th>
-            </tr>
-        </thead>
-        <tbody id="pdf-tabla-body">
-            </tbody>
-    </table>
-
-    <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+    <div id="plantilla-pdf" style="display: none; width: 800px; font-family: 'Arial', sans-serif; color: #333;">
         
-        <div style="width: 60%; font-size: 0.7em; color: #555;">
-            <p style="margin-bottom: 5px;"><strong>Condiciones de Pago:</strong></p>
-            <p style="margin: 2px 0;">50% de anticipo y 50% contra entrega.</p>
-            <p style="margin: 2px 0;"><strong>No hay devoluciones</strong></p>
-            <p style="margin: 2px 0;">Precio expresado en moneda nacional.</p>
-            <p style="margin: 2px 0;">Tiempo de entrega: 7 días hábiles a partir de anticipo.</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 15px; margin-bottom: 20px;">
+            <div style="width: 40%;">
+                <img src="/IMG/logoPD.jpeg" alt="Persianas Delta" style="max-width: 150px;">
+                <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 5px;">PRIVACIDAD CON ESTILO</div>
+            </div>
+            <div style="width: 60%; text-align: right; font-size: 0.8em;">
+                <h1 style="margin: 0; font-weight: normal; font-size: 1.8em; letter-spacing: 3px;">PERSIANAS DELTA</h1>
+                <p style="margin: 5px 0;">CDMX 5519337007 / QRO 4427878273 / https://persianasdelta.com/</p>
+                <p style="margin: 0; font-weight: bold;">VENTAS@PERSIANASDELTA.COM</p>
+            </div>
         </div>
 
-        <div style="width: 35%;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-                <tr>
-                    <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">SUBTOTAL</td>
-                    <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;" id="pdf-subtotal">$0.00</td>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.9em;">
+            <div>
+                <strong style="color: #001f3f;">COTIZACIÓN:</strong> <span id="pdf-folio">001-2025</span><br>
+                <strong style="color: #001f3f;">CLIENTE:</strong> <br>
+                <span id="pdf-cliente-nombre">Nombre del Cliente</span>
+            </div>
+            <div style="text-align: right;">
+                <strong style="color: #001f3f;">FECHA:</strong> <br>
+                <span id="pdf-fecha">DD/MM/AAAA</span>
+            </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.8em; border: 2px solid #17a2b8;">
+            <thead>
+                <tr style="color: #001f3f; text-align: center;">
+                    <th style="border: 1px solid #17a2b8; padding: 8px;">TIPO DE PERSIANA</th>
+                    <th style="border: 1px solid #17a2b8; padding: 8px;">TELA</th>
+                    <th style="border: 1px solid #17a2b8; padding: 8px;">COLOR</th>
+                    <th style="border: 1px solid #17a2b8; padding: 8px;">CANT.</th>
+                    <th style="border: 1px solid #17a2b8; padding: 8px;">MEDIDAS</th>
+                    <th style="border: 1px solid #17a2b8; padding: 8px;">TOTAL</th>
                 </tr>
-                <tr>
-                    <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">IVA</td>
-                    <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;" id="pdf-iva">$0.00</td>
-                </tr>
-                <tr>
-                    <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;">TOTAL</td>
-                    <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;" id="pdf-total">$0.00</td>
-                </tr>
-            </table>
+            </thead>
+            <tbody id="pdf-tabla-body">
+                </tbody>
+        </table>
+
+        <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+            
+            <div style="width: 60%; font-size: 0.7em; color: #555;">
+                <p style="margin-bottom: 5px;"><strong>Condiciones de Pago:</strong></p>
+                <p style="margin: 2px 0;">50% de anticipo y 50% contra entrega.</p>
+                <p style="margin: 2px 0;"><strong>No hay devoluciones</strong></p>
+                <p style="margin: 2px 0;">Precio expresado en moneda nacional.</p>
+                <p style="margin: 2px 0;">Tiempo de entrega: 7 días hábiles a partir de anticipo.</p>
+            </div>
+
+            <div style="width: 35%;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                    <tr>
+                        <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">SUBTOTAL</td>
+                        <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;" id="pdf-subtotal">$0.00</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">IVA</td>
+                        <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;" id="pdf-iva">$0.00</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;">TOTAL</td>
+                        <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;" id="pdf-total">$0.00</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
         </div>
     </div>
 </div>
