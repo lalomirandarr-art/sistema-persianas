@@ -364,7 +364,7 @@
         return { subtotalProductos, totalGastos, listaGastos, iva, granTotal };
     }
 
-    // --- FUNCIÓN GENERAR PDF (CORREGIDA: BORDE DERECHO VISIBLE) ---
+    // --- FUNCIÓN GENERAR PDF (CORREGIDA Y REINSERTADA) ---
     async function generarPDF() {
         if (carritoItems.length === 0) {
             alert("No hay productos para generar el PDF.");
@@ -428,17 +428,12 @@
             });
         }
 
-        // 3. CREAR ELEMENTO PDF (ESTILOS CORREGIDOS)
+        // 3. CREAR ELEMENTO PDF
         const elementoPDF = document.createElement('div');
         elementoPDF.style.width = '700px'; 
         elementoPDF.style.padding = '20px';
-        
-        // --- AQUÍ ESTÁ LA MAGIA ---
-        // box-sizing: border-box asegura que el borde no sume anchura extra
         elementoPDF.style.boxSizing = 'border-box'; 
         elementoPDF.style.border = '3px solid #17a2b8'; 
-        // --------------------------
-        
         elementoPDF.style.background = 'white';
         elementoPDF.style.fontFamily = 'Arial, sans-serif';
         elementoPDF.style.color = '#333';
