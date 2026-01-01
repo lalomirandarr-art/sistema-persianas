@@ -382,22 +382,22 @@
             // B. OBTENER DATOS
             const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
             const fechaHoy = new Date().toLocaleDateString('es-MX');
+            // Generar folio aleatorio
             const folio = "COT-" + Math.floor(Math.random() * 10000);
             
-            // Usamos la función central de totales para obtener los números exactos
+            // C. CALCULAR TOTALES
             const totales = calcularTotalesGlobales(); 
 
-            // C. LLENAR ENCABEZADO OCULTO
+            // D. LLENAR ENCABEZADO OCULTO
             document.getElementById('pdf-cliente-nombre').innerText = nombreCliente;
             document.getElementById('pdf-fecha').innerText = fechaHoy;
             document.getElementById('pdf-folio').innerText = folio;
 
-            // D. LLENAR TABLA
+            // E. LLENAR TABLA
             const tablaBody = document.getElementById('pdf-tabla-body');
             tablaBody.innerHTML = ''; 
 
             carritoItems.forEach(item => {
-                // Crear fila principal
                 let fila = `
                     <tr style="border-bottom: 1px solid #17a2b8;">
                         <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.producto}</td>
@@ -407,10 +407,6 @@
                         <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
                         <td style="padding: 8px; text-align: right;">$${item.total.toFixed(2)}</td>
                     </tr>
-                `;
-                
-                // Agregar fila de detalles (Accesorios/Motor)
-                fila += `
                     <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.9em; background-color: #f9f9f9;">
                         <td colspan="6" style="padding: 4px 8px;">
                             <em>▸ Accesorios: ${item.accesorios.color}, Mando ${item.accesorios.mando} 
@@ -421,7 +417,7 @@
                 tablaBody.innerHTML += fila;
             });
 
-            // E. GASTOS EXTRA EN TABLA (Si existen)
+            // Gastos Extra
             if(totales.totalGastos > 0) {
                 totales.listaGastos.forEach(g => {
                     let filaGasto = `
@@ -433,25 +429,24 @@
                 });
             }
 
-            // F. LLENAR TOTALES FINALES
+            // Totales Finales
             document.getElementById('pdf-subtotal').innerText = `$${(totales.subtotalProductos + totales.totalGastos).toFixed(2)}`;
             document.getElementById('pdf-iva').innerText = `$${totales.iva.toFixed(2)}`;
             document.getElementById('pdf-total').innerText = `$${totales.granTotal.toFixed(2)}`;
 
-            // G. GENERAR IMAGEN Y DESCARGAR
+            // F. GENERAR PDF (Sin toggle de display)
             const elemento = document.getElementById('plantilla-pdf');
+            
             const opt = {
                 margin:       0.3,
                 filename:     `Cotizacion_${nombreCliente}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true }, 
+                html2canvas:  { scale: 2, useCORS: true, scrollY: 0 }, 
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
-            elemento.style.display = 'block'; // Mostrar temporalmente
-            html2pdf().set(opt).from(elemento).save().then(() => {
-                elemento.style.display = 'none'; // Ocultar
-            });
+            // Simplemente generamos, ya que el elemento existe (aunque esté fuera de pantalla)
+            html2pdf().set(opt).from(elemento).save();
         }
 
        // --- 5. GUARDAR EN BD ---
@@ -530,7 +525,7 @@
        }
     </script>
 
-    <div id="plantilla-pdf" style="display: none; width: 800px; font-family: 'Arial', sans-serif; color: #333;">
+   <div id="plantilla-pdf" style="position: absolute; top: -9999px; left: -9999px; width: 800px; font-family: 'Arial', sans-serif; color: #333; background: white;">
         
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 15px; margin-bottom: 20px;">
             <div style="width: 40%;">
