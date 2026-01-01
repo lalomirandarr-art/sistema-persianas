@@ -194,403 +194,391 @@
 
    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <script>
-       let productosDB = [], motoresDB = [], telasDB = [], coloresDB = [];
-       let carritoItems = []; 
+<script>
+    // --- VARIABLES GLOBALES ---
+    let productosDB = [], motoresDB = [], telasDB = [], coloresDB = [];
+    let carritoItems = []; 
 
-       async function inicializar() {
-           const selUtil = document.getElementById('select-utilidad');
-           for(let i=0; i<=400; i+=10) {
-               let opt = new Option(`${i}% Utilidad`, i);
-               if(i === 50) opt.selected = true; 
-               selUtil.add(opt);
-           }
-           const selDesc = document.getElementById('select-descuento');
-           for(let i=0; i<=50; i++) selDesc.add(new Option(`${i}% Descuento`, i));
+    // Inicialización
+    async function inicializar() {
+        const selUtil = document.getElementById('select-utilidad');
+        for(let i=0; i<=400; i+=10) {
+            let opt = new Option(`${i}% Utilidad`, i);
+            if(i === 50) opt.selected = true; 
+            selUtil.add(opt);
+        }
+        const selDesc = document.getElementById('select-descuento');
+        for(let i=0; i<=50; i++) selDesc.add(new Option(`${i}% Descuento`, i));
 
-           try {
-               const [resP, resT, resM, resC] = await Promise.all([
-                   fetch('/productos'), fetch('/telas'), fetch('/motores'), fetch('/colores')
-               ]);
-               
-               productosDB = await resP.json();
-               telasDB = await resT.json();
-               motoresDB = await resM.json();
-               coloresDB = await resC.json();
+        try {
+            const [resP, resT, resM, resC] = await Promise.all([
+                fetch('/productos'), fetch('/telas'), fetch('/motores'), fetch('/colores')
+            ]);
+            
+            productosDB = await resP.json();
+            telasDB = await resT.json();
+            motoresDB = await resM.json();
+            coloresDB = await resC.json();
 
-               const selProd = document.getElementById('select-producto');
-               selProd.innerHTML = '<option value="">-- Seleccione --</option>';
-               productosDB.forEach(p => selProd.add(new Option(p.nombre, p._id)));
-               
-               const selMotor = document.getElementById('select-motor');
-               motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
+            const selProd = document.getElementById('select-producto');
+            selProd.innerHTML = '<option value="">-- Seleccione --</option>';
+            productosDB.forEach(p => selProd.add(new Option(p.nombre, p._id)));
+            
+            const selMotor = document.getElementById('select-motor');
+            motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
 
-           } catch (e) { console.error(e); alert("Error cargando datos (asegúrate de correr el servidor)"); }
-       }
-       inicializar();
+        } catch (e) { console.error(e); alert("Error cargando datos (asegúrate de correr el servidor)"); }
+    }
+    inicializar();
 
-       function agregarAlCarrito() {
-           const idProd = document.getElementById('select-producto').value;
-           const idTela = document.getElementById('select-tela').value;
-           const ancho = parseFloat(document.getElementById('ancho').value);
-           const alto = parseFloat(document.getElementById('alto').value);
-           const cant = parseInt(document.getElementById('cantidad').value);
+    // --- AGREGAR AL CARRITO ---
+    function agregarAlCarrito() {
+        const idProd = document.getElementById('select-producto').value;
+        const idTela = document.getElementById('select-tela').value;
+        const ancho = parseFloat(document.getElementById('ancho').value);
+        const alto = parseFloat(document.getElementById('alto').value);
+        const cant = parseInt(document.getElementById('cantidad').value);
 
-           if(!idProd || !idTela || !ancho || !alto || !cant) {
-               alert("Por favor completa los campos del producto.");
-               return;
-           }
+        if(!idProd || !idTela || !ancho || !alto || !cant) {
+            alert("Por favor completa los campos del producto.");
+            return;
+        }
 
-           const prodObj = productosDB.find(p => p._id === idProd);
-           const telaObj = telasDB.find(t => t._id === idTela);
-           const color = document.getElementById('select-color').value;
-           
-           const usaMotor = document.getElementById('check-motor').checked;
-           const idMotor = document.getElementById('select-motor').value;
-           let motorObj = null;
-           let precioMotor = 0;
-           if(usaMotor && idMotor) {
-               motorObj = motoresDB.find(m => m._id === idMotor);
-               precioMotor = motorObj.precio;
-           }
+        const prodObj = productosDB.find(p => p._id === idProd);
+        const telaObj = telasDB.find(t => t._id === idTela);
+        const color = document.getElementById('select-color').value;
+        
+        const usaMotor = document.getElementById('check-motor').checked;
+        const idMotor = document.getElementById('select-motor').value;
+        let motorObj = null;
+        let precioMotor = 0;
+        if(usaMotor && idMotor) {
+            motorObj = motoresDB.find(m => m._id === idMotor);
+            precioMotor = motorObj.precio;
+        }
 
-           const accColor = document.getElementById('accesorio-color').value;
-           const accMando = document.getElementById('accesorio-mando').value;
-           const pctUtilidad = parseInt(document.getElementById('select-utilidad').value);
-           const pctDescuento = parseInt(document.getElementById('select-descuento').value);
+        const accColor = document.getElementById('accesorio-color').value;
+        const accMando = document.getElementById('accesorio-mando').value;
+        const pctUtilidad = parseInt(document.getElementById('select-utilidad').value);
+        const pctDescuento = parseInt(document.getElementById('select-descuento').value);
 
-           let area = ancho * alto;
-           if(area < 1) area = 1; 
-           
-           const costoBaseUnitario = ((prodObj.precio + telaObj.precioExtra) * area) + precioMotor;
-           const precioConUtilidad = costoBaseUnitario + (costoBaseUnitario * (pctUtilidad / 100));
-           const precioFinalUnitario = precioConUtilidad - (precioConUtilidad * (pctDescuento / 100));
-           const totalLinea = precioFinalUnitario * cant;
+        let area = ancho * alto;
+        if(area < 1) area = 1; 
+        
+        const costoBaseUnitario = ((prodObj.precio + telaObj.precioExtra) * area) + precioMotor;
+        const precioConUtilidad = costoBaseUnitario + (costoBaseUnitario * (pctUtilidad / 100));
+        const precioFinalUnitario = precioConUtilidad - (precioConUtilidad * (pctDescuento / 100));
+        const totalLinea = precioFinalUnitario * cant;
 
-           const item = {
-               producto: prodObj.nombre,
-               tela: telaObj.nombre,
-               color: color,
-               medidas: { ancho, alto, areaCobrada: area },
-               cantidad: cant,
-               motor: motorObj ? motorObj.nombre : "Manual",
-               accesorios: { color: accColor, mando: accMando },
-               financiero: { costoBase: costoBaseUnitario, utilidad: pctUtilidad, descuento: pctDescuento },
-               precioUnitario: precioFinalUnitario,
-               total: totalLinea
-           };
+        const item = {
+            producto: prodObj.nombre,
+            tela: telaObj.nombre,
+            color: color,
+            medidas: { ancho, alto, areaCobrada: area },
+            cantidad: cant,
+            motor: motorObj ? motorObj.nombre : "Manual",
+            accesorios: { color: accColor, mando: accMando },
+            financiero: { costoBase: costoBaseUnitario, utilidad: pctUtilidad, descuento: pctDescuento },
+            precioUnitario: precioFinalUnitario,
+            total: totalLinea
+        };
 
-           carritoItems.push(item);
-           actualizarTablaCarrito();
-       }
+        carritoItems.push(item);
+        actualizarTablaCarrito();
+    }
 
-       function actualizarTablaCarrito() {
-           const tbody = document.querySelector('#tabla-items tbody');
-           tbody.innerHTML = '';
+    function actualizarTablaCarrito() {
+        const tbody = document.querySelector('#tabla-items tbody');
+        tbody.innerHTML = '';
 
-           if(carritoItems.length === 0) {
-               tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Vacío</td></tr>';
-               calcularTotalesGlobales();
-               return;
-           }
+        if(carritoItems.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Vacío</td></tr>';
+            calcularTotalesGlobales();
+            return;
+        }
 
-           carritoItems.forEach((item, index) => {
-               const fila = `
-                   <tr>
-                       <td>
-                           <strong>${item.producto}</strong><br>
-                           <small>${item.tela} - ${item.color}</small><br>
-                           <small>${item.motor} | Acc: ${item.accesorios.color}</small>
-                       </td>
-                       <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
-                       <td>${item.cantidad}</td>
-                       <td>$${item.precioUnitario.toFixed(2)}</td>
-                       <td style="font-weight:bold;">$${item.total.toFixed(2)}</td>
-                       <td><button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer;">🗑️</button></td>
-                   </tr>
-               `;
-               tbody.innerHTML += fila;
-           });
+        carritoItems.forEach((item, index) => {
+            const fila = `
+                <tr>
+                    <td>
+                        <strong>${item.producto}</strong><br>
+                        <small>${item.tela} - ${item.color}</small><br>
+                        <small>${item.motor} | Acc: ${item.accesorios.color}</small>
+                    </td>
+                    <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
+                    <td>${item.cantidad}</td>
+                    <td>$${item.precioUnitario.toFixed(2)}</td>
+                    <td style="font-weight:bold;">$${item.total.toFixed(2)}</td>
+                    <td><button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer;">🗑️</button></td>
+                </tr>
+            `;
+            tbody.innerHTML += fila;
+        });
 
-           calcularTotalesGlobales();
-       }
+        calcularTotalesGlobales();
+    }
 
-       function eliminarItem(index) {
-           carritoItems.splice(index, 1);
-           actualizarTablaCarrito();
-       }
+    function eliminarItem(index) {
+        carritoItems.splice(index, 1);
+        actualizarTablaCarrito();
+    }
 
-       function calcularTotalesGlobales() {
-           let subtotalProductos = carritoItems.reduce((sum, item) => sum + item.total, 0);
-           let totalGastos = 0;
-           let listaGastos = [];
-           
-           if (document.getElementById('check-gastos').checked) {
-               const cant = parseInt(document.getElementById('cantidad-gastos').value);
-               for(let i=1; i<=cant; i++) {
-                   const desc = document.getElementById(`gasto-desc-${i}`)?.value;
-                   const monto = parseFloat(document.getElementById(`gasto-monto-${i}`)?.value) || 0;
-                   if(monto > 0) {
-                       totalGastos += monto;
-                       listaGastos.push({ descripcion: desc, monto: monto });
-                   }
-               }
-           }
-
-           const aplicarIva = document.getElementById('check-iva').checked;
-           const baseImponible = subtotalProductos + totalGastos;
-           const iva = aplicarIva ? baseImponible * 0.16 : 0;
-           const granTotal = baseImponible + iva;
-
-           document.getElementById('lbl-subtotal-items').innerText = `$${subtotalProductos.toFixed(2)}`;
-           const lblGastos = document.getElementById('lbl-gastos');
-           if(totalGastos > 0) {
-               lblGastos.style.display = 'block';
-               lblGastos.querySelector('span').innerText = `$${totalGastos.toFixed(2)}`;
-           } else {
-               lblGastos.style.display = 'none';
-           }
-
-           const lblIva = document.getElementById('lbl-iva');
-           if(aplicarIva) {
-               lblIva.innerHTML = `+ IVA (16%): <span>$${iva.toFixed(2)}</span>`;
-           } else {
-               lblIva.innerHTML = `IVA: <span>No incluido</span>`;
-           }
-           document.getElementById('lbl-gran-total').innerText = `$${granTotal.toFixed(2)}`;
-
-           return { subtotalProductos, totalGastos, listaGastos, iva, granTotal };
-       }
-
-       // --- SOLUCIÓN CRÍTICA: CLONAR + Z-INDEX + ANCHO ---
-       function generarPDF() {
-            if (carritoItems.length === 0) {
-                alert("No hay productos para generar el PDF.");
-                return;
+    function calcularTotalesGlobales() {
+        let subtotalProductos = carritoItems.reduce((sum, item) => sum + item.total, 0);
+        let totalGastos = 0;
+        let listaGastos = [];
+        
+        if (document.getElementById('check-gastos').checked) {
+            const cant = parseInt(document.getElementById('cantidad-gastos').value);
+            for(let i=1; i<=cant; i++) {
+                const desc = document.getElementById(`gasto-desc-${i}`)?.value;
+                const monto = parseFloat(document.getElementById(`gasto-monto-${i}`)?.value) || 0;
+                if(monto > 0) {
+                    totalGastos += monto;
+                    listaGastos.push({ descripcion: desc, monto: monto });
+                }
             }
+        }
 
-            const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
-            const fechaHoy = new Date().toLocaleDateString('es-MX');
-            const folio = "COT-" + Math.floor(Math.random() * 10000);
-            
-            const totales = calcularTotalesGlobales(); 
+        const aplicarIva = document.getElementById('check-iva').checked;
+        const baseImponible = subtotalProductos + totalGastos;
+        const iva = aplicarIva ? baseImponible * 0.16 : 0;
+        const granTotal = baseImponible + iva;
 
-            // 1. LLENAR DATOS EN LA PLANTILLA ORIGINAL (que está oculta)
-            document.getElementById('pdf-cliente-nombre').innerText = nombreCliente;
-            document.getElementById('pdf-fecha').innerText = fechaHoy;
-            document.getElementById('pdf-folio').innerText = folio;
+        document.getElementById('lbl-subtotal-items').innerText = `$${subtotalProductos.toFixed(2)}`;
+        const lblGastos = document.getElementById('lbl-gastos');
+        if(totalGastos > 0) {
+            lblGastos.style.display = 'block';
+            lblGastos.querySelector('span').innerText = `$${totalGastos.toFixed(2)}`;
+        } else {
+            lblGastos.style.display = 'none';
+        }
 
-            const tablaBody = document.getElementById('pdf-tabla-body');
-            tablaBody.innerHTML = ''; 
+        const lblIva = document.getElementById('lbl-iva');
+        if(aplicarIva) {
+            lblIva.innerHTML = `+ IVA (16%): <span>$${iva.toFixed(2)}</span>`;
+        } else {
+            lblIva.innerHTML = `IVA: <span>No incluido</span>`;
+        }
+        document.getElementById('lbl-gran-total').innerText = `$${granTotal.toFixed(2)}`;
 
-            carritoItems.forEach(item => {
-                let fila = `
-                    <tr style="border-bottom: 1px solid #17a2b8;">
-                        <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.producto}</td>
-                        <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.tela}</td>
-                        <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.color}</td>
-                        <td style="padding: 8px; text-align: center; border-right: 1px solid #17a2b8;">${item.cantidad}</td>
-                        <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
-                        <td style="padding: 8px; text-align: right;">$${item.total.toFixed(2)}</td>
-                    </tr>
-                    <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.9em; background-color: #f9f9f9;">
-                        <td colspan="6" style="padding: 4px 8px;">
-                            <em>▸ Accesorios: ${item.accesorios.color}, Mando ${item.accesorios.mando} 
-                            ${item.motor !== 'Manual' ? ' | ⚙️ ' + item.motor : ''}</em>
-                        </td>
-                    </tr>
-                `;
-                tablaBody.innerHTML += fila;
-            });
+        return { subtotalProductos, totalGastos, listaGastos, iva, granTotal };
+    }
 
-            if(totales.totalGastos > 0) {
-                totales.listaGastos.forEach(g => {
-                    let filaGasto = `
-                    <tr style="border-bottom: 1px solid #17a2b8; background-color: #eef;">
-                        <td colspan="5" style="padding: 8px; text-align: right; border-right: 1px solid #17a2b8;"><strong>${g.descripcion || 'Gasto Adicional'}:</strong></td>
-                        <td style="padding: 8px; text-align: right;">$${g.monto.toFixed(2)}</td>
-                    </tr>`;
-                    tablaBody.innerHTML += filaGasto;
-                });
-            }
+    // --- NUEVA FUNCIÓN GENERAR PDF (ESTRATEGIA SEGURA) ---
+    function generarPDF() {
+        if (carritoItems.length === 0) {
+            alert("No hay productos para generar el PDF.");
+            return;
+        }
 
-            document.getElementById('pdf-subtotal').innerText = `$${(totales.subtotalProductos + totales.totalGastos).toFixed(2)}`;
-            document.getElementById('pdf-iva').innerText = `$${totales.iva.toFixed(2)}`;
-            document.getElementById('pdf-total').innerText = `$${totales.granTotal.toFixed(2)}`;
+        // 1. Recopilar Datos
+        const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
+        const fechaHoy = new Date().toLocaleDateString('es-MX');
+        const folio = "COT-" + Math.floor(Math.random() * 10000);
+        const totales = calcularTotalesGlobales(); 
 
-            // 2. CLONAR LA PLANTILLA LLENA
-            const elementoOriginal = document.getElementById('plantilla-pdf');
-            const elementoClon = elementoOriginal.cloneNode(true);
-            
-            // 3. ESTILOS OBLIGATORIOS PARA EL CLON (Hacerlo visible y del tamaño correcto)
-            elementoClon.style.display = 'block';
-            elementoClon.style.position = 'absolute';
-            elementoClon.style.top = '0px';
-            elementoClon.style.left = '0px';
-            elementoClon.style.width = '700px'; // ANCHO CORRECTO PARA HOJA CARTA
-            elementoClon.style.zIndex = '9999'; // ENCIMA DE TODO (Evita página blanca)
-            elementoClon.style.background = 'white';
-            
-            // 4. AGREGAR AL DOM, GENERAR Y BORRAR
-            document.body.appendChild(elementoClon);
+        // 2. Construir filas de la tabla (HTML String)
+        let filasHTML = '';
+        carritoItems.forEach(item => {
+            filasHTML += `
+                <tr style="border-bottom: 1px solid #17a2b8;">
+                    <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.producto}</td>
+                    <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.tela}</td>
+                    <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.color}</td>
+                    <td style="padding: 8px; text-align: center; border-right: 1px solid #17a2b8;">${item.cantidad}</td>
+                    <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
+                    <td style="padding: 8px; text-align: right;">$${item.total.toFixed(2)}</td>
+                </tr>
+                <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.9em; background-color: #f9f9f9;">
+                    <td colspan="6" style="padding: 4px 8px;">
+                        <em>▸ Accesorios: ${item.accesorios.color}, Mando ${item.accesorios.mando} 
+                        ${item.motor !== 'Manual' ? ' | ⚙️ ' + item.motor : ''}</em>
+                    </td>
+                </tr>
+            `;
+        });
 
-            const opt = {
-                margin:       0.3,
-                filename:     `Cotizacion_${nombreCliente}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, scrollY: 0 }, 
-                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(elementoClon).save().then(function() {
-                // Borrar clon inmediatamente después de guardar
-                document.body.removeChild(elementoClon);
+        // Gastos extra
+        if(totales.totalGastos > 0) {
+            totales.listaGastos.forEach(g => {
+                filasHTML += `
+                <tr style="border-bottom: 1px solid #17a2b8; background-color: #eef;">
+                    <td colspan="5" style="padding: 8px; text-align: right; border-right: 1px solid #17a2b8;"><strong>${g.descripcion || 'Gasto Adicional'}:</strong></td>
+                    <td style="padding: 8px; text-align: right;">$${g.monto.toFixed(2)}</td>
+                </tr>`;
             });
         }
 
-       async function guardarCotizacionCompleta() {
-           if(carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
-           const cliente = document.getElementById('cliente').value;
-           const quienCotiza = document.getElementById('quienCotiza').value;
-           if(!cliente || !quienCotiza) { alert("Faltan datos del cliente o cotizador."); return; }
-
-           const globales = calcularTotalesGlobales();
-           const paquete = {
-               cliente: cliente,
-               quienCotiza: quienCotiza,
-               items: carritoItems,
-               gastosAdicionales: globales.listaGastos,
-               totalGastosAdicionales: globales.totalGastos,
-               iva: globales.iva,
-               total: globales.granTotal
-           };
-
-           try {
-               const res = await fetch('/cotizaciones', {
-                   method: 'POST',
-                   headers: {'Content-Type': 'application/json'},
-                   body: JSON.stringify(paquete)
-               });
-               const r = await res.json();
-               if(r.exito) {
-                   alert("✅ Cotización guardada con éxito");
-                   carritoItems = [];
-                   actualizarTablaCarrito();
-                   document.getElementById('cliente').value = '';
-               } else {
-                   alert("Error: " + r.mensaje);
-               }
-           } catch(e) { alert("Error de conexión"); console.error(e); }
-       }
-
-       function actualizarListaTelas() {
-           const idProd = document.getElementById('select-producto').value;
-           const selTela = document.getElementById('select-tela');
-           selTela.innerHTML = '<option value="">-- Seleccione --</option>';
-           const prod = productosDB.find(p => p._id === idProd);
-           if(!prod) return;
-           const telas = telasDB.filter(t => t.productos && t.productos.includes(prod.nombre));
-           telas.forEach(t => selTela.add(new Option(`${t.nombre} (+$${t.precioExtra})`, t._id)));
-           actualizarListaColores();
-       }
-       function actualizarListaColores() {
-           const idTela = document.getElementById('select-tela').value;
-           const selColor = document.getElementById('select-color');
-           selColor.innerHTML = '<option value="">-- Seleccione --</option>';
-           const tela = telasDB.find(t => t._id === idTela);
-           if(!tela) return;
-           const colores = coloresDB.filter(c => c.telaNombre === tela.nombre);
-           colores.forEach(c => selColor.add(new Option(c.nombre, c.nombre)));
-       }
-       function toggleMotor() {
-           document.getElementById('panel-motor').style.display = document.getElementById('check-motor').checked ? 'block' : 'none';
-       }
-       function toggleGastos() {
-           document.getElementById('panel-gastos').style.display = document.getElementById('check-gastos').checked ? 'block' : 'none';
-           calcularTotalesGlobales();
-       }
-       function generarCamposGastos() {
-           const cant = parseInt(document.getElementById('cantidad-gastos').value);
-           const cont = document.getElementById('contenedor-inputs-gastos');
-           cont.innerHTML = '';
-           for(let i=1; i<=cant; i++) {
-               cont.innerHTML += `<div style="display:flex; gap:10px; margin-bottom:5px;">
-                   <input id="gasto-desc-${i}" placeholder="Desc." style="flex:2">
-                   <input id="gasto-monto-${i}" type="number" placeholder="$" style="flex:1" onchange="calcularTotalesGlobales()">
-               </div>`;
-           }
-       }
-    </script>
-
-    <div id="plantilla-pdf" style="display: none; width: 800px; font-family: 'Arial', sans-serif; color: #333; background: white;">
+        // 3. Crear el contenedor COMPLETO del PDF como un elemento nuevo
+        // Usamos un ancho de 700px para que quepa en hoja carta sin cortarse
+        const elementoPDF = document.createElement('div');
+        elementoPDF.style.width = '700px'; 
+        elementoPDF.style.padding = '20px';
+        elementoPDF.style.background = 'white';
+        elementoPDF.style.fontFamily = 'Arial, sans-serif';
+        elementoPDF.style.color = '#333';
         
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 15px; margin-bottom: 20px;">
-            <div style="width: 40%;">
-                <img src="/IMG/logoPD.jpeg" alt="Persianas Delta" style="max-width: 150px;">
-                <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 5px;">PRIVACIDAD CON ESTILO</div>
-            </div>
-            <div style="width: 60%; text-align: right; font-size: 0.8em;">
-                <h1 style="margin: 0; font-weight: normal; font-size: 1.8em; letter-spacing: 3px;">PERSIANAS DELTA</h1>
-                <p style="margin: 5px 0;">CDMX 5519337007 / QRO 4427878273 / https://persianasdelta.com/</p>
-                <p style="margin: 0; font-weight: bold;">VENTAS@PERSIANASDELTA.COM</p>
-            </div>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.9em;">
-            <div>
-                <strong style="color: #001f3f;">COTIZACIÓN:</strong> <span id="pdf-folio">001-2025</span><br>
-                <strong style="color: #001f3f;">CLIENTE:</strong> <br>
-                <span id="pdf-cliente-nombre">Nombre del Cliente</span>
-            </div>
-            <div style="text-align: right;">
-                <strong style="color: #001f3f;">FECHA:</strong> <br>
-                <span id="pdf-fecha">DD/MM/AAAA</span>
-            </div>
-        </div>
-
-        <table style="width: 100%; border-collapse: collapse; font-size: 0.8em; border: 2px solid #17a2b8;">
-            <thead>
-                <tr style="color: #001f3f; text-align: center;">
-                    <th style="border: 1px solid #17a2b8; padding: 8px;">TIPO DE PERSIANA</th>
-                    <th style="border: 1px solid #17a2b8; padding: 8px;">TELA</th>
-                    <th style="border: 1px solid #17a2b8; padding: 8px;">COLOR</th>
-                    <th style="border: 1px solid #17a2b8; padding: 8px;">CANT.</th>
-                    <th style="border: 1px solid #17a2b8; padding: 8px;">MEDIDAS</th>
-                    <th style="border: 1px solid #17a2b8; padding: 8px;">TOTAL</th>
-                </tr>
-            </thead>
-            <tbody id="pdf-tabla-body">
-            </tbody>
-        </table>
-
-        <div style="margin-top: 20px; display: flex; justify-content: space-between;">
-            
-            <div style="width: 60%; font-size: 0.7em; color: #555;">
-                <p style="margin-bottom: 5px;"><strong>Condiciones de Pago:</strong></p>
-                <p style="margin: 2px 0;">50% de anticipo y 50% contra entrega.</p>
-                <p style="margin: 2px 0;"><strong>No hay devoluciones</strong></p>
-                <p style="margin: 2px 0;">Precio expresado en moneda nacional.</p>
-                <p style="margin: 2px 0;">Tiempo de entrega: 7 días hábiles a partir de anticipo.</p>
+        // Inyectamos todo el HTML de diseño aquí
+        elementoPDF.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 15px; margin-bottom: 20px;">
+                <div style="width: 40%;">
+                    <img src="/IMG/logoPD.jpeg" alt="Persianas Delta" style="max-width: 150px;">
+                    <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 5px;">PRIVACIDAD CON ESTILO</div>
+                </div>
+                <div style="width: 60%; text-align: right; font-size: 0.8em;">
+                    <h1 style="margin: 0; font-weight: normal; font-size: 1.8em; letter-spacing: 3px;">PERSIANAS DELTA</h1>
+                    <p style="margin: 5px 0;">CDMX 5519337007 / QRO 4427878273 / https://persianasdelta.com/</p>
+                    <p style="margin: 0; font-weight: bold;">VENTAS@PERSIANASDELTA.COM</p>
+                </div>
             </div>
 
-            <div style="width: 35%;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-                    <tr>
-                        <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">SUBTOTAL</td>
-                        <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;" id="pdf-subtotal">$0.00</td>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.9em;">
+                <div>
+                    <strong style="color: #001f3f;">COTIZACIÓN:</strong> ${folio}<br>
+                    <strong style="color: #001f3f;">CLIENTE:</strong> <br>
+                    ${nombreCliente}
+                </div>
+                <div style="text-align: right;">
+                    <strong style="color: #001f3f;">FECHA:</strong> <br>
+                    ${fechaHoy}
+                </div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.8em; border: 2px solid #17a2b8;">
+                <thead>
+                    <tr style="color: #001f3f; text-align: center;">
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">TIPO DE PERSIANA</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">TELA</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">COLOR</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">CANT.</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">MEDIDAS</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">TOTAL</th>
                     </tr>
-                    <tr>
-                        <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">IVA</td>
-                        <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;" id="pdf-iva">$0.00</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;">TOTAL</td>
-                        <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;" id="pdf-total">$0.00</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-    </div>
+                </thead>
+                <tbody>
+                    ${filasHTML}
+                </tbody>
+            </table>
 
+            <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                <div style="width: 60%; font-size: 0.7em; color: #555;">
+                    <p style="margin-bottom: 5px;"><strong>Condiciones de Pago:</strong></p>
+                    <p style="margin: 2px 0;">50% de anticipo y 50% contra entrega.</p>
+                    <p style="margin: 2px 0;"><strong>No hay devoluciones</strong></p>
+                    <p style="margin: 2px 0;">Precio expresado en moneda nacional.</p>
+                    <p style="margin: 2px 0;">Tiempo de entrega: 7 días hábiles a partir de anticipo.</p>
+                </div>
+                <div style="width: 35%;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                        <tr>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">SUBTOTAL</td>
+                            <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;">$${(totales.subtotalProductos + totales.totalGastos).toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">IVA</td>
+                            <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;">$${totales.iva.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;">TOTAL</td>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;">$${totales.granTotal.toFixed(2)}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        // 4. Configurar opciones del PDF
+        const opt = {
+            margin:       0.3,
+            filename:     `Cotizacion_${nombreCliente}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, scrollY: 0 }, 
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        // 5. GENERAR EL PDF
+        // Truco final: Usamos el método worker de html2pdf para pasarle el elemento creado en memoria
+        // Sin necesidad de meterlo y sacarlo del DOM si usamos html2pdf de esta forma:
+        html2pdf().set(opt).from(elementoPDF).save();
+    }
+
+    // --- GUARDAR EN BD ---
+    async function guardarCotizacionCompleta() {
+        if(carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
+        const cliente = document.getElementById('cliente').value;
+        const quienCotiza = document.getElementById('quienCotiza').value;
+        if(!cliente || !quienCotiza) { alert("Faltan datos del cliente o cotizador."); return; }
+
+        const globales = calcularTotalesGlobales();
+        const paquete = {
+            cliente: cliente,
+            quienCotiza: quienCotiza,
+            items: carritoItems,
+            gastosAdicionales: globales.listaGastos,
+            totalGastosAdicionales: globales.totalGastos,
+            iva: globales.iva,
+            total: globales.granTotal
+        };
+
+        try {
+            const res = await fetch('/cotizaciones', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(paquete)
+            });
+            const r = await res.json();
+            if(r.exito) {
+                alert("✅ Cotización guardada con éxito");
+                carritoItems = [];
+                actualizarTablaCarrito();
+                document.getElementById('cliente').value = '';
+            } else {
+                alert("Error: " + r.mensaje);
+            }
+        } catch(e) { alert("Error de conexión"); console.error(e); }
+    }
+
+    // Helpers
+    function actualizarListaTelas() {
+        const idProd = document.getElementById('select-producto').value;
+        const selTela = document.getElementById('select-tela');
+        selTela.innerHTML = '<option value="">-- Seleccione --</option>';
+        const prod = productosDB.find(p => p._id === idProd);
+        if(!prod) return;
+        const telas = telasDB.filter(t => t.productos && t.productos.includes(prod.nombre));
+        telas.forEach(t => selTela.add(new Option(`${t.nombre} (+$${t.precioExtra})`, t._id)));
+        actualizarListaColores();
+    }
+    function actualizarListaColores() {
+        const idTela = document.getElementById('select-tela').value;
+        const selColor = document.getElementById('select-color');
+        selColor.innerHTML = '<option value="">-- Seleccione --</option>';
+        const tela = telasDB.find(t => t._id === idTela);
+        if(!tela) return;
+        const colores = coloresDB.filter(c => c.telaNombre === tela.nombre);
+        colores.forEach(c => selColor.add(new Option(c.nombre, c.nombre)));
+    }
+    function toggleMotor() {
+        document.getElementById('panel-motor').style.display = document.getElementById('check-motor').checked ? 'block' : 'none';
+    }
+    function toggleGastos() {
+        document.getElementById('panel-gastos').style.display = document.getElementById('check-gastos').checked ? 'block' : 'none';
+        calcularTotalesGlobales();
+    }
+    function generarCamposGastos() {
+        const cant = parseInt(document.getElementById('cantidad-gastos').value);
+        const cont = document.getElementById('contenedor-inputs-gastos');
+        cont.innerHTML = '';
+        for(let i=1; i<=cant; i++) {
+            cont.innerHTML += `<div style="display:flex; gap:10px; margin-bottom:5px;">
+                <input id="gasto-desc-${i}" placeholder="Desc." style="flex:2">
+                <input id="gasto-monto-${i}" type="number" placeholder="$" style="flex:1" onchange="calcularTotalesGlobales()">
+            </div>`;
+        }
+    }
+</script>
+
+   
 </body>
 </html>
