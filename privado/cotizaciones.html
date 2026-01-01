@@ -370,7 +370,9 @@
        }
 
        // --- 4. GENERAR PDF (ARREGLADO) ---
+      // --- 4. GENERAR PDF (TÉCNICA DE CLONACIÓN) ---
        function generarPDF() {
+            // A. VALIDAR
             if (carritoItems.length === 0) {
                 alert("No hay productos para generar el PDF.");
                 return;
@@ -382,11 +384,13 @@
             
             const totales = calcularTotalesGlobales(); 
 
-            // Llenar datos en la plantilla oculta
+            // B. LLENAR DATOS EN LA PLANTILLA OCULTA (ORIGINAL)
+            // Llenamos textos
             document.getElementById('pdf-cliente-nombre').innerText = nombreCliente;
             document.getElementById('pdf-fecha').innerText = fechaHoy;
             document.getElementById('pdf-folio').innerText = folio;
 
+            // Llenamos la tabla
             const tablaBody = document.getElementById('pdf-tabla-body');
             tablaBody.innerHTML = ''; 
 
@@ -410,6 +414,7 @@
                 tablaBody.innerHTML += fila;
             });
 
+            // Gastos Extra
             if(totales.totalGastos > 0) {
                 totales.listaGastos.forEach(g => {
                     let filaGasto = `
@@ -421,16 +426,32 @@
                 });
             }
 
+            // Totales
             document.getElementById('pdf-subtotal').innerText = `$${(totales.subtotalProductos + totales.totalGastos).toFixed(2)}`;
             document.getElementById('pdf-iva').innerText = `$${totales.iva.toFixed(2)}`;
             document.getElementById('pdf-total').innerText = `$${totales.granTotal.toFixed(2)}`;
 
-            // --- LÓGICA CRÍTICA PARA EVITAR PDF EN BLANCO ---
-            const elemento = document.getElementById('plantilla-pdf');
+            // C. LA MAGIA: CLONAR Y RENDERIZAR
+            // 1. Obtenemos el elemento original
+            const elementoOriginal = document.getElementById('plantilla-pdf');
             
-            // 1. Mostrar elemento
-            elemento.style.display = 'block';
+            // 2. Creamos una copia exacta
+            const elementoClon = elementoOriginal.cloneNode(true);
+            
+            // 3. Ajustamos estilos del clon para que SEA VISIBLE pero NO ESTORBE
+            // Esto asegura que html2canvas pueda "verlo" completo
+            elementoClon.style.display = 'block';
+            elementoClon.style.position = 'absolute';
+            elementoClon.style.top = '0px';
+            elementoClon.style.left = '0px';
+            elementoClon.style.zIndex = '-9999'; // Lo mandamos al fondo, detrás de todo
+            elementoClon.style.background = 'white'; // Aseguramos fondo blanco
+            elementoClon.style.width = '800px'; // Mantenemos el ancho fijo
+            
+            // 4. Lo agregamos al documento real
+            document.body.appendChild(elementoClon);
 
+            // 5. Configuración PDF
             const opt = {
                 margin:       0.3,
                 filename:     `Cotizacion_${nombreCliente}.pdf`,
@@ -439,9 +460,10 @@
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
-            // 2. Generar y LUEGO ocultar
-            html2pdf().set(opt).from(elemento).save().then(function() {
-                elemento.style.display = 'none'; // Ocultar solo cuando termine
+            // 6. Generamos desde el CLON y luego lo borramos
+            html2pdf().set(opt).from(elementoClon).save().then(function() {
+                // Una vez generado el PDF, eliminamos el clon de la página
+                document.body.removeChild(elementoClon);
             });
         }
 
