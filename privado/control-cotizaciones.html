@@ -73,6 +73,30 @@
     <div class="historial-container">
         <h1>📊 Historial Detallado de Cotizaciones</h1>
         
+        <div style="background-color: #f1f3f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end;">
+            
+            <div style="flex: 1; min-width: 200px;">
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">👤 Filtrar por Cliente:</label>
+                <select id="filtro-cliente" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+                    <option value="">-- Ver Todos --</option>
+                </select>
+            </div>
+
+            <div style="flex: 1; min-width: 200px;">
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">🛠️ Filtrar por Cotizador:</label>
+                <select id="filtro-cotizador" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+                    <option value="">-- Ver Todos --</option>
+                </select>
+            </div>
+
+            <div style="flex: 0;">
+                <button onclick="limpiarFiltros()" style="background-color: #6c757d; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">
+                    🔄 Limpiar
+                </button>
+            </div>
+
+        </div>
+
         <table id="tabla-cotizaciones">
             <thead>
                 <tr>
@@ -93,110 +117,166 @@
     </div>
 
    <script>
-        async function cargarHistorial() {
-            const tabla = document.querySelector('#tabla-cotizaciones tbody');
+        let todasLasCotizaciones = []; // Aquí guardaremos la copia maestra de los datos
+
+    // 1. CARGAR DATOS DEL SERVIDOR
+    async function cargarHistorial() {
+        try {
+            const respuesta = await fetch('/cotizaciones');
+            todasLasCotizaciones = await respuesta.json();
+
+            // Una vez descargados, llenamos los filtros y mostramos la tabla completa
+            llenarOpcionesFiltros();
+            renderizarTabla(todasLasCotizaciones);
+
+        } catch (error) {
+            console.error(error);
+            alert("Error al cargar historial.");
+        }
+    }
+
+    // 2. DIBUJAR LA TABLA (Recibe una lista de datos)
+    function renderizarTabla(datos) {
+        const tabla = document.querySelector('#tabla-cotizaciones tbody');
+        
+        if (datos.length === 0) {
+            tabla.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 20px; color: #666;">No se encontraron coincidencias.</td></tr>';
+            return;
+        }
+
+        tabla.innerHTML = ''; 
+        
+        datos.forEach(c => {
+            const fecha = new Date(c.fecha).toLocaleDateString('es-MX', { 
+                month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' 
+            });
+
+            // Formatos de dinero y textos...
+            const cotizador = c.quienCotiza ? c.quienCotiza : '<span style="color:#ccc;">---</span>';
+            const costo = c.costoNeto ? `$${c.costoNeto.toFixed(2)}` : 'N/A';
+            const montoUtilidad = c.montoUtilidad ? c.montoUtilidad : (c.precioConUtilidad && c.costoNeto ? c.precioConUtilidad - c.costoNeto : 0);
+            const porcentajeUtil = c.porcentajeUtilidad ? `(${c.porcentajeUtilidad}%)` : '';
             
-            try {
-                const respuesta = await fetch('/cotizaciones');
-                const cotizaciones = await respuesta.json();
-
-                if (cotizaciones.length === 0) {
-                    tabla.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">Sin registros aún.</td></tr>';
-                    return;
+            let infoDescuento = c.porcentajeDescuento > 0 ? `<span class="descuento">-${c.porcentajeDescuento}%</span>` : '<span style="color:#ccc;">-</span>';
+            
+            let infoGastos = '<span style="color:#ccc;">-</span>';
+            if (c.totalGastosAdicionales > 0) {
+                infoGastos = `<span class="extras">+$${c.totalGastosAdicionales.toFixed(2)}</span>`;
+                if (c.gastosAdicionales && c.gastosAdicionales.length > 0) {
+                    infoGastos += `<div class="detalle-gastos">`;
+                    c.gastosAdicionales.forEach(g => { infoGastos += `<div>• ${g.descripcion}: $${g.monto}</div>`; });
+                    infoGastos += `</div>`;
                 }
-
-                tabla.innerHTML = ''; 
-                cotizaciones.forEach(c => {
-                    const fecha = new Date(c.fecha).toLocaleDateString('es-MX', { 
-                        month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' 
-                    });
-
-                    // Formatos de dinero y textos...
-                    const cotizador = c.quienCotiza ? c.quienCotiza : '<span style="color:#ccc;">---</span>';
-                    const costo = c.costoNeto ? `$${c.costoNeto.toFixed(2)}` : 'N/A';
-                    const montoUtilidad = c.montoUtilidad ? c.montoUtilidad : (c.precioConUtilidad && c.costoNeto ? c.precioConUtilidad - c.costoNeto : 0);
-                    const porcentajeUtil = c.porcentajeUtilidad ? `(${c.porcentajeUtilidad}%)` : '';
-                    
-                    let infoDescuento = c.porcentajeDescuento > 0 ? `<span class="descuento">-${c.porcentajeDescuento}%</span>` : '<span style="color:#ccc;">-</span>';
-                    
-                    let infoGastos = '<span style="color:#ccc;">-</span>';
-                    if (c.totalGastosAdicionales > 0) {
-                        infoGastos = `<span class="extras">+$${c.totalGastosAdicionales.toFixed(2)}</span>`;
-                        if (c.gastosAdicionales && c.gastosAdicionales.length > 0) {
-                            infoGastos += `<div class="detalle-gastos">`;
-                            c.gastosAdicionales.forEach(g => { infoGastos += `<div>• ${g.descripcion}: $${g.monto}</div>`; });
-                            infoGastos += `</div>`;
-                        }
-                    }
-
-                    // --- NUEVA LÓGICA DE IVA ---
-                    let infoIVA = '';
-                    if (c.iva && c.iva > 0) {
-                        infoIVA = `<div style="font-size: 0.75em; color: #666; font-weight: normal; margin-top: 4px;">✔ Incluye IVA: $${c.iva.toFixed(2)}</div>`;
-                    } else {
-                        infoIVA = `<div style="font-size: 0.75em; color: #ccc; font-weight: normal; margin-top: 4px; font-style: italic;">(Sin IVA)</div>`;
-                    }
-
-                    const fila = `
-                        <tr>
-
-                            <td><strong>${c.cliente}</strong><br><span class="fecha">${fecha}</span></td>
-                            <td style="color: #007bff; font-weight: bold;">${cotizador}</td>
-                            <td>${c.producto}<br><span class="badge">${c.tela}</span></td>
-                            <td>${c.medidas.ancho} x ${c.medidas.alto} m<br>Cant: ${c.cantidad}</td>
-                            <td class="costo">${costo}</td>
-                            <td class="utilidad">$${montoUtilidad.toFixed(2)} <br><span style="font-size:0.8em; color:#666;">${porcentajeUtil}</span></td>
-                            <td>${infoDescuento}</td>
-                            <td>${infoGastos}</td>
-                            
-                            <td class="total">
-                                $${c.total.toFixed(2)}
-                                ${infoIVA}
-                            </td>
-                            
-                            <td style="text-align: center;">
-                                <button class="btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Eliminar Cotización">
-                                    🗑️
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                    tabla.innerHTML += fila;
-                });
-
-            } catch (error) {
-                console.error(error);
-                alert("Error al cargar historial.");
             }
-        }
 
-        // --- FUNCIÓN DE BORRADO (IGUAL QUE ANTES) ---
-        async function confirmarBorrado(id) {
-            const password = prompt("🔒 ACCESO RESTRINGIDO\nPara eliminar esta cotización, ingresa la contraseña de administrador:");
-            if (!password) return;
-
-            try {
-                const res = await fetch('/cotizaciones', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id, password: password })
-                });
-
-                const data = await res.json();
-
-                if (data.exito) {
-                    alert("✅ " + data.mensaje);
-                    cargarHistorial(); 
-                } else {
-                    alert("⛔ Error: " + data.mensaje); 
-                }
-
-            } catch (error) {
-                alert("Error de conexión con el servidor.");
+            let infoIVA = '';
+            if (c.iva && c.iva > 0) {
+                infoIVA = `<div style="font-size: 0.75em; color: #666; font-weight: normal; margin-top: 4px;">✔ Incluye IVA: $${c.iva.toFixed(2)}</div>`;
+            } else {
+                infoIVA = `<div style="font-size: 0.75em; color: #ccc; font-weight: normal; margin-top: 4px; font-style: italic;">(Sin IVA)</div>`;
             }
-        }
 
-        cargarHistorial();
+            const fila = `
+                <tr>
+                    <td><strong>${c.cliente}</strong><br><span class="fecha">${fecha}</span></td>
+                    <td style="color: #007bff; font-weight: bold;">${cotizador}</td>
+                    <td>${c.producto}<br><span class="badge">${c.tela}</span></td>
+                    <td>${c.medidas.ancho} x ${c.medidas.alto} m<br>Cant: ${c.cantidad}</td>
+                    <td class="costo">${costo}</td>
+                    <td class="utilidad">$${montoUtilidad.toFixed(2)} <br><span style="font-size:0.8em; color:#666;">${porcentajeUtil}</span></td>
+                    <td>${infoDescuento}</td>
+                    <td>${infoGastos}</td>
+                    
+                    <td class="total">
+                        $${c.total.toFixed(2)}
+                        ${infoIVA}
+                    </td>
+                    
+                    <td style="text-align: center;">
+                        <button class="btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Eliminar Cotización">
+                            🗑️
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tabla.innerHTML += fila;
+        });
+    }
+
+    // 3. LLENAR LOS SELECTS AUTOMÁTICAMENTE
+    function llenarOpcionesFiltros() {
+        const selectCliente = document.getElementById('filtro-cliente');
+        const selectCotizador = document.getElementById('filtro-cotizador');
+
+        // Usamos Set para obtener valores únicos (sin repetidos)
+        const clientesUnicos = [...new Set(todasLasCotizaciones.map(c => c.cliente))].sort();
+        const cotizadoresUnicos = [...new Set(todasLasCotizaciones.map(c => c.quienCotiza).filter(Boolean))].sort(); // filter(Boolean) quita nulos
+
+        // Llenar Clientes
+        clientesUnicos.forEach(cliente => {
+            selectCliente.add(new Option(cliente, cliente));
+        });
+
+        // Llenar Cotizadores
+        cotizadoresUnicos.forEach(cotizador => {
+            selectCotizador.add(new Option(cotizador, cotizador));
+        });
+    }
+
+    // 4. APLICAR FILTROS (Se ejecuta al cambiar los selects)
+    function aplicarFiltros() {
+        const clienteSeleccionado = document.getElementById('filtro-cliente').value;
+        const cotizadorSeleccionado = document.getElementById('filtro-cotizador').value;
+
+        // Filtramos la lista maestra
+        const listaFiltrada = todasLasCotizaciones.filter(c => {
+            // Si hay un cliente seleccionado, debe coincidir. Si no, pasa (true).
+            const coincideCliente = clienteSeleccionado ? c.cliente === clienteSeleccionado : true;
+            // Si hay un cotizador seleccionado, debe coincidir.
+            const coincideCotizador = cotizadorSeleccionado ? c.quienCotiza === cotizadorSeleccionado : true;
+
+            return coincideCliente && coincideCotizador;
+        });
+
+        // Redibujamos la tabla solo con los que pasaron el filtro
+        renderizarTabla(listaFiltrada);
+    }
+
+    // 5. LIMPIAR FILTROS
+    function limpiarFiltros() {
+        document.getElementById('filtro-cliente').value = "";
+        document.getElementById('filtro-cotizador').value = "";
+        renderizarTabla(todasLasCotizaciones);
+    }
+
+    // --- FUNCIÓN DE BORRADO (IGUAL QUE ANTES) ---
+    async function confirmarBorrado(id) {
+        const password = prompt("🔒 ACCESO RESTRINGIDO\nPara eliminar esta cotización, ingresa la contraseña de administrador:");
+        if (!password) return;
+
+        try {
+            const res = await fetch('/cotizaciones', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, password: password })
+            });
+
+            const data = await res.json();
+
+            if (data.exito) {
+                alert("✅ " + data.mensaje);
+                cargarHistorial(); // Recargamos todo
+            } else {
+                alert("⛔ Error: " + data.mensaje); 
+            }
+
+        } catch (error) {
+            alert("Error de conexión con el servidor.");
+        }
+    }
+
+    // Iniciar
+    cargarHistorial();
     </script>
 </body>
 </html>
