@@ -12,7 +12,6 @@
         label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
         select, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
         
-        /* Estilos nuevos para la sección de agregar */
         .seccion-agregar {
             background-color: #ffffff;
             border: 2px solid #e0e0e0;
@@ -196,12 +195,9 @@
    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <script>
-       // --- VARIABLES GLOBALES ---
        let productosDB = [], motoresDB = [], telasDB = [], coloresDB = [];
-       
        let carritoItems = []; 
 
-       // Inicialización
        async function inicializar() {
            const selUtil = document.getElementById('select-utilidad');
            for(let i=0; i<=400; i+=10) {
@@ -233,7 +229,6 @@
        }
        inicializar();
 
-       // --- 1. AGREGAR AL CARRITO ---
        function agregarAlCarrito() {
            const idProd = document.getElementById('select-producto').value;
            const idTela = document.getElementById('select-tela').value;
@@ -289,7 +284,6 @@
            actualizarTablaCarrito();
        }
 
-       // --- 2. DIBUJAR TABLA ---
        function actualizarTablaCarrito() {
            const tbody = document.querySelector('#tabla-items tbody');
            tbody.innerHTML = '';
@@ -326,7 +320,6 @@
            actualizarTablaCarrito();
        }
 
-       // --- 3. TOTALES GLOBALES ---
        function calcularTotalesGlobales() {
            let subtotalProductos = carritoItems.reduce((sum, item) => sum + item.total, 0);
            let totalGastos = 0;
@@ -369,12 +362,8 @@
            return { subtotalProductos, totalGastos, listaGastos, iva, granTotal };
        }
 
-       // --- 4. GENERAR PDF (ARREGLADO) ---
-      // --- 4. GENERAR PDF (TÉCNICA DE CLONACIÓN) ---
-      // --- 4. GENERAR PDF (CORREGIDO: ANCHO Y VISIBILIDAD) ---
-       // --- 4. GENERAR PDF (VERSIÓN FINAL CORREGIDA) ---
+       // --- SOLUCIÓN CRÍTICA: CLONAR + Z-INDEX + ANCHO ---
        function generarPDF() {
-            // A. VALIDAR
             if (carritoItems.length === 0) {
                 alert("No hay productos para generar el PDF.");
                 return;
@@ -386,7 +375,7 @@
             
             const totales = calcularTotalesGlobales(); 
 
-            // B. LLENAR DATOS EN LA PLANTILLA ORIGINAL (Invisible)
+            // 1. LLENAR DATOS EN LA PLANTILLA ORIGINAL (que está oculta)
             document.getElementById('pdf-cliente-nombre').innerText = nombreCliente;
             document.getElementById('pdf-fecha').innerText = fechaHoy;
             document.getElementById('pdf-folio').innerText = folio;
@@ -429,39 +418,36 @@
             document.getElementById('pdf-iva').innerText = `$${totales.iva.toFixed(2)}`;
             document.getElementById('pdf-total').innerText = `$${totales.granTotal.toFixed(2)}`;
 
-            // C. CLONAR Y AJUSTAR PARA IMPRESIÓN
+            // 2. CLONAR LA PLANTILLA LLENA
             const elementoOriginal = document.getElementById('plantilla-pdf');
             const elementoClon = elementoOriginal.cloneNode(true);
             
-            // --- AJUSTES CRÍTICOS ---
+            // 3. ESTILOS OBLIGATORIOS PARA EL CLON (Hacerlo visible y del tamaño correcto)
             elementoClon.style.display = 'block';
             elementoClon.style.position = 'absolute';
             elementoClon.style.top = '0px';
             elementoClon.style.left = '0px';
-            
-            // 1. ANCHO: 700px asegura que quepa en hoja Carta sin cortarse
-            elementoClon.style.width = '700px'; 
-            
-            // 2. VISIBILIDAD: Lo ponemos ENCIMA de todo (9999) para asegurar que el navegador lo dibuje
-            elementoClon.style.zIndex = '9999'; 
+            elementoClon.style.width = '700px'; // ANCHO CORRECTO PARA HOJA CARTA
+            elementoClon.style.zIndex = '9999'; // ENCIMA DE TODO (Evita página blanca)
             elementoClon.style.background = 'white';
             
+            // 4. AGREGAR AL DOM, GENERAR Y BORRAR
             document.body.appendChild(elementoClon);
 
             const opt = {
-                margin:       0.3, 
+                margin:       0.3,
                 filename:     `Cotizacion_${nombreCliente}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, scrollY: 0 }, 
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
-            // Generamos el PDF y luego borramos el clon inmediatamente
             html2pdf().set(opt).from(elementoClon).save().then(function() {
+                // Borrar clon inmediatamente después de guardar
                 document.body.removeChild(elementoClon);
             });
         }
-       // --- 5. GUARDAR EN BD ---
+
        async function guardarCotizacionCompleta() {
            if(carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
            const cliente = document.getElementById('cliente').value;
@@ -497,7 +483,6 @@
            } catch(e) { alert("Error de conexión"); console.error(e); }
        }
 
-       // Helpers
        function actualizarListaTelas() {
            const idProd = document.getElementById('select-producto').value;
            const selTela = document.getElementById('select-tela');
