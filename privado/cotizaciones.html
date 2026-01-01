@@ -515,6 +515,171 @@
            `;
            html2pdf().from(contenido).save();
        }
+
+
+                function generarPDF() {
+    // 1. OBTENER DATOS DEL FORMULARIO ACTUAL
+    // Ajusta estos IDs según cómo se llamen tus inputs en cotizaciones.html
+    const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
+    const fechaHoy = new Date().toLocaleDateString('es-MX');
+    
+    // Generar un folio aleatorio o secuencial (puedes ajustarlo)
+    const folio = "COT-" + Math.floor(Math.random() * 10000);
+
+    // 2. LLENAR LA PLANTILLA OCULTA
+    document.getElementById('pdf-cliente-nombre').innerText = nombreCliente;
+    document.getElementById('pdf-fecha').innerText = fechaHoy;
+    document.getElementById('pdf-folio').innerText = folio;
+
+    const tablaBody = document.getElementById('pdf-tabla-body');
+    tablaBody.innerHTML = ''; // Limpiar tabla previa
+
+    let subtotalGeneral = 0;
+
+    // ASUMO QUE TIENES UNA VARIABLE 'carrito' O 'listaProductos' CON LOS ITEMS
+    // Si no la tienes global, adáptalo para leer de tu tabla HTML visible
+    if (typeof carrito === 'undefined' || carrito.length === 0) {
+        alert("No hay productos para generar el PDF.");
+        return;
+    }
+
+    carrito.forEach(item => {
+        // Calcular precio total del item
+        const totalItem = item.precio * item.cantidad; // O como calcules el total
+        subtotalGeneral += totalItem;
+
+        // Crear fila principal
+        let fila = `
+            <tr style="border-bottom: 1px solid #17a2b8;">
+                <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.producto}</td>
+                <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.tela || 'N/A'}</td>
+                <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.color || 'Por Definir'}</td>
+                <td style="padding: 8px; text-align: center; border-right: 1px solid #17a2b8;">${item.cantidad}</td>
+                <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.ancho}m x ${item.alto}m</td>
+                <td style="padding: 8px; text-align: right;">$${totalItem.toFixed(2)}</td>
+            </tr>
+        `;
+        
+        // Agregar fila de "Accesorios/Notas" como en la imagen (Opcional)
+        fila += `
+            <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.9em;">
+                <td colspan="6" style="padding: 4px 8px;">
+                    <em>Notas/Accesorios: Mando ${item.mando || 'Derecho'}, Cadena ${item.cadena || 'Plástica'}</em>
+                </td>
+            </tr>
+        `;
+
+        tablaBody.innerHTML += fila;
+    });
+
+    // 3. CALCULAR TOTALES
+    const iva = subtotalGeneral * 0.16; // Asumiendo 16% IVA
+    const granTotal = subtotalGeneral + iva;
+
+    document.getElementById('pdf-subtotal').innerText = `$${subtotalGeneral.toFixed(2)}`;
+    document.getElementById('pdf-iva').innerText = `$${iva.toFixed(2)}`;
+    document.getElementById('pdf-total').innerText = `$${granTotal.toFixed(2)}`;
+
+    // 4. GENERAR EL PDF
+    const elemento = document.getElementById('plantilla-pdf');
+    
+    // Hacemos visible temporalmente el clon para la foto, o configuramos html2pdf
+    // La librería maneja elementos ocultos, pero a veces es mejor clonar.
+    // Configuración:
+    const opt = {
+        margin:       0.5,
+        filename:     `Cotizacion_${nombreCliente}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 }, // Mayor escala = mejor calidad
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    // Truco: Mostrar el div momentáneamente para que html2pdf lo capture bien si hay problemas de renderizado
+    elemento.style.display = 'block';
+    
+    html2pdf().set(opt).from(elemento).save().then(() => {
+        elemento.style.display = 'none'; // Ocultar de nuevo al terminar
+    });
+}
+
+
+
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+
+                    <div id="plantilla-pdf" style="display: none; width: 800px; font-family: 'Arial', sans-serif; color: #333;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 15px; margin-bottom: 20px;">
+        <div style="width: 40%;">
+            <img src="/IMG/logoPD.jpeg" alt="Persianas Delta" style="max-width: 150px;">
+            <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 5px;">PRIVACIDAD CON ESTILO</div>
+        </div>
+        <div style="width: 60%; text-align: right; font-size: 0.8em;">
+            <h1 style="margin: 0; font-weight: normal; font-size: 1.8em; letter-spacing: 3px;">PERSIANAS DELTA</h1>
+            <p style="margin: 5px 0;">CDMX 5519337007 / QRO 4427878273 / https://persianasdelta.com/</p>
+            <p style="margin: 0; font-weight: bold;">VENTAS@PERSIANASDELTA.COM</p>
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.9em;">
+        <div>
+            <strong style="color: #001f3f;">COTIZACIÓN:</strong> <span id="pdf-folio">001-2025</span><br>
+            <strong style="color: #001f3f;">CLIENTE:</strong> <br>
+            <span id="pdf-cliente-nombre">Nombre del Cliente</span>
+        </div>
+        <div style="text-align: right;">
+            <strong style="color: #001f3f;">FECHA:</strong> <br>
+            <span id="pdf-fecha">DD/MM/AAAA</span>
+        </div>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.8em; border: 2px solid #17a2b8;">
+        <thead>
+            <tr style="color: #001f3f; text-align: center;">
+                <th style="border: 1px solid #17a2b8; padding: 8px;">TIPO DE PERSIANA</th>
+                <th style="border: 1px solid #17a2b8; padding: 8px;">TELA</th>
+                <th style="border: 1px solid #17a2b8; padding: 8px;">COLOR</th>
+                <th style="border: 1px solid #17a2b8; padding: 8px;">CANT.</th>
+                <th style="border: 1px solid #17a2b8; padding: 8px;">MEDIDAS</th>
+                <th style="border: 1px solid #17a2b8; padding: 8px;">TOTAL</th>
+            </tr>
+        </thead>
+        <tbody id="pdf-tabla-body">
+            </tbody>
+    </table>
+
+    <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+        
+        <div style="width: 60%; font-size: 0.7em; color: #555;">
+            <p style="margin-bottom: 5px;"><strong>Condiciones de Pago:</strong></p>
+            <p style="margin: 2px 0;">50% de anticipo y 50% contra entrega.</p>
+            <p style="margin: 2px 0;"><strong>No hay devoluciones</strong></p>
+            <p style="margin: 2px 0;">Precio expresado en moneda nacional.</p>
+            <p style="margin: 2px 0;">Tiempo de entrega: 7 días hábiles a partir de anticipo.</p>
+        </div>
+
+        <div style="width: 35%;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                <tr>
+                    <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">SUBTOTAL</td>
+                    <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;" id="pdf-subtotal">$0.00</td>
+                </tr>
+                <tr>
+                    <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">IVA</td>
+                    <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;" id="pdf-iva">$0.00</td>
+                </tr>
+                <tr>
+                    <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;">TOTAL</td>
+                    <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;" id="pdf-total">$0.00</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+
 </body>
 </html>
