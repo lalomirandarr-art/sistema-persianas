@@ -365,14 +365,14 @@
         return { subtotalProductos, totalGastos, listaGastos, iva, granTotal };
     }
 
-    // --- FUNCIÓN GENERAR PDF (VERSIÓN FINAL ROBUSTA) ---
+    // --- FUNCIÓN GENERAR PDF (ARREGLADA: VISIBLE EN COORDENADA 0,0) ---
     async function generarPDF() {
         if (carritoItems.length === 0) {
             alert("No hay productos para generar el PDF.");
             return;
         }
 
-        // 1. FOLIO
+        // 1. FOLIO INTELIGENTE
         const fechaObj = new Date();
         const mesActual = fechaObj.getMonth(); 
         const anioActual = fechaObj.getFullYear();
@@ -429,7 +429,7 @@
             });
         }
 
-        // 3. CREAR ELEMENTO
+        // 3. CREAR ELEMENTO EN MEMORIA
         const elementoPDF = document.createElement('div');
         elementoPDF.style.width = '700px'; 
         elementoPDF.style.padding = '20px';
@@ -439,13 +439,11 @@
         elementoPDF.style.fontFamily = 'Arial, sans-serif';
         elementoPDF.style.color = '#333';
         
-        // TRUCO: Usamos una imagen en base64 o esperamos carga. 
-        // Para simplificar, usaremos texto si la imagen falla.
+        // ** LOGO: Usamos /IMG/logo.jpeg **
         elementoPDF.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 15px; margin-bottom: 20px;">
                 <div style="width: 40%;">
-                    <img src="/IMG/logo.jpeg" alt="PD" style="max-width: 150px; display:block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
-                    <div style="display:none; font-size: 24px; font-weight: bold; color: #17a2b8;">PERSIANAS DELTA</div>
+                    <img src="/IMG/logo.jpeg" alt="PD" style="max-width: 150px; display:block;" onerror="this.style.display='none';">
                     <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 5px;">PRIVACIDAD CON ESTILO</div>
                 </div>
                 <div style="width: 60%; text-align: right; font-size: 0.8em;">
@@ -510,38 +508,42 @@
             </div>
         `;
 
-        // 4. PREPARAR EN DOM
+        // 4. PREPARAR EN DOM (CORRECCIÓN CRÍTICA: TOP 0, LEFT 0)
         elementoPDF.style.position = 'absolute';
-        elementoPDF.style.left = '-9999px'; // Fuera de pantalla pero renderizable
-        elementoPDF.style.top = '0px';
+        elementoPDF.style.left = '0px'; // LO PONEMOS VISIBLE
+        elementoPDF.style.top = '0px'; // ARRIBA DE TODO
+        elementoPDF.style.zIndex = '9999'; // CAPA SUPERIOR
         document.body.appendChild(elementoPDF);
+        
+        // SCROLL ARRIBA PARA ASEGURAR CAPTURA
+        window.scrollTo(0,0);
 
         // 5. ESPERAR A QUE CARGUEN LAS IMÁGENES
-        // Este paso es crucial. Esperamos a que todas las imágenes dentro del div carguen.
         const imagenes = elementoPDF.querySelectorAll('img');
         const promesasImagenes = Array.from(imagenes).map(img => {
             if (img.complete) return Promise.resolve();
             return new Promise(resolve => {
                 img.onload = resolve;
-                img.onerror = resolve; // Si falla, continuamos igual
+                img.onerror = resolve; 
             });
         });
 
         await Promise.all(promesasImagenes);
 
-        // 6. GENERAR
+        // 6. GENERAR Y ELIMINAR
         const opt = {
             margin:       0.3,
             filename:     `Cotizacion_${folio}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, logging: true }, // scale 2 es suficiente y más rápido
+            html2canvas:  { scale: 2, useCORS: true, logging: true, scrollY: 0 }, 
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
-        await html2pdf().set(opt).from(elementoPDF).save();
-        
-        // Limpieza
-        document.body.removeChild(elementoPDF);
+        // ESPERAR UN MOMENTO EXTRA POR SI ACASO
+        setTimeout(async () => {
+             await html2pdf().set(opt).from(elementoPDF).save();
+             document.body.removeChild(elementoPDF);
+        }, 500);
     }
 
     // --- GUARDAR EN BD ---
