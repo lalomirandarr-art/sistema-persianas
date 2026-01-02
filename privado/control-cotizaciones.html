@@ -249,12 +249,13 @@
         const subtotal = total - iva - gastos;
 
         const element = document.createElement('div');
-        // --- CAMBIO: SIN BORDE Y SIN MIN-HEIGHT ---
-        element.style.width = '100%'; 
+        // --- CORRECCIÓN DE ANCHO PARA QUE QUEPA EN HOJA CARTA ---
+        element.style.width = '750px'; // Ancho controlado (aprox 8 pulgadas)
         element.style.padding = '20px';
         element.style.background = 'white';
         element.style.fontFamily = 'Arial, sans-serif';
         element.style.color = '#333';
+        // (Sin borde azul)
 
         element.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 15px; margin-bottom: 20px;">
@@ -282,10 +283,10 @@
             </div>`;
 
         const opt = {
-            margin:       0.3,
+            margin:       0.5, // Margen de impresión seguro
             filename:     `Cotizacion_${c.folioInteligente}.pdf`,
             image:        { type: 'jpeg', quality: 1 },
-            html2canvas:  { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 },
+            html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
