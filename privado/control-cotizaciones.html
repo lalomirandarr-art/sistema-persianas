@@ -39,12 +39,11 @@
             font-size: 0.85em; font-weight: bold; display: inline-block;
         }
 
-        /* --- ESTILOS DE LA PANTALLA DE CARGA (NUEVO) --- */
+        /* --- ESTILOS DE LA PANTALLA DE CARGA --- */
         #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85); z-index: 9999;
-            display: none; /* Oculto por defecto */
-            flex-direction: column; justify-content: center; align-items: center;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
             color: white; font-family: sans-serif;
         }
         .progress-container {
@@ -53,11 +52,23 @@
             border: 2px solid #555;
         }
         .progress-bar {
-            height: 30px; width: 0%; background: #28a745;
-            transition: width 0.1s linear;
+            height: 30px; width: 0%; background: #28a745; transition: width 0.1s linear;
         }
         .loader-text { font-size: 1.5em; margin-bottom: 10px; }
         .counter-text { font-size: 1.2em; color: #aaa; margin-top: 5px; }
+
+        /* --- NUEVOS ESTILOS PAGINACIÓN --- */
+        .pagination-container {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .btn-paginacion {
+            background-color: #001f3f; color: white; border: none; padding: 8px 15px;
+            border-radius: 5px; cursor: pointer; font-weight: bold;
+        }
+        .btn-paginacion:disabled { background-color: #ccc; cursor: not-allowed; }
+        .page-info { font-weight: bold; color: #555; }
     </style>
 </head>
 <body>
@@ -138,10 +149,20 @@
             </thead>
             <tbody></tbody>
         </table>
+
+        <div class="pagination-container" id="panel-paginacion" style="display:none;">
+            <button class="btn-paginacion" id="btn-prev" onclick="cambiarPagina(-1)">⬅️ Anterior</button>
+            <span class="page-info" id="lbl-page-info">Mostrando 0 - 0 de 0</span>
+            <button class="btn-paginacion" id="btn-next" onclick="cambiarPagina(1)">Siguiente ➡️</button>
+        </div>
     </div>
 
    <script>
+       // --- VARIABLES GLOBALES ---
        let todasLasCotizaciones = []; 
+       let datosFiltrados = []; // Copia para manejar la paginación con filtros
+       let paginaActual = 1;
+       const filasPorPagina = 20;
 
     async function cargarHistorial() {
         try {
@@ -164,22 +185,43 @@
                 return c;
             });
             datos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            
+            // Asignamos datos
             todasLasCotizaciones = datos;
+            datosFiltrados = datos; // Inicialmente son iguales
             
             llenarOpcionesFiltros();
-            renderizarTabla(todasLasCotizaciones);
+            
+            // Resetear paginación y renderizar
+            paginaActual = 1;
+            renderizarTabla();
+            
         } catch (error) { console.error(error); }
     }
 
-    function renderizarTabla(datos) {
+    function renderizarTabla() {
         const tabla = document.querySelector('#tabla-cotizaciones tbody');
-        if (datos.length === 0) {
+        const panelPaginacion = document.getElementById('panel-paginacion');
+        
+        if (datosFiltrados.length === 0) {
             tabla.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Sin datos.</td></tr>';
+            panelPaginacion.style.display = 'none';
             return;
         }
+
+        // --- LÓGICA DE PAGINACIÓN ---
+        panelPaginacion.style.display = 'flex';
+        
+        const inicio = (paginaActual - 1) * filasPorPagina;
+        const fin = inicio + filasPorPagina;
+        const datosPagina = datosFiltrados.slice(inicio, fin); // Solo tomamos 20
+
         tabla.innerHTML = ''; 
         
-        datos.forEach((c, index) => {
+        datosPagina.forEach((c, index) => {
+            // El índice visual debe ser el real, no el relativo a la página
+            const indiceReal = inicio + index + 1;
+
             const fechaObj = new Date(c.fecha);
             const fecha = !isNaN(fechaObj) ? fechaObj.toLocaleDateString('es-MX', {day: '2-digit', month: '2-digit', year: 'numeric'}) : '-';
             
@@ -194,7 +236,7 @@
             
             const fila = `
                 <tr>
-                    <td class="text-center" style="color:#666;">${index + 1}</td>
+                    <td class="text-center" style="color:#666;">${indiceReal}</td>
                     <td class="text-center"><span class="id-row">${c.folioInteligente || 'N/A'}</span></td>
                     <td style="font-weight: bold; color: #333;">${c.cliente}</td>
                     <td>${fecha}</td>
@@ -207,183 +249,141 @@
                 </tr>`;
             tabla.innerHTML += fila;
         });
+
+        actualizarControlesPaginacion();
     }
 
-    // --- IMPORTACIÓN CON BARRA DE PROGRESO ---
-    function procesarArchivoExcel(input) {
-        const archivo = input.files[0];
-        if (!archivo) return;
+    function actualizarControlesPaginacion() {
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+        const lblInfo = document.getElementById('lbl-page-info');
 
-        const reader = new FileReader();
+        const totalRegistros = datosFiltrados.length;
+        const totalPaginas = Math.ceil(totalRegistros / filasPorPagina);
         
-        reader.onload = async function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, {type: 'array', cellDates: false}); 
-            const primerHoja = workbook.SheetNames[0];
-            const hoja = workbook.Sheets[primerHoja];
-            const datosExcel = XLSX.utils.sheet_to_json(hoja, { range: 1 }); 
-            
-            if(datosExcel.length === 0) { alert("Excel vacío."); return; }
+        const inicio = (paginaActual - 1) * filasPorPagina + 1;
+        let fin = paginaActual * filasPorPagina;
+        if(fin > totalRegistros) fin = totalRegistros;
 
-            const confirmar = confirm(`Se encontraron ${datosExcel.length} filas. ¿Importar?`);
-            if(!confirmar) return;
+        lblInfo.innerText = `Mostrando ${inicio} - ${fin} de ${totalRegistros}`;
 
-            // 1. MOSTRAR PANTALLA DE CARGA
-            const overlay = document.getElementById('loading-overlay');
-            const progressBar = document.getElementById('progress-bar');
-            const counterText = document.getElementById('counter-text');
-            overlay.style.display = 'flex';
-
-            let importados = 0;
-            let total = datosExcel.length;
-
-            for (let i = 0; i < total; i++) {
-                let row = datosExcel[i];
-
-                // 2. ACTUALIZAR BARRA DE PROGRESO
-                let porcentaje = Math.round(((i + 1) / total) * 100);
-                progressBar.style.width = porcentaje + "%";
-                counterText.innerText = `Procesando registro ${i + 1} de ${total}`;
-
-                // --- Lógica de Fecha (Corrección "Gringo" vs "Latino") ---
-                let fechaFinal = new Date();
-                const fechaRaw = row['Fecha'];
-
-                if (typeof fechaRaw === 'number') {
-                    fechaFinal = new Date((fechaRaw - (25567 + 2)) * 86400 * 1000);
-                } else if (typeof fechaRaw === 'string') {
-                    const partes = fechaRaw.split('/');
-                    if (partes.length === 3) {
-                        fechaFinal = new Date(partes[2], partes[1] - 1, partes[0]);
-                    }
-                }
-
-                const folioExcel = row['folio'] || 'S/N';
-                const objetoParaBD = {
-                    cliente: row['Cliente'] || "Cliente Importado",
-                    fecha: fechaFinal,
-                    total: parseFloat(row['Total'] || 0),
-                    quienCotiza: "Importado", 
-                    iva: 0, 
-                    items: [{
-                        producto: `Imp. Excel (Folio: ${folioExcel})`, 
-                        cantidad: parseInt(row['Piezas'] || 1), 
-                        total: parseFloat(row['Total'] || 0)
-                    }],
-                    gastosAdicionales: []
-                };
-
-                try {
-                    await fetch('/cotizaciones', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(objetoParaBD)
-                    });
-                    importados++;
-                } catch(e) {}
-            }
-
-            // 3. OCULTAR PANTALLA DE CARGA AL FINALIZAR
-            overlay.style.display = 'none';
-            alert(`✅ Proceso Finalizado.\nSe importaron ${importados} de ${total} registros.`);
-            
-            input.value = ''; 
-            cargarHistorial(); 
-        };
-
-        reader.readAsArrayBuffer(archivo);
+        btnPrev.disabled = (paginaActual === 1);
+        btnNext.disabled = (paginaActual === totalPaginas || totalPaginas === 0);
     }
 
-    async function eliminarTodo() {
-        if(todasLasCotizaciones.length === 0) return alert("No hay nada que borrar.");
-
-        const confirmacion = confirm("⚠️ ¿Estás seguro de ELIMINAR TODO el historial? NO hay vuelta atrás.");
-        if (!confirmacion) return;
-
-        const password = prompt("🔒 Admin Password:");
-        if (!password) return;
-
-        // REUTILIZAMOS LA PANTALLA DE CARGA PARA EL BORRADO
-        const overlay = document.getElementById('loading-overlay');
-        const progressBar = document.getElementById('progress-bar');
-        const counterText = document.getElementById('counter-text');
-        
-        document.querySelector('.loader-text').innerText = "🗑️ Eliminando Registros...";
-        overlay.style.display = 'flex';
-        
-        let eliminados = 0;
-        let total = todasLasCotizaciones.length;
-
-        for (let i = 0; i < total; i++) {
-            const cotizacion = todasLasCotizaciones[i];
-            
-            // Actualizar barra visualmente
-            let porcentaje = Math.round(((i + 1) / total) * 100);
-            progressBar.style.width = porcentaje + "%";
-            counterText.innerText = `Eliminando ${i + 1} de ${total}`;
-
-            try {
-                await fetch('/cotizaciones', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: cotizacion._id, password: password })
-                });
-                eliminados++;
-            } catch (error) { console.error(error); }
-        }
-
-        overlay.style.display = 'none';
-        document.querySelector('.loader-text').innerText = "🔄 Importando..."; // Regresar texto original
-        
-        alert(`🧹 Historial limpio. Eliminados: ${eliminados}`);
-        cargarHistorial();
+    function cambiarPagina(direccion) {
+        paginaActual += direccion;
+        renderizarTabla();
     }
 
-    // Funciones Auxiliares (Filtros, Exportar, etc)
+    // --- FILTROS (Actualizados para Paginación) ---
+    function aplicarFiltros() {
+        const clienteSeleccionado = document.getElementById('filtro-cliente').value;
+        const cotizadorSeleccionado = document.getElementById('filtro-cotizador').value;
+        
+        datosFiltrados = todasLasCotizaciones.filter(c => {
+            const coincideCliente = clienteSeleccionado ? c.cliente === clienteSeleccionado : true;
+            const coincideCotizador = cotizadorSeleccionado ? c.quienCotiza === cotizadorSeleccionado : true;
+            return coincideCliente && coincideCotizador;
+        });
+        
+        paginaActual = 1; // Resetear a la primera página al filtrar
+        renderizarTabla();
+    }
+
+    function limpiarFiltros() {
+        document.getElementById('filtro-cliente').value = "";
+        document.getElementById('filtro-cotizador').value = "";
+        datosFiltrados = todasLasCotizaciones;
+        paginaActual = 1;
+        renderizarTabla();
+    }
+
     function llenarOpcionesFiltros() {
         const selectCliente = document.getElementById('filtro-cliente');
         const selectCotizador = document.getElementById('filtro-cotizador');
-        selectCliente.innerHTML = '<option value="">-- Ver Todos --</option>';
-        selectCotizador.innerHTML = '<option value="">-- Ver Todos --</option>';
+        // Limpiamos y repoblamos solo una vez
+        if(selectCliente.options.length > 1) return; 
+
         const clientesUnicos = [...new Set(todasLasCotizaciones.map(c => c.cliente))].sort();
         const cotizadoresUnicos = [...new Set(todasLasCotizaciones.map(c => c.quienCotiza).filter(Boolean))].sort(); 
         clientesUnicos.forEach(cliente => selectCliente.add(new Option(cliente, cliente)));
         cotizadoresUnicos.forEach(cotizador => selectCotizador.add(new Option(cotizador, cotizador)));
     }
 
-    function aplicarFiltros() {
-        const clienteSeleccionado = document.getElementById('filtro-cliente').value;
-        const cotizadorSeleccionado = document.getElementById('filtro-cotizador').value;
-        const listaFiltrada = todasLasCotizaciones.filter(c => {
-            const coincideCliente = clienteSeleccionado ? c.cliente === clienteSeleccionado : true;
-            const coincideCotizador = cotizadorSeleccionado ? c.quienCotiza === cotizadorSeleccionado : true;
-            return coincideCliente && coincideCotizador;
-        });
-        renderizarTabla(listaFiltrada);
+    // --- IMPORTACIÓN / EXPORTACIÓN / BORRADO (Sin cambios lógicos, solo integración) ---
+    function procesarArchivoExcel(input) {
+        const archivo = input.files[0];
+        if (!archivo) return;
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array', cellDates: false}); 
+            const primerHoja = workbook.SheetNames[0];
+            const hoja = workbook.Sheets[primerHoja];
+            const datosExcel = XLSX.utils.sheet_to_json(hoja, { range: 1 }); 
+            if(datosExcel.length === 0) { alert("Excel vacío."); return; }
+            const confirmar = confirm(`Se encontraron ${datosExcel.length} filas. ¿Importar?`);
+            if(!confirmar) return;
+            const overlay = document.getElementById('loading-overlay');
+            const progressBar = document.getElementById('progress-bar');
+            const counterText = document.getElementById('counter-text');
+            overlay.style.display = 'flex';
+            let importados = 0; let total = datosExcel.length;
+            for (let i = 0; i < total; i++) {
+                let row = datosExcel[i];
+                let porcentaje = Math.round(((i + 1) / total) * 100);
+                progressBar.style.width = porcentaje + "%";
+                counterText.innerText = `Procesando ${i + 1} de ${total}`;
+                let fechaFinal = new Date();
+                const fechaRaw = row['Fecha'];
+                if (typeof fechaRaw === 'number') { fechaFinal = new Date((fechaRaw - (25567 + 2)) * 86400 * 1000); } 
+                else if (typeof fechaRaw === 'string') { const partes = fechaRaw.split('/'); if (partes.length === 3) fechaFinal = new Date(partes[2], partes[1] - 1, partes[0]); }
+                const folioExcel = row['folio'] || 'S/N';
+                const objetoParaBD = {
+                    cliente: row['Cliente'] || "Importado", fecha: fechaFinal, total: parseFloat(row['Total'] || 0),
+                    quienCotiza: "Importado", iva: 0, items: [{ producto: `Imp. Excel (Folio: ${folioExcel})`, cantidad: parseInt(row['Piezas'] || 1), total: parseFloat(row['Total'] || 0) }], gastosAdicionales: []
+                };
+                try { await fetch('/cotizaciones', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(objetoParaBD) }); importados++; } catch(e) {}
+            }
+            overlay.style.display = 'none';
+            alert(`✅ Finalizado. Importados: ${importados}`);
+            input.value = ''; cargarHistorial(); 
+        };
+        reader.readAsArrayBuffer(archivo);
     }
 
-    function limpiarFiltros() {
-        document.getElementById('filtro-cliente').value = "";
-        document.getElementById('filtro-cotizador').value = "";
-        renderizarTabla(todasLasCotizaciones);
+    async function eliminarTodo() {
+        if(todasLasCotizaciones.length === 0) return alert("Nada que borrar.");
+        const confirmacion = confirm("⚠️ ¿ELIMINAR TODO EL HISTORIAL?");
+        if (!confirmacion) return;
+        const password = prompt("🔒 Password:");
+        if (!password) return;
+        const overlay = document.getElementById('loading-overlay');
+        const progressBar = document.getElementById('progress-bar');
+        const counterText = document.getElementById('counter-text');
+        document.querySelector('.loader-text').innerText = "🗑️ Eliminando...";
+        overlay.style.display = 'flex';
+        let eliminados = 0; let total = todasLasCotizaciones.length;
+        for (let i = 0; i < total; i++) {
+            const cotizacion = todasLasCotizaciones[i];
+            let porcentaje = Math.round(((i + 1) / total) * 100);
+            progressBar.style.width = porcentaje + "%";
+            counterText.innerText = `Eliminando ${i + 1} de ${total}`;
+            try { await fetch('/cotizaciones', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: cotizacion._id, password: password }) }); eliminados++; } catch (error) {}
+        }
+        overlay.style.display = 'none';
+        document.querySelector('.loader-text').innerText = "🔄 Importando...";
+        alert(`🧹 Eliminados: ${eliminados}`);
+        cargarHistorial();
     }
 
     function exportarExcel() {
-        const clienteSeleccionado = document.getElementById('filtro-cliente').value;
-        const cotizadorSeleccionado = document.getElementById('filtro-cotizador').value;
-        const listaParaExcel = todasLasCotizaciones.filter(c => {
-            const coincideCliente = clienteSeleccionado ? c.cliente === clienteSeleccionado : true;
-            const coincideCotizador = cotizadorSeleccionado ? c.quienCotiza === cotizadorSeleccionado : true;
-            return coincideCliente && coincideCotizador;
-        });
-        if (listaParaExcel.length === 0) { alert("No hay datos"); return; }
-        const datosFormateados = listaParaExcel.map(c => {
+        if (datosFiltrados.length === 0) { alert("No hay datos"); return; }
+        const datosFormateados = datosFiltrados.map(c => {
             let cantidadTotal = 0;
             if (c.items && c.items.length > 0) c.items.forEach(item => cantidadTotal += Number(item.cantidad) || 0);
-            return {
-                "Folio": c.folioInteligente, "Cliente": c.cliente, "Fecha": new Date(c.fecha).toLocaleDateString('es-MX'),
-                "Cotizador": c.quienCotiza, "Piezas": cantidadTotal, "Total": c.total
-            };
+            return { "Folio": c.folioInteligente, "Cliente": c.cliente, "Fecha": new Date(c.fecha).toLocaleDateString('es-MX'), "Cotizador": c.quienCotiza, "Piezas": cantidadTotal, "Total": c.total };
         });
         const ws = XLSX.utils.json_to_sheet(datosFormateados);
         const wb = XLSX.utils.book_new();
@@ -392,16 +392,12 @@
     }
 
     async function confirmarBorrado(id) {
-        const password = prompt("🔒 Admin Password:");
+        const password = prompt("🔒 Password:");
         if (!password) return;
         try {
-            const res = await fetch('/cotizaciones', {
-                method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id, password: password })
-            });
+            const res = await fetch('/cotizaciones', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, password: password }) });
             const data = await res.json();
-            if (data.exito) { alert("Eliminado"); cargarHistorial(); } 
-            else { alert(data.mensaje); }
+            if (data.exito) { alert("Eliminado"); cargarHistorial(); } else { alert(data.mensaje); }
         } catch (error) { alert("Error red"); }
     }
 
