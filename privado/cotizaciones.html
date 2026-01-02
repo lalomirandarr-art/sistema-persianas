@@ -195,6 +195,7 @@
    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <script>
+    // --- VARIABLES GLOBALES ---
     let productosDB = [], motoresDB = [], telasDB = [], coloresDB = [];
     let carritoItems = []; 
 
@@ -226,7 +227,7 @@
             const selMotor = document.getElementById('select-motor');
             motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
 
-        } catch (e) { console.error(e); alert("Error cargando datos"); }
+        } catch (e) { console.error(e); alert("Error cargando datos (asegúrate de correr el servidor)"); }
     }
     inicializar();
 
@@ -364,16 +365,17 @@
         return { subtotalProductos, totalGastos, listaGastos, iva, granTotal };
     }
 
-    // --- FUNCIÓN GENERAR PDF (CORREGIDA Y REINSERTADA) ---
+    // --- FUNCIÓN GENERAR PDF (RE-INSERTADA AQUÍ) ---
     async function generarPDF() {
+        // A. VALIDAR
         if (carritoItems.length === 0) {
             alert("No hay productos para generar el PDF.");
             return;
         }
 
-        // 1. Calcular Folio
+        // --- LÓGICA DEL FOLIO INTELIGENTE ---
         const fechaObj = new Date();
-        const mesActual = fechaObj.getMonth();
+        const mesActual = fechaObj.getMonth(); 
         const anioActual = fechaObj.getFullYear();
         let consecutivo = 1; 
 
@@ -397,7 +399,7 @@
         const fechaHoy = fechaObj.toLocaleDateString('es-MX');
         const totales = calcularTotalesGlobales(); 
 
-        // 2. Construir HTML de tabla
+        // --- CONSTRUCCIÓN DEL HTML DEL PDF (MEMORIA) ---
         let filasHTML = '';
         carritoItems.forEach(item => {
             filasHTML += `
@@ -428,11 +430,11 @@
             });
         }
 
-        // 3. CREAR ELEMENTO PDF
+        // Crear elemento en memoria (sin insertar al HTML fijo)
         const elementoPDF = document.createElement('div');
         elementoPDF.style.width = '700px'; 
         elementoPDF.style.padding = '20px';
-        elementoPDF.style.boxSizing = 'border-box'; 
+        elementoPDF.style.boxSizing = 'border-box'; // Evita cortes
         elementoPDF.style.border = '3px solid #17a2b8'; 
         elementoPDF.style.background = 'white';
         elementoPDF.style.fontFamily = 'Arial, sans-serif';
@@ -506,12 +508,12 @@
             </div>
         `;
 
-        // 4. Mostrar, Generar y Ocultar
+        // 4. Mostrar temporalmente (encima de todo) y generar
         elementoPDF.style.display = 'block';
         elementoPDF.style.position = 'absolute';
         elementoPDF.style.top = '0px';
         elementoPDF.style.left = '0px';
-        elementoPDF.style.zIndex = '9999'; 
+        elementoPDF.style.zIndex = '9999'; // Traer al frente
         
         document.body.appendChild(elementoPDF);
 
@@ -519,7 +521,12 @@
             margin:       0.3,
             filename:     `Cotizacion_${folio}.pdf`,
             image:        { type: 'jpeg', quality: 1 },
-            html2canvas:  { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 }, 
+            html2canvas:  { 
+                scale: 4, 
+                useCORS: true, 
+                letterRendering: true, 
+                scrollY: 0 
+            }, 
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
@@ -528,7 +535,7 @@
         });
     }
 
-    // --- GUARDAR ---
+    // --- GUARDAR EN BD ---
     async function guardarCotizacionCompleta() {
         if(carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
         const cliente = document.getElementById('cliente').value;
