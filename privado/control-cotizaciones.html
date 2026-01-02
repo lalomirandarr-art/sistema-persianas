@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <title>Historial Financiero Completo</title>
     <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
         .historial-container { padding: 40px; max-width: 1400px; margin: auto; }
         
@@ -35,7 +38,7 @@
             padding: 5px 10px; 
             border-radius: 4px; 
             display: inline-block;
-            min-width: 90px; /* Para que todos se vean alineados */
+            min-width: 90px; 
             text-align: center;
         }
     </style>
@@ -81,9 +84,12 @@
                     <option value="">-- Ver Todos --</option>
                 </select>
             </div>
-            <div style="flex: 0;">
+            <div style="flex: 0; display: flex; gap: 10px;">
                 <button onclick="limpiarFiltros()" style="background-color: #6c757d; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">
                     🔄 Limpiar
+                </button>
+                <button onclick="exportarExcel()" style="background-color: #217346; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    📂 Excel
                 </button>
             </div>
         </div>
@@ -112,35 +118,30 @@
             const respuesta = await fetch('/cotizaciones');
             let datos = await respuesta.json();
 
-            // A. ORDENAR POR FECHA (Más antigua primero) 
-            // Esto es crucial para asignar el número 1, 2, 3 en el orden correcto
+            // ORDENAR POR FECHA (Más antigua primero para calcular folios)
             datos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-            // B. CALCULAR FOLIOS INTELIGENTES
-            const contadoresPorMes = {}; // Ej: { "01-2025": 5 }
+            // CALCULAR FOLIOS INTELIGENTES
+            const contadoresPorMes = {}; 
 
             datos = datos.map(c => {
                 const fecha = new Date(c.fecha);
                 const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
                 const anio = fecha.getFullYear();
-                const claveMes = `${mes}-${anio}`; // Ej: "01-2025"
+                const claveMes = `${mes}-${anio}`; 
 
-                // Si es la primera de ese mes, iniciamos en 0
                 if (!contadoresPorMes[claveMes]) {
                     contadoresPorMes[claveMes] = 0;
                 }
-                // Aumentamos contador
                 contadoresPorMes[claveMes]++;
 
                 const consecutivo = contadoresPorMes[claveMes].toString().padStart(3, '0');
                 
-                // Guardamos el folio calculado dentro del objeto (sin modificar BD)
                 c.folioInteligente = `${consecutivo}-${mes}-${anio}`;
-                
                 return c;
             });
 
-            // C. RE-ORDENAR (Más reciente primero) para mostrar en la tabla
+            // RE-ORDENAR (Más reciente primero) para mostrar
             datos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
             todasLasCotizaciones = datos;
@@ -171,7 +172,6 @@
 
             const cotizador = c.quienCotiza ? c.quienCotiza : '<span style="color:#ccc;">---</span>';
             
-            // Cantidad
             let cantidadTotal = 0;
             if (c.items && c.items.length > 0) {
                 c.items.forEach(item => { cantidadTotal += Number(item.cantidad) || 0; });
@@ -182,24 +182,19 @@
             const totalFinal = c.total ? c.total : 0;
             let infoIVA = c.iva && c.iva > 0 ? '(c/IVA)' : '';
 
-            // Usamos c.folioInteligente que calculamos arriba
             const fila = `
                 <tr>
                     <td class="text-center">
                         <span class="id-row">${c.folioInteligente}</span>
                     </td>
-                    
                     <td>
                         <strong>${c.cliente}</strong>
                         <span class="fecha">${fecha}</span>
                     </td>
-                    
                     <td style="color: #007bff; font-weight: 500;">${cotizador}</td>
-                    
                     <td class="text-center" style="font-size: 1.1em;">
                         ${cantidadTotal} pzas
                     </td>
-                    
                     <td class="text-right">
                         <span class="total">$${totalFinal.toFixed(2)}</span> <small>${infoIVA}</small>
                         <button class="btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Eliminar Cotización">
@@ -246,6 +241,53 @@
         document.getElementById('filtro-cliente').value = "";
         document.getElementById('filtro-cotizador').value = "";
         renderizarTabla(todasLasCotizaciones);
+    }
+
+    // 6. FUNCIÓN EXPORTAR A EXCEL (NUEVA)
+    function exportarExcel() {
+        // Obtenemos los filtros actuales para solo exportar lo que el usuario está viendo
+        const clienteSeleccionado = document.getElementById('filtro-cliente').value;
+        const cotizadorSeleccionado = document.getElementById('filtro-cotizador').value;
+
+        // Filtramos de nuevo (igual que en aplicarFiltros)
+        const listaParaExcel = todasLasCotizaciones.filter(c => {
+            const coincideCliente = clienteSeleccionado ? c.cliente === clienteSeleccionado : true;
+            const coincideCotizador = cotizadorSeleccionado ? c.quienCotiza === cotizadorSeleccionado : true;
+            return coincideCliente && coincideCotizador;
+        });
+
+        if (listaParaExcel.length === 0) {
+            alert("No hay datos para exportar");
+            return;
+        }
+
+        // Mapeamos los datos para que en Excel salgan las columnas limpias
+        const datosFormateados = listaParaExcel.map(c => {
+            // Calcular cantidad total de items
+            let cantidadTotal = 0;
+            if (c.items && c.items.length > 0) {
+                c.items.forEach(item => { cantidadTotal += Number(item.cantidad) || 0; });
+            }
+
+            return {
+                "Folio": c.folioInteligente,
+                "Cliente": c.cliente,
+                "Fecha": new Date(c.fecha).toLocaleDateString('es-MX'),
+                "Cotizador": c.quienCotiza || "N/A",
+                "Cant. Persianas": cantidadTotal,
+                "Total ($)": c.total || 0,
+                "IVA Incluido": (c.iva && c.iva > 0) ? "Sí" : "No"
+            };
+        });
+
+        // Crear hoja de trabajo y libro
+        const worksheet = XLSX.utils.json_to_sheet(datosFormateados);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Cotizaciones");
+
+        // Generar nombre de archivo con fecha
+        const fechaHoy = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(workbook, `Reporte_Cotizaciones_${fechaHoy}.xlsx`);
     }
 
     // BORRAR
