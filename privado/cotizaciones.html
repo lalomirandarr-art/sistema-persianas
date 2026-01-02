@@ -366,7 +366,6 @@
     }
 
     // --- NUEVA FUNCIÓN GENERAR PDF (MODIFICADA PARA MARCO DE COLOR) ---
-    // --- FUNCIÓN GENERAR PDF (ESTILO IDÉNTICO A LA IMAGEN) ---
     async function generarPDF() {
         // A. VALIDAR
         if (carritoItems.length === 0) {
@@ -374,13 +373,14 @@
             return;
         }
 
-        // --- LÓGICA DEL FOLIO ---
+        // --- LÓGICA DEL FOLIO INTELIGENTE ---
         const fechaObj = new Date();
-        const mesActual = fechaObj.getMonth(); 
+        const mesActual = fechaObj.getMonth(); // 0 = Enero
         const anioActual = fechaObj.getFullYear();
         let consecutivo = 1; 
 
         try {
+            // Consultar cotizaciones existentes
             const respuesta = await fetch('/cotizaciones');
             if(respuesta.ok) {
                 const historial = await respuesta.json();
@@ -392,106 +392,95 @@
             }
         } catch (error) { console.error("Error consecutivo:", error); }
 
+        // Formato: 001-01-2026
         const mesStr = (mesActual + 1).toString().padStart(2, '0');
         const consStr = consecutivo.toString().padStart(3, '0');
         const folio = `${consStr}-${mesStr}-${anioActual}`;
 
-        const nombreCliente = document.getElementById('cliente').value || "Cliente General";
+        const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
         const fechaHoy = fechaObj.toLocaleDateString('es-MX');
         const totales = calcularTotalesGlobales(); 
 
-        // --- CONSTRUCCIÓN DEL HTML (DISEÑO 6 COLUMNAS) ---
-        
+        // --- CONSTRUCCIÓN DEL HTML DEL PDF ---
+        // 1. Filas de productos
         let filasHTML = '';
         carritoItems.forEach(item => {
-            // Fila Principal con 6 columnas separadas
             filasHTML += `
-                <tr style="font-size: 0.85em; color: #555;">
-                    <td style="padding: 10px 5px; border: 1px solid #17a2b8;">${item.producto}</td>
-                    <td style="padding: 10px 5px; border: 1px solid #17a2b8;">${item.tela}</td>
-                    <td style="padding: 10px 5px; border: 1px solid #17a2b8;">${item.color}</td>
-                    <td style="padding: 10px 5px; border: 1px solid #17a2b8; text-align: center;">${item.cantidad}</td>
-                    <td style="padding: 10px 5px; border: 1px solid #17a2b8; text-align: center;">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
-                    <td style="padding: 10px 5px; border: 1px solid #17a2b8; text-align: right;">$${item.total.toFixed(2)}</td>
+                <tr style="border-bottom: 1px solid #17a2b8;">
+                    <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.producto}</td>
+                    <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.tela}</td>
+                    <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.color}</td>
+                    <td style="padding: 8px; text-align: center; border-right: 1px solid #17a2b8;">${item.cantidad}</td>
+                    <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
+                    <td style="padding: 8px; text-align: right;">$${item.total.toFixed(2)}</td>
                 </tr>
-            `;
-            
-            // Fila de Detalles (Accesorios y Motor)
-            // Se muestra pequeña e itálica debajo de la fila principal
-            filasHTML += `
-                <tr>
-                    <td colspan="6" style="padding: 2px 8px 8px 8px; border: 1px solid #17a2b8; border-top: none; font-size: 0.75em; color: #888; font-style: italic;">
-                        ↳ Accesorios: ${item.accesorios.color}, Mando ${item.accesorios.mando} 
-                        ${item.motor !== 'Manual' ? ' | ⚙️ Con ' + item.motor : ''}
+                <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.9em; background-color: #f9f9f9;">
+                    <td colspan="6" style="padding: 4px 8px;">
+                        <em>▸ Accesorios: ${item.accesorios.color}, Mando ${item.accesorios.mando} 
+                        ${item.motor !== 'Manual' ? ' | ⚙️ ' + item.motor : ''}</em>
                     </td>
                 </tr>
             `;
         });
 
-        // Filas de Gastos Extra
+        // 2. Gastos Extra
         if(totales.totalGastos > 0) {
             totales.listaGastos.forEach(g => {
                 filasHTML += `
-                <tr style="background-color: #f0f8ff;">
-                    <td colspan="5" style="padding: 8px; text-align: right; border: 1px solid #17a2b8; font-weight:bold;">${g.descripcion || 'Gasto Adicional'}:</td>
-                    <td style="padding: 8px; text-align: right; border: 1px solid #17a2b8;">$${g.monto.toFixed(2)}</td>
+                <tr style="border-bottom: 1px solid #17a2b8; background-color: #eef;">
+                    <td colspan="5" style="padding: 8px; text-align: right; border-right: 1px solid #17a2b8;"><strong>${g.descripcion || 'Gasto Adicional'}:</strong></td>
+                    <td style="padding: 8px; text-align: right;">$${g.monto.toFixed(2)}</td>
                 </tr>`;
             });
         }
 
-        // Crear contenedor PDF
+        // 3. Crear el Elemento PDF en Memoria
+        // Este bloque construye el diseño COMPLETO dentro del JS
         const elementoPDF = document.createElement('div');
-        // El borde exterior grueso azul
+        elementoPDF.style.width = '100%';
+        // CAMBIO PRINCIPAL: Agregar BORDE de color #17a2b8
         elementoPDF.style.border = '4px solid #17a2b8'; 
-        elementoPDF.style.padding = '30px';
-        elementoPDF.style.width = '95%'; // Ajuste para que quepa bien
+        elementoPDF.style.boxSizing = 'border-box'; // Para que el borde no rompa el ancho
+        elementoPDF.style.minHeight = '950px'; // Forzar altura para que parezca hoja carta completa con borde
+        elementoPDF.style.padding = '20px';
         elementoPDF.style.background = 'white';
-        elementoPDF.style.fontFamily = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+        elementoPDF.style.fontFamily = 'Arial, sans-serif';
         elementoPDF.style.color = '#333';
-        elementoPDF.style.position = 'relative';
-
+        
         elementoPDF.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 15px; margin-bottom: 20px;">
                 <div style="width: 40%;">
-                    <img src="/IMG/logopd.png" alt="Logo" style="max-width: 180px; display:block;">
-                    <div style="color: #17a2b8; font-weight: bold; font-size: 0.9em; letter-spacing: 3px; margin-top: 5px;">PRIVACIDAD CON ESTILO</div>
+                    <img src="/IMG/logopd.png" alt="Persianas Delta" style="max-width: 150px;">
+                    <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 5px;">PRIVACIDAD CON ESTILO</div>
                 </div>
-                <div style="width: 60%; text-align: right;">
-                    <h1 style="margin: 0; font-weight: normal; font-size: 24px; color: #333; letter-spacing: 1px;">PERSIANAS DELTA</h1>
-                    <p style="margin: 4px 0; font-size: 0.85em;">CDMX 5519337007 / QRO 4427878273</p>
-                    <p style="margin: 4px 0; font-size: 0.85em;">https://persianasdelta.com/</p>
-                    <p style="margin: 4px 0; font-size: 0.85em; font-weight: bold;">VENTAS@PERSIANASDELTA.COM</p>
+                <div style="width: 60%; text-align: right; font-size: 0.8em;">
+                    <h1 style="margin: 0; font-weight: normal; font-size: 1.8em; letter-spacing: 3px;">PERSIANAS DELTA</h1>
+                    <p style="margin: 5px 0;">CDMX 5519337007 / QRO 4427878273 / https://persianasdelta.com/</p>
+                    <p style="margin: 0; font-weight: bold;">VENTAS@PERSIANASDELTA.COM</p>
                 </div>
             </div>
 
-            <div style="border-top: 3px solid #17a2b8; border-bottom: 3px solid #17a2b8; padding: 15px 0; display: flex; justify-content: space-between; margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.9em;">
                 <div>
-                    <div style="margin-bottom: 10px;">
-                        <span style="font-weight: bold; color: #001f3f;">COTIZACIÓN:</span> 
-                        <span style="font-size: 1.1em; margin-left: 5px;">${folio}</span>
-                    </div>
-                    <div>
-                        <span style="font-weight: bold; color: #001f3f;">CLIENTE:</span><br>
-                        <span style="font-size: 1.2em; text-transform: capitalize;">${nombreCliente}</span>
-                    </div>
+                    <strong style="color: #001f3f;">COTIZACIÓN:</strong> ${folio}<br>
+                    <strong style="color: #001f3f;">CLIENTE:</strong> <br>
+                    ${nombreCliente}
                 </div>
-                <div style="text-align: right; display: flex; align-items: flex-end;">
-                    <div>
-                        <span style="font-weight: bold; color: #001f3f;">FECHA:</span><br>
-                        <span>${fechaHoy}</span>
-                    </div>
+                <div style="text-align: right;">
+                    <strong style="color: #001f3f;">FECHA:</strong> <br>
+                    ${fechaHoy}
                 </div>
             </div>
 
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.8em; border: 2px solid #17a2b8;">
                 <thead>
-                    <tr style="color: #001f3f; text-transform: uppercase; font-size: 0.8em; text-align: center;">
-                        <th style="border: 2px solid #17a2b8; padding: 10px; width: 25%;">TIPO DE PERSIANA</th>
-                        <th style="border: 2px solid #17a2b8; padding: 10px; width: 20%;">TELA</th>
-                        <th style="border: 2px solid #17a2b8; padding: 10px;">COLOR</th>
-                        <th style="border: 2px solid #17a2b8; padding: 10px;">CANT.</th>
-                        <th style="border: 2px solid #17a2b8; padding: 10px;">MEDIDAS</th>
-                        <th style="border: 2px solid #17a2b8; padding: 10px;">TOTAL</th>
+                    <tr style="color: #001f3f; text-align: center;">
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">TIPO DE PERSIANA</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">TELA</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">COLOR</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">CANT.</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">MEDIDAS</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">TOTAL</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -499,45 +488,48 @@
                 </tbody>
             </table>
 
-            <div style="display: flex; justify-content: space-between; margin-top: auto;">
-                
-                <div style="width: 55%; font-size: 0.75em; color: #444; padding-top: 10px;">
-                    <strong style="color: #000;">Condiciones de Pago:</strong>
-                    <ul style="margin: 5px 0 10px 20px; padding: 0;">
-                        <li>50% de anticipo y 50% contra entrega.</li>
-                        <li>No hay devoluciones.</li>
-                        <li>Precio expresado en moneda nacional.</li>
-                        <li>Tiempo de entrega: 7 días hábiles a partir de anticipo.</li>
-                    </ul>
+            <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                <div style="width: 60%; font-size: 0.7em; color: #555;">
+                    <p style="margin-bottom: 5px;"><strong>Condiciones de Pago:</strong></p>
+                    <p style="margin: 2px 0;">50% de anticipo y 50% contra entrega.</p>
+                    <p style="margin: 2px 0;"><strong>No hay devoluciones</strong></p>
+                    <p style="margin: 2px 0;">Precio expresado en moneda nacional.</p>
+                    <p style="margin: 2px 0;">Tiempo de entrega: 7 días hábiles a partir de anticipo.</p>
                 </div>
-
-                <div style="width: 40%;">
-                    <table style="width: 100%; border-collapse: collapse;">
+                <div style="width: 35%;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
                         <tr>
-                            <td style="padding: 8px; text-align: right; font-weight: bold; color: #555;">SUBTOTAL</td>
-                            <td style="padding: 8px; text-align: right; border-bottom: 1px solid #ddd;">$${(totales.subtotalProductos + totales.totalGastos).toFixed(2)}</td>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">SUBTOTAL</td>
+                            <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;">$${(totales.subtotalProductos + totales.totalGastos).toFixed(2)}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px; text-align: right; font-weight: bold; color: #555;">IVA (16%)</td>
-                            <td style="padding: 8px; text-align: right; border-bottom: 1px solid #ddd;">$${totales.iva.toFixed(2)}</td>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">IVA</td>
+                            <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;">$${totales.iva.toFixed(2)}</td>
                         </tr>
-                        <tr style="font-size: 1.3em; color: #000;">
-                            <td style="padding: 10px; text-align: right; font-weight: bold;">TOTAL</td>
-                            <td style="padding: 10px; text-align: right; font-weight: bold;">$${totales.granTotal.toFixed(2)}</td>
+                        <tr>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;">TOTAL</td>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;">$${totales.granTotal.toFixed(2)}</td>
                         </tr>
                     </table>
                 </div>
             </div>
         `;
 
+        // 4. Configurar opciones del PDF (Alta Calidad)
         const opt = {
-            margin: 0.5,
-            filename: `Cotizacion_${folio}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 3, useCORS: true, letterRendering: true },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            margin:       0.3, // Margen blanco para impresora
+            filename:     `Cotizacion_${folio}.pdf`,
+            image:        { type: 'jpeg', quality: 1 }, 
+            html2canvas:  { 
+                scale: 4, 
+                useCORS: true, 
+                letterRendering: true,
+                scrollY: 0 
+            }, 
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
+        // 5. Generar PDF desde el elemento en memoria
         html2pdf().set(opt).from(elementoPDF).save();
     }
 
