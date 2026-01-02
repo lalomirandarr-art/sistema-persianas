@@ -17,7 +17,6 @@
         
         .total { font-weight: bold; font-size: 1.1em; color: #28a745; }
 
-        /* Botón Borrar más discreto */
         .btn-borrar {
             background-color: transparent; border: none; color: #dc3545;
             font-size: 1.1em; cursor: pointer; transition: transform 0.2s;
@@ -28,14 +27,12 @@
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         
-        /* Estilo para el Folio */
         .id-row { 
             font-weight: bold; color: #001f3f; background: #eef2f5; 
             padding: 4px 8px; border-radius: 4px; display: inline-block;
             font-size: 0.9em;
         }
 
-        /* Estilo para la nueva columna Estatus */
         .badge-status {
             background-color: #e3f2fd;
             color: #0d47a1;
@@ -90,11 +87,17 @@
                 <button onclick="limpiarFiltros()" style="background-color: #6c757d; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">
                     🔄 Limpiar
                 </button>
+                
                 <button onclick="exportarExcel()" style="background-color: #217346; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
                     ⬇️ Excel
                 </button>
+                
                 <button onclick="document.getElementById('input-excel-importar').click()" style="background-color: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
                     ⬆️ Importar
+                </button>
+
+                <button onclick="eliminarTodo()" style="background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    ☢️ Borrar Todo
                 </button>
             </div>
         </div>
@@ -123,11 +126,9 @@
             const respuesta = await fetch('/cotizaciones');
             let datos = await respuesta.json();
 
-            // ORDENAR DATOS: 
-            // Esto asegura que al asignar folios, se respete el orden cronológico
+            // Orden cronológico para asignar folios
             datos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-            // GENERAR FOLIOS INTELIGENTES (Consecutivo-Mes-Año)
             const contadoresPorMes = {}; 
             datos = datos.map(c => {
                 const fecha = new Date(c.fecha);
@@ -145,7 +146,7 @@
                 return c;
             });
 
-            // REVERTIR ORDEN: Para que el usuario vea lo más reciente arriba
+            // Orden descendente (más nuevo arriba)
             datos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
             todasLasCotizaciones = datos;
             
@@ -166,7 +167,8 @@
         
         datos.forEach((c, index) => {
             const fechaObj = new Date(c.fecha);
-            const fecha = !isNaN(fechaObj) ? fechaObj.toLocaleDateString('es-MX') : '-';
+            // Formato forzado a español: DD/MM/AAAA
+            const fecha = !isNaN(fechaObj) ? fechaObj.toLocaleDateString('es-MX', {day: '2-digit', month: '2-digit', year: 'numeric'}) : '-';
             
             let cantidadTotal = 0;
             if (c.items && c.items.length > 0) {
@@ -177,7 +179,6 @@
             
             const totalFinal = c.total ? c.total : 0;
             
-            // Renderizado de las 7 columnas
             const fila = `
                 <tr>
                     <td class="text-center" style="color:#666;">${index + 1}</td>
@@ -188,14 +189,14 @@
                     <td class="text-right"><span class="total">$${totalFinal.toFixed(2)}</span></td>
                     <td class="text-center">
                         <span class="badge-status">Emitida</span>
-                        <button class="btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Borrar">🗑️</button>
+                        <button class="btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Borrar Individual">🗑️</button>
                     </td>
                 </tr>`;
             tabla.innerHTML += fila;
         });
     }
 
-    // --- FUNCIÓN DE IMPORTACIÓN AJUSTADA A TU EXCEL ---
+    // --- IMPORTACIÓN MEJORADA (Manejo de fechas) ---
     function procesarArchivoExcel(input) {
         const archivo = input.files[0];
         if (!archivo) return;
@@ -204,65 +205,64 @@
         
         reader.onload = async function(e) {
             const data = new Uint8Array(e.target.result);
-            // cellDates: true es VITAL para que la fecha '04/12/2025' se lea bien
-            const workbook = XLSX.read(data, {type: 'array', cellDates: true}); 
+            // cellDates: false para obtener la fecha cruda y procesarla nosotros
+            const workbook = XLSX.read(data, {type: 'array', cellDates: false}); 
             
             const primerHoja = workbook.SheetNames[0];
             const hoja = workbook.Sheets[primerHoja];
+            const datosExcel = XLSX.utils.sheet_to_json(hoja, { range: 1 }); // Empieza en fila 2
             
-            // --- CORRECCIÓN CLAVE: RANGE: 1 ---
-            // Como tu fila 1 dice "Cotizaciones", le decimos que empiece a leer desde la fila 2 (índice 1)
-            // para que detecte "folio", "Cliente", "Fecha", etc. como encabezados.
-            const datosExcel = XLSX.utils.sheet_to_json(hoja, { range: 1 });
-            
-            if(datosExcel.length === 0) { alert("No se encontraron datos (Revisa que los encabezados estén en la fila 2)."); return; }
+            if(datosExcel.length === 0) { alert("Excel vacío."); return; }
 
-            const confirmar = confirm(`Se encontraron ${datosExcel.length} filas. ¿Importar ahora?`);
+            const confirmar = confirm(`Se encontraron ${datosExcel.length} filas. ¿Importar?`);
             if(!confirmar) return;
 
             let importados = 0;
-            let errores = 0;
 
             for (let row of datosExcel) {
-                // --- MAPEO EXACTO DE TUS COLUMNAS ---
-                // Izquierda: Nombre en base de datos || Derecha: Nombre EXACTO en tu Excel
-                
-                const folioExcel = row['folio'] || 'S/N'; // 'folio' en minúscula según tu imagen
+                // 1. Convertir Fecha Excel a JS Correctamente
+                let fechaFinal = new Date();
+                const fechaRaw = row['Fecha'];
+
+                if (typeof fechaRaw === 'number') {
+                    // Si es número serial de Excel (ej: 45236)
+                    fechaFinal = new Date((fechaRaw - (25567 + 2)) * 86400 * 1000);
+                } else if (typeof fechaRaw === 'string') {
+                    // Si es texto "02/11/2023", forzar interpretación DD/MM/AAAA
+                    const partes = fechaRaw.split('/');
+                    if (partes.length === 3) {
+                        // Mes base 0 en JS (Enero = 0, Noviembre = 10)
+                        fechaFinal = new Date(partes[2], partes[1] - 1, partes[0]);
+                    }
+                }
+
+                const folioExcel = row['folio'] || 'S/N';
                 
                 const objetoParaBD = {
-                    cliente: row['Cliente'] || "Cliente Desconocido", // Columna C
-                    fecha: row['Fecha'] || new Date(),                // Columna D
-                    total: parseFloat(row['Total'] || 0),             // Columna F
-                    
-                    // Como NO tienes columna Cotizador, ponemos "Importado" o lo dejamos vacío
+                    cliente: row['Cliente'] || "Cliente Importado",
+                    fecha: fechaFinal,
+                    total: parseFloat(row['Total'] || 0),
                     quienCotiza: "Importado", 
-                    
                     iva: 0, 
-                    
-                    items: [
-                        {
-                            // Guardamos el folio antiguo en el nombre del producto para referencia
-                            producto: `Imp. Excel (Folio: ${folioExcel})`, 
-                            cantidad: parseInt(row['Piezas'] || 1),   // Columna E
-                            total: parseFloat(row['Total'] || 0)
-                        }
-                    ],
+                    items: [{
+                        producto: `Imp. Excel (Folio: ${folioExcel})`, 
+                        cantidad: parseInt(row['Piezas'] || 1), 
+                        total: parseFloat(row['Total'] || 0)
+                    }],
                     gastosAdicionales: []
                 };
 
-                // Enviamos al servidor
                 try {
-                    const res = await fetch('/cotizaciones', {
+                    await fetch('/cotizaciones', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(objetoParaBD)
                     });
-                    if(res.ok) importados++;
-                    else errores++;
-                } catch(e) { errores++; }
+                    importados++;
+                } catch(e) {}
             }
 
-            alert(`Resumen de Importación:\n✅ Éxito: ${importados}\n❌ Fallos: ${errores}`);
+            alert(`✅ Se importaron ${importados} cotizaciones.`);
             input.value = ''; 
             cargarHistorial(); 
         };
@@ -270,7 +270,47 @@
         reader.readAsArrayBuffer(archivo);
     }
 
-    // (El resto de funciones auxiliares se mantienen igual: llenarFiltros, exportarExcel, etc.)
+    // --- NUEVA FUNCIÓN: BORRAR TODO ---
+    async function eliminarTodo() {
+        if(todasLasCotizaciones.length === 0) return alert("No hay nada que borrar.");
+
+        const confirmacion = confirm("⚠️ ¡ADVERTENCIA CRÍTICA! ⚠️\n\n¿Estás seguro de que quieres ELIMINAR TODAS las cotizaciones del historial?\n\nEsta acción NO se puede deshacer.");
+        if (!confirmacion) return;
+
+        const password = prompt("🔒 Por seguridad, ingresa la contraseña de administrador:");
+        if (!password) return;
+
+        // Mostrar indicador de carga (simple)
+        document.body.style.cursor = 'wait';
+        
+        let eliminados = 0;
+        let errores = 0;
+
+        // Recorremos y borramos uno por uno (ya que no modificamos el backend)
+        for (const cotizacion of todasLasCotizaciones) {
+            try {
+                const res = await fetch('/cotizaciones', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: cotizacion._id, password: password })
+                });
+                const data = await res.json();
+                if (data.exito) eliminados++;
+                else {
+                    errores++;
+                    if(errores > 0) { alert("Contraseña incorrecta o error."); break; }
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        document.body.style.cursor = 'default';
+        alert(`🧹 Limpieza terminada.\n🗑️ Eliminados: ${eliminados}`);
+        cargarHistorial();
+    }
+
+    // --- FILTROS Y EXPORTACIÓN ---
     function llenarOpcionesFiltros() {
         const selectCliente = document.getElementById('filtro-cliente');
         const selectCotizador = document.getElementById('filtro-cotizador');
@@ -325,6 +365,7 @@
         XLSX.writeFile(wb, `Reporte_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
+    // Borrado individual
     async function confirmarBorrado(id) {
         const password = prompt("🔒 Admin Password:");
         if (!password) return;
