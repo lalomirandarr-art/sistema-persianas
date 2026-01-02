@@ -175,12 +175,12 @@
 
             <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 10px;">
                 <input type="checkbox" id="check-iva" checked onchange="calcularTotalesGlobales()" style="width: 20px;">
-                <label for="check-iva" style="margin:0; font-weight:bold;">Aplicar 16% IVA</label>
+                <label for="check-iva" style="margin:0; font-weight:bold;">Aplicar 16% IVA (Solo a productos)</label>
             </div>
 
             <p>Subtotal Productos: <span id="lbl-subtotal-items">$0.00</span></p>
-            <p id="lbl-gastos" style="color: #6610f2; display:none;">+ Gastos Extra: <span>$0.00</span></p>
             <p id="lbl-iva" style="color: #856404;">+ IVA (16%): <span>$0.00</span></p>
+            <p id="lbl-gastos" style="color: #6610f2; display:none;">+ Gastos Extra: <span>$0.00</span></p>
             <hr>
             <p class="gran-total">Total a Pagar: <span id="lbl-gran-total">$0.00</span></p>
 
@@ -339,6 +339,7 @@
         actualizarTablaCarrito();
     }
 
+    // --- FUNCIÓN DE CÁLCULO CORREGIDA ---
     function calcularTotalesGlobales() {
         let subtotalProductos = carritoItems.reduce((sum, item) => sum + item.total, 0);
         let totalGastos = 0;
@@ -357,11 +358,22 @@
         }
 
         const aplicarIva = document.getElementById('check-iva').checked;
-        const baseImponible = subtotalProductos + totalGastos;
-        const iva = aplicarIva ? baseImponible * 0.16 : 0;
-        const granTotal = baseImponible + iva;
+        
+        // CORRECCIÓN AQUÍ: El IVA solo se aplica al subtotal de productos
+        const iva = aplicarIva ? subtotalProductos * 0.16 : 0;
+        
+        // El Gran Total es Subtotal + IVA + Gastos (Los gastos van netos al final)
+        const granTotal = subtotalProductos + iva + totalGastos;
 
         document.getElementById('lbl-subtotal-items').innerText = `$${subtotalProductos.toFixed(2)}`;
+        
+        const lblIva = document.getElementById('lbl-iva');
+        if(aplicarIva) {
+            lblIva.innerHTML = `+ IVA (16%): <span>$${iva.toFixed(2)}</span>`;
+        } else {
+            lblIva.innerHTML = `IVA: <span>No incluido</span>`;
+        }
+
         const lblGastos = document.getElementById('lbl-gastos');
         if(totalGastos > 0) {
             lblGastos.style.display = 'block';
@@ -370,33 +382,23 @@
             lblGastos.style.display = 'none';
         }
 
-        const lblIva = document.getElementById('lbl-iva');
-        if(aplicarIva) {
-            lblIva.innerHTML = `+ IVA (16%): <span>$${iva.toFixed(2)}</span>`;
-        } else {
-            lblIva.innerHTML = `IVA: <span>No incluido</span>`;
-        }
         document.getElementById('lbl-gran-total').innerText = `$${granTotal.toFixed(2)}`;
 
         return { subtotalProductos, totalGastos, listaGastos, iva, granTotal };
     }
 
-    // --- FUNCIÓN GENERAR PDF ACTUALIZADA (Estilo sin bordes y desglose claro) ---
+    // --- FUNCIÓN GENERAR PDF ACTUALIZADA (Cálculos corregidos y Diseño Limpio) ---
     async function generarPDF() {
         if (carritoItems.length === 0) { alert("No hay productos."); return; }
 
-        // Datos básicos
         const fechaObj = new Date();
         const mesStr = (fechaObj.getMonth() + 1).toString().padStart(2, '0');
         const anio = fechaObj.getFullYear();
-        
-        // Simulación de folio (o puedes hacer fetch si quieres uno real)
         const folio = `COT-${mesStr}${anio}`;
         
         const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
         const totales = calcularTotalesGlobales(); 
 
-        // 1. Filas de productos
         let filasHTML = '';
         carritoItems.forEach(item => {
             filasHTML += `
@@ -417,20 +419,8 @@
             `;
         });
 
-        // 2. Filas de Gastos (Opcional: Si quieres listarlos en la tabla también)
-        if(totales.totalGastos > 0) {
-            totales.listaGastos.forEach(g => {
-                filasHTML += `
-                <tr style="border-bottom: 1px solid #17a2b8; background-color: #eef;">
-                    <td colspan="5" style="padding: 6px; text-align: right; border-right: 1px solid #17a2b8;"><strong>${g.descripcion || 'Gasto Extra'}:</strong></td>
-                    <td style="padding: 6px; text-align: right;">$${g.monto.toFixed(2)}</td>
-                </tr>`;
-            });
-        }
-
-        // 3. Crear Elemento PDF (DISEÑO LIMPIO)
         const element = document.createElement('div');
-        element.style.width = '720px'; // Ancho ajustado para hoja carta
+        element.style.width = '720px'; 
         element.style.padding = '20px';
         element.style.background = 'white';
         element.style.fontFamily = 'Arial, sans-serif';
@@ -497,15 +487,15 @@
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
                             <td style="text-align: right; padding: 4px; color: #333;">$${totales.subtotalProductos.toFixed(2)}</td>
                         </tr>
+                        <tr>
+                            <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
+                            <td style="text-align: right; padding: 4px; color: #333;">$${totales.iva.toFixed(2)}</td>
+                        </tr>
                         ${totales.totalGastos > 0 ? `
                         <tr>
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">GASTOS EXTRA:</td>
                             <td style="text-align: right; padding: 4px; color: #333;">$${totales.totalGastos.toFixed(2)}</td>
                         </tr>` : ''}
-                        <tr>
-                            <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
-                            <td style="text-align: right; padding: 4px; color: #333;">$${totales.iva.toFixed(2)}</td>
-                        </tr>
                         <tr style="border-top: 2px solid #17a2b8;">
                             <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td>
                             <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${totales.granTotal.toFixed(2)}</td>
@@ -520,14 +510,13 @@
         `;
 
         const opt = {
-            margin:       [0.2, 0.3, 0.2, 0.3], // Márgenes ajustados (Arriba, Izq, Abajo, Der)
+            margin:       [0.2, 0.3, 0.2, 0.3], 
             filename:     `Cotizacion_${folio}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
-        // Generar
         document.body.style.cursor = 'wait';
         await html2pdf().set(opt).from(element).save();
         document.body.style.cursor = 'default';
