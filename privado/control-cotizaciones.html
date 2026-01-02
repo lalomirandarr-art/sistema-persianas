@@ -8,36 +8,45 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        /* ... (Tus estilos anteriores se mantienen igual) ... */
-        /* Agregamos estilo para el nuevo botón Editar */
-        .btn-editar { color: #28a745; } 
-        .btn-editar:hover { transform: scale(1.2); color: #218838; }
-        
-        /* ... (Resto de estilos igual) ... */
+        /* --- ESTILOS GENERALES --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; }
         .historial-container { padding: 40px; max-width: 1400px; margin: auto; }
+        
+        /* --- TABLA --- */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); font-size: 0.9em; border-radius: 8px; overflow: hidden; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: middle; }
         th { background-color: #001f3f; color: white; white-space: nowrap; }
         tr:hover { background-color: #f1f5f9; }
+        
         .total { font-weight: bold; font-size: 1.1em; color: #28a745; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
+        
         .id-row { font-weight: bold; color: #001f3f; background: #eef2f5; padding: 4px 8px; border-radius: 4px; display: inline-block; font-size: 0.9em; }
         .badge-status { background-color: #e3f2fd; color: #0d47a1; padding: 5px 10px; border-radius: 15px; font-size: 0.85em; font-weight: bold; display: inline-block; }
+
+        /* --- BOTONES --- */
         button { cursor: pointer; transition: all 0.2s; }
         .btn-icon { background: none; border: none; font-size: 1.2em; padding: 5px; margin: 0 2px; }
         .btn-ver { color: #007bff; } .btn-ver:hover { transform: scale(1.2); color: #0056b3; }
         .btn-borrar { color: #dc3545; } .btn-borrar:hover { transform: scale(1.2); color: #a71d2a; }
         .btn-pdf { color: #b02a37; } .btn-pdf:hover { transform: scale(1.2); color: #dc3545; }
+        /* Botón Editar */
+        .btn-editar { color: #28a745; } .btn-editar:hover { transform: scale(1.2); color: #218838; }
+
+        /* --- PANTALLA DE CARGA --- */
         #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; color: white; }
         .progress-container { width: 80%; max-width: 600px; background: #333; border-radius: 10px; overflow: hidden; margin-top: 20px; border: 2px solid #555; }
         .progress-bar { height: 30px; width: 0%; background: #28a745; transition: width 0.1s linear; }
         .loader-text { font-size: 1.5em; margin-bottom: 10px; }
         .counter-text { font-size: 1.2em; color: #aaa; margin-top: 5px; }
+
+        /* --- PAGINACIÓN --- */
         .pagination-container { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 10px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .btn-paginacion { background-color: #001f3f; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; }
         .btn-paginacion:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* --- MODAL --- */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
         .modal-content { background: white; width: 90%; max-width: 900px; border-radius: 10px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; max-height: 90vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
@@ -56,6 +65,7 @@
 <body>
 
     <div id="loading-overlay"><div class="loader-text">🔄 Procesando...</div><div class="progress-container"><div id="progress-bar" class="progress-bar"></div></div><div id="counter-text" class="counter-text">0 / 0</div></div>
+    
     <div id="modal-detalles" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h2 id="modal-titulo">Detalles</h2><button class="close-modal" onclick="cerrarModal()">×</button></div><input type="hidden" id="edit-id"><div class="modal-grid"><div><div class="form-group"><label>Folio:</label><input type="text" id="edit-folio" readonly></div><div class="form-group"><label>Cliente:</label><input type="text" id="edit-cliente"></div><div class="form-group"><label>Cotizador:</label><input type="text" id="edit-cotizador" readonly></div><div class="form-group"><label>Fecha:</label><input type="text" id="edit-fecha" readonly></div><div class="form-group"><label>Estatus:</label><select id="edit-estatus"><option value="Emitida">Emitida</option><option value="Aprobada">Aprobada</option><option value="Pagada">Pagada</option><option value="Cancelada">Cancelada</option><option value="Pendiente">Pendiente</option></select></div></div><div><div class="form-group"><label>Productos:</label><div id="lista-items" class="items-list"></div></div><div class="financial-box"><div class="financial-row"><span>Costo:</span> <span id="val-costo">$0.00</span></div><div class="financial-row"><span>Utilidad:</span> <span id="val-utilidad" style="color:green;">$0.00</span></div><hr><div class="financial-row"><span>Subtotal:</span> <input type="number" id="edit-subtotal" onchange="recalcularTotal()" style="width:100px; text-align:right;"></div><div class="financial-row"><span>Gastos:</span> <input type="number" id="edit-gastos" onchange="recalcularTotal()" style="width:100px; text-align:right;"></div><div class="financial-row"><span>IVA:</span> <span id="val-iva">$0.00</span></div><div class="financial-row" style="font-weight:bold;"><span>Total:</span> <span id="val-total">$0.00</span></div></div></div></div><button class="btn-save" onclick="guardarCambios()">💾 Guardar</button></div></div>
 
     <header class="header">
@@ -179,34 +189,31 @@
         actualizarControlesPaginacion();
     }
 
-    // --- NUEVA FUNCIÓN: ENVIAR A COTIZADOR ---
+    // --- FUNCIÓN CORREGIDA: Enviar TODOS los datos al cotizador ---
     function enviarACotizador(id) {
         const c = todasLasCotizaciones.find(item => item._id === id);
         if(!c) return alert("Error: Datos no encontrados");
 
-        // Guardamos los datos relevantes en localStorage
-        // OJO: Solo guardamos lo básico para pre-llenar, ya que el cotizador añade productos de uno en uno.
-        // Si quieres cargar TODA la lista de productos, requeriría una lógica más compleja en cotizaciones.html.
-        // Por ahora, enviaremos los datos del cliente para facilitar una NUEVA cotización o una modificación.
-        
+        // AQUÍ ESTÁ EL CAMBIO CLAVE: Guardamos TODO el objeto
         const datosParaCotizador = {
             cliente: c.cliente,
             quienCotiza: c.quienCotiza,
-            // Si la cotización tiene items, podrías intentar pasar el primero para editarlo
-            // pero lo más seguro es pasar los datos de cabecera.
+            items: c.items, // <--- Lista de productos (Persianas, motores, etc)
+            gastosAdicionales: c.gastosAdicionales, // <--- Gastos extra
+            totalGastosAdicionales: c.totalGastosAdicionales,
+            iva: c.iva // <--- Monto de IVA
         };
 
+        // Guardar en localStorage
         localStorage.setItem('datosCotizacionEditar', JSON.stringify(datosParaCotizador));
         
         // Redirigir
         window.location.href = '/cotizaciones.html';
     }
 
-    // ... (El resto de tus funciones: generarPDF, Modal, etc. se quedan igual) ...
-    // Solo pégalos aquí abajo como en tu código original
+    // ... (El resto de tus funciones se mantienen IGUAL) ...
     async function generarPDFDesdeHistorial(id) {
-        const c = todasLasCotizaciones.find(item => item._id === id);
-        if(!c) return alert("Error: No se encontraron datos.");
+        const c = todasLasCotizaciones.find(item => item._id === id); if(!c) return alert("Error: No datos.");
         let filasHTML = '';
         if(c.items && c.items.length > 0) {
             c.items.forEach(item => {

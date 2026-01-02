@@ -230,18 +230,28 @@
         } catch (e) { console.error(e); alert("Error cargando datos (asegúrate de correr el servidor)"); }
 
                 // --- CARGAR DATOS DESDE HISTORIAL (SI EXISTEN) ---
+// --- CARGAR DATOS DESDE HISTORIAL (SI EXISTEN) ---
 const datosEditar = localStorage.getItem('datosCotizacionEditar');
 if (datosEditar) {
     try {
         const d = JSON.parse(datosEditar);
-        document.getElementById('cliente').value = d.cliente || '';
-        document.getElementById('quienCotiza').value = d.quienCotiza || '';
         
+        // 1. Llenar campos de cabecera
+        if (d.cliente) document.getElementById('cliente').value = d.cliente;
+        if (d.quienCotiza) document.getElementById('quienCotiza').value = d.quienCotiza;
+        
+        // 2. Llenar la tabla de productos (items)
+        if (d.items && Array.isArray(d.items) && d.items.length > 0) {
+            carritoItems = d.items; // Cargar en memoria
+            actualizarTablaCarrito(); // Pintar en la tabla
+        }
+
+        // 3. (Opcional) Cargar gastos adicionales si tu cotizador los soporta
+        // ... lógica de gastos ...
+
         // Limpiamos para que no se vuelva a cargar al refrescar
         localStorage.removeItem('datosCotizacionEditar');
         
-        // Opcional: Mostrar un aviso
-        // alert("Datos cargados del historial. Puedes continuar editando.");
     } catch (e) { console.error("Error al cargar datos de edición", e); }
 }
 
