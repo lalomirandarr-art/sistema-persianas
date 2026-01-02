@@ -228,6 +228,25 @@
             motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
 
         } catch (e) { console.error(e); alert("Error cargando datos (asegúrate de correr el servidor)"); }
+
+                // --- CARGAR DATOS DESDE HISTORIAL (SI EXISTEN) ---
+const datosEditar = localStorage.getItem('datosCotizacionEditar');
+if (datosEditar) {
+    try {
+        const d = JSON.parse(datosEditar);
+        document.getElementById('cliente').value = d.cliente || '';
+        document.getElementById('quienCotiza').value = d.quienCotiza || '';
+        
+        // Limpiamos para que no se vuelva a cargar al refrescar
+        localStorage.removeItem('datosCotizacionEditar');
+        
+        // Opcional: Mostrar un aviso
+        // alert("Datos cargados del historial. Puedes continuar editando.");
+    } catch (e) { console.error("Error al cargar datos de edición", e); }
+}
+
+
+
     }
     inicializar();
 
