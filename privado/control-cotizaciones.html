@@ -5,6 +5,7 @@
     <title>Historial Financiero Completo</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
         /* --- ESTILOS GENERALES --- */
@@ -26,57 +27,47 @@
 
         /* --- BOTONES --- */
         button { cursor: pointer; transition: all 0.2s; }
-        .btn-icon { background: none; border: none; font-size: 1.2em; padding: 5px; }
+        .btn-icon { background: none; border: none; font-size: 1.2em; padding: 5px; margin: 0 2px; }
+        
         .btn-ver { color: #007bff; }
         .btn-ver:hover { transform: scale(1.2); color: #0056b3; }
+        
         .btn-borrar { color: #dc3545; }
         .btn-borrar:hover { transform: scale(1.2); color: #a71d2a; }
+
+        /* Estilo para el nuevo botón PDF */
+        .btn-pdf { color: #b02a37; } 
+        .btn-pdf:hover { transform: scale(1.2); color: #dc3545; }
 
         /* --- PANTALLA DE CARGA --- */
         #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; color: white; }
         .progress-container { width: 80%; max-width: 600px; background: #333; border-radius: 10px; overflow: hidden; margin-top: 20px; border: 2px solid #555; }
         .progress-bar { height: 30px; width: 0%; background: #28a745; transition: width 0.1s linear; }
         .loader-text { font-size: 1.5em; margin-bottom: 10px; }
+        .counter-text { font-size: 1.2em; color: #aaa; margin-top: 5px; }
 
         /* --- PAGINACIÓN --- */
         .pagination-container { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 10px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .btn-paginacion { background-color: #001f3f; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; }
         .btn-paginacion:disabled { background-color: #ccc; cursor: not-allowed; }
 
-        /* --- MODAL DE DETALLES (NUEVO) --- */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); z-index: 1000;
-            display: none; justify-content: center; align-items: center;
-            backdrop-filter: blur(3px);
-        }
-        .modal-content {
-            background: white; width: 90%; max-width: 900px;
-            border-radius: 10px; padding: 30px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            position: relative; max-height: 90vh; overflow-y: auto;
-        }
+        /* --- MODAL DE DETALLES --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+        .modal-content { background: white; width: 90%; max-width: 900px; border-radius: 10px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; max-height: 90vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
         .modal-header h2 { margin: 0; color: #001f3f; }
         .close-modal { background: none; border: none; font-size: 2em; color: #aaa; cursor: pointer; }
         .close-modal:hover { color: #333; }
-
         .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1em; }
         .form-group input:read-only { background-color: #e9ecef; color: #666; }
-
-        .financial-box {
-            background-color: #f8f9fa; padding: 15px; border-radius: 8px;
-            border-left: 5px solid #28a745; margin-top: 20px;
-        }
+        .financial-box { background-color: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 5px solid #28a745; margin-top: 20px; }
         .financial-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 1.1em; }
         .financial-total { font-size: 1.4em; font-weight: bold; color: #001f3f; border-top: 1px solid #ccc; padding-top: 10px; margin-top: 10px; }
-        
         .items-list { margin-top: 20px; border: 1px solid #eee; padding: 10px; max-height: 150px; overflow-y: auto; background: #fff; }
         .item-row { border-bottom: 1px solid #eee; padding: 5px 0; font-size: 0.9em; display: flex; justify-content: space-between; }
-
         .btn-save { background-color: #28a745; color: white; padding: 12px 20px; border: none; border-radius: 5px; font-size: 1.1em; width: 100%; margin-top: 20px; }
         .btn-save:hover { background-color: #218838; }
     </style>
@@ -96,42 +87,24 @@
                 <button class="close-modal" onclick="cerrarModal()">×</button>
             </div>
             
-            <input type="hidden" id="edit-id"> <div class="modal-grid">
+            <input type="hidden" id="edit-id"> 
+
+            <div class="modal-grid">
                 <div>
-                    <div class="form-group">
-                        <label>Folio:</label>
-                        <input type="text" id="edit-folio" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Cliente:</label>
-                        <input type="text" id="edit-cliente">
-                    </div>
-                    <div class="form-group">
-                        <label>Cotizador:</label>
-                        <input type="text" id="edit-cotizador" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Fecha:</label>
-                        <input type="text" id="edit-fecha" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Estatus:</label>
+                    <div class="form-group"><label>Folio:</label><input type="text" id="edit-folio" readonly></div>
+                    <div class="form-group"><label>Cliente:</label><input type="text" id="edit-cliente"></div>
+                    <div class="form-group"><label>Cotizador:</label><input type="text" id="edit-cotizador" readonly></div>
+                    <div class="form-group"><label>Fecha:</label><input type="text" id="edit-fecha" readonly></div>
+                    <div class="form-group"><label>Estatus:</label>
                         <select id="edit-estatus">
-                            <option value="Emitida">Emitida</option>
-                            <option value="Aprobada">Aprobada</option>
-                            <option value="Pagada">Pagada</option>
-                            <option value="Cancelada">Cancelada</option>
+                            <option value="Emitida">Emitida</option><option value="Aprobada">Aprobada</option>
+                            <option value="Pagada">Pagada</option><option value="Cancelada">Cancelada</option>
                             <option value="Pendiente">Pendiente</option>
                         </select>
                     </div>
                 </div>
-
                 <div>
-                    <div class="form-group">
-                        <label>Productos (Resumen):</label>
-                        <div id="lista-items" class="items-list"></div>
-                    </div>
-
+                    <div class="form-group"><label>Productos (Resumen):</label><div id="lista-items" class="items-list"></div></div>
                     <div class="financial-box">
                         <div class="financial-row"><span>Costo Aprox:</span> <span id="val-costo">$0.00</span></div>
                         <div class="financial-row"><span>Utilidad:</span> <span id="val-utilidad" style="color:green;">$0.00</span></div>
@@ -143,7 +116,6 @@
                     </div>
                 </div>
             </div>
-
             <button class="btn-save" onclick="guardarCambios()">💾 Guardar Cambios</button>
         </div>
     </div>
@@ -192,7 +164,8 @@
                     <th class="text-center">Piezas</th>
                     <th class="text-right">Gran Total</th>
                     <th class="text-center">Estatus</th>
-                    <th class="text-center">Opciones</th> </tr>
+                    <th class="text-center">Opciones</th>
+                </tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -265,7 +238,6 @@
             let cantidadTotal = 0;
             if (c.items) c.items.forEach(i => cantidadTotal += Number(i.cantidad) || 0);
             
-            // Si no tiene estatus, asignamos uno por defecto (visual)
             const estatus = c.estatus || "Emitida";
 
             const fila = `
@@ -278,7 +250,8 @@
                     <td class="text-right"><span class="total">$${(c.total || 0).toFixed(2)}</span></td>
                     <td class="text-center"><span class="badge-status">${estatus}</span></td>
                     <td class="text-center">
-                        <button class="btn-icon btn-ver" onclick="abrirModalDetalles('${c._id}')" title="Ver Detalles">👁️</button>
+                        <button class="btn-icon btn-ver" onclick="abrirModalDetalles('${c._id}')" title="Ver / Editar">👁️</button>
+                        <button class="btn-icon btn-pdf" onclick="generarPDFDesdeHistorial('${c._id}')" title="Descargar PDF">📄</button>
                         <button class="btn-icon btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Borrar">🗑️</button>
                     </td>
                 </tr>`;
@@ -287,12 +260,137 @@
         actualizarControlesPaginacion();
     }
 
+    // --- NUEVA FUNCIÓN: GENERAR PDF DESDE HISTORIAL ---
+    async function generarPDFDesdeHistorial(id) {
+        // 1. Encontrar datos
+        const c = todasLasCotizaciones.find(item => item._id === id);
+        if(!c) return alert("Error: No se encontraron datos.");
+
+        // 2. Preparar filas HTML
+        let filasHTML = '';
+        if(c.items && c.items.length > 0) {
+            c.items.forEach(item => {
+                filasHTML += `
+                    <tr style="border-bottom: 1px solid #17a2b8;">
+                        <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.producto}</td>
+                        <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.tela || '-'}</td>
+                        <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.color || '-'}</td>
+                        <td style="padding: 8px; text-align: center; border-right: 1px solid #17a2b8;">${item.cantidad}</td>
+                        <td style="padding: 8px; border-right: 1px solid #17a2b8;">${item.medidas ? item.medidas.ancho + 'x' + item.medidas.alto : '-'}</td>
+                        <td style="padding: 8px; text-align: right;">$${(item.total || 0).toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // 3. Calcular Totales (Ingeniería Inversa si no están guardados)
+        const total = c.total || 0;
+        const iva = c.iva || (total - (total / 1.16));
+        const gastos = c.totalGastosAdicionales || 0;
+        const subtotal = total - iva - gastos;
+
+        // 4. Crear Elemento PDF (Diseño idéntico al de Nueva Cotización)
+        const element = document.createElement('div');
+        element.style.width = '100%'; 
+        element.style.border = '4px solid #17a2b8'; 
+        element.style.boxSizing = 'border-box';
+        element.style.minHeight = '950px'; 
+        element.style.padding = '20px';
+        element.style.background = 'white';
+        element.style.fontFamily = 'Arial, sans-serif';
+        element.style.color = '#333';
+
+        element.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 15px; margin-bottom: 20px;">
+                <div style="width: 40%;">
+                    <img src="/IMG/logopd.png" alt="Persianas Delta" style="max-width: 150px;">
+                    <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 5px;">PRIVACIDAD CON ESTILO</div>
+                </div>
+                <div style="width: 60%; text-align: right; font-size: 0.8em;">
+                    <h1 style="margin: 0; font-weight: normal; font-size: 1.8em; letter-spacing: 3px;">PERSIANAS DELTA</h1>
+                    <p style="margin: 5px 0;">CDMX 5519337007 / QRO 4427878273 / https://persianasdelta.com/</p>
+                    <p style="margin: 0; font-weight: bold;">VENTAS@PERSIANASDELTA.COM</p>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.9em;">
+                <div>
+                    <strong style="color: #001f3f;">COTIZACIÓN:</strong> ${c.folioInteligente}<br>
+                    <strong style="color: #001f3f;">CLIENTE:</strong> <br>
+                    ${c.cliente}
+                </div>
+                <div style="text-align: right;">
+                    <strong style="color: #001f3f;">FECHA:</strong> <br>
+                    ${new Date(c.fecha).toLocaleDateString('es-MX')}
+                </div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.8em; border: 2px solid #17a2b8;">
+                <thead>
+                    <tr style="color: #001f3f; text-align: center;">
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">TIPO DE PERSIANA</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">TELA</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">COLOR</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">CANT.</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">MEDIDAS</th>
+                        <th style="border: 1px solid #17a2b8; padding: 8px;">TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filasHTML}
+                </tbody>
+            </table>
+
+            <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                <div style="width: 60%; font-size: 0.7em; color: #555;">
+                    <p style="margin-bottom: 5px;"><strong>Condiciones de Pago:</strong></p>
+                    <p style="margin: 2px 0;">50% de anticipo y 50% contra entrega.</p>
+                    <p style="margin: 2px 0;"><strong>No hay devoluciones</strong></p>
+                    <p style="margin: 2px 0;">Precio expresado en moneda nacional.</p>
+                    <p style="margin: 2px 0;">Tiempo de entrega: 7 días hábiles a partir de anticipo.</p>
+                </div>
+                <div style="width: 35%;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                        <tr>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">SUBTOTAL</td>
+                            <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;">$${subtotal.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">GASTOS EXTRA</td>
+                            <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;">$${gastos.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; border-bottom: 1px solid #17a2b8;">IVA</td>
+                            <td style="text-align: right; padding: 5px; border-bottom: 1px solid #17a2b8;">$${iva.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;">TOTAL</td>
+                            <td style="text-align: right; padding: 5px; font-weight: bold; color: #000; font-size: 1.1em;">$${total.toFixed(2)}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        // 5. Configurar y Descargar
+        const opt = {
+            margin:       0.3,
+            filename:     `Cotizacion_${c.folioInteligente}.pdf`,
+            image:        { type: 'jpeg', quality: 1 },
+            html2canvas:  { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        // Mostrar indicador de carga brevemente
+        document.body.style.cursor = 'wait';
+        await html2pdf().set(opt).from(element).save();
+        document.body.style.cursor = 'default';
+    }
+
     // --- LÓGICA DEL MODAL (VER Y EDITAR) ---
     function abrirModalDetalles(id) {
         const c = todasLasCotizaciones.find(item => item._id === id);
         if(!c) return;
-
-        // 1. Llenar campos
         document.getElementById('edit-id').value = c._id;
         document.getElementById('modal-titulo').innerText = `Detalles: ${c.folioInteligente}`;
         document.getElementById('edit-folio').value = c.folioInteligente;
@@ -301,70 +399,50 @@
         document.getElementById('edit-fecha').value = new Date(c.fecha).toLocaleString();
         document.getElementById('edit-estatus').value = c.estatus || 'Emitida';
 
-        // 2. Calcular Financieros (Estimación si es importado)
         let total = c.total || 0;
         let gastos = c.totalGastosAdicionales || 0;
         let iva = c.iva || 0;
-        
-        // Si es importado y no tiene subtotal desglosado, hacemos ingeniería inversa básica
         let subtotal = total - iva - gastos;
         if(subtotal < 0) subtotal = total; 
 
         document.getElementById('edit-subtotal').value = subtotal.toFixed(2);
         document.getElementById('edit-gastos').value = gastos.toFixed(2);
         
-        // Calcular Costo y Utilidad (Basado en datos guardados si existen)
         let costoTotal = 0;
         const listaItems = document.getElementById('lista-items');
         listaItems.innerHTML = '';
 
         if(c.items && c.items.length > 0) {
             c.items.forEach(item => {
-                // Intentar obtener costo base si existe (cotizaciones nuevas)
                 let costoItem = 0;
                 if(item.financiero && item.financiero.costoBase) {
-                    costoItem = item.financiero.costoBase; // Unitario
-                    costoTotal += (costoItem * item.cantidad); // Total costo linea
+                    costoItem = item.financiero.costoBase; 
+                    costoTotal += (costoItem * item.cantidad); 
                 }
-                // Si es importado, el costo es desconocido (0) a menos que lo editemos.
-                
                 listaItems.innerHTML += `
                     <div class="item-row">
                         <span>${item.cantidad}x ${item.producto}</span>
                         <strong>$${(item.total || 0).toFixed(2)}</strong>
-                    </div>
-                `;
+                    </div>`;
             });
         }
         
-        // Mostrar Costo y Utilidad
         document.getElementById('val-costo').innerText = `$${costoTotal.toFixed(2)}`;
-        recalcularTotal(); // Esto actualiza los labels de totales y utilidad final
-
-        // 3. Mostrar Modal
+        recalcularTotal(); 
         document.getElementById('modal-detalles').style.display = 'flex';
     }
 
     function recalcularTotal() {
-        // Obtiene valores de los inputs editables
         const sub = parseFloat(document.getElementById('edit-subtotal').value) || 0;
         const gas = parseFloat(document.getElementById('edit-gastos').value) || 0;
-        
-        // Asumimos IVA 16% del subtotal + gastos (Regla de negocio estándar)
-        // OJO: Si tus importados no tienen IVA, esto lo calculará.
-        // Si prefieres que el IVA sea fijo, habría que poner un input para el IVA también.
         const iva = (sub + gas) * 0.16;
         const total = sub + gas + iva;
-
-        // Recuperar costo calculado antes (o 0 si es importado)
         const txtCosto = document.getElementById('val-costo').innerText.replace('$','');
         const costo = parseFloat(txtCosto) || 0;
-        const utilidad = (sub + gas) - costo; // Utilidad antes de impuestos o neta según tu lógica. Aquí uso (Venta sin IVA - Costo)
+        const utilidad = (sub + gas) - costo; 
 
-        // Actualizar UI
         document.getElementById('val-iva').innerText = `$${iva.toFixed(2)}`;
         document.getElementById('val-total').innerText = `$${total.toFixed(2)}`;
-        
         const lblUtil = document.getElementById('val-utilidad');
         lblUtil.innerText = `$${utilidad.toFixed(2)}`;
         lblUtil.style.color = utilidad >= 0 ? 'green' : 'red';
@@ -374,49 +452,24 @@
         const id = document.getElementById('edit-id').value;
         const cliente = document.getElementById('edit-cliente').value;
         const estatus = document.getElementById('edit-estatus').value;
-        
-        // Recalcular numéricamente para enviar limpio
         const sub = parseFloat(document.getElementById('edit-subtotal').value) || 0;
         const gas = parseFloat(document.getElementById('edit-gastos').value) || 0;
         const iva = (sub + gas) * 0.16;
         const total = sub + gas + iva;
 
-        const datosUpdate = {
-            id: id,
-            cliente: cliente,
-            estatus: estatus,
-            total: total,
-            iva: iva,
-            totalGastosAdicionales: gas
-            // Nota: No estamos actualizando los items individuales aquí, solo totales y cabecera
-        };
+        const datosUpdate = { id: id, cliente: cliente, estatus: estatus, total: total, iva: iva, totalGastosAdicionales: gas };
 
         try {
-            const res = await fetch('/cotizaciones', {
-                method: 'PUT', // Asegúrate de tener este endpoint en tu servidor Node
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(datosUpdate)
-            });
-            
+            const res = await fetch('/cotizaciones', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(datosUpdate) });
             const r = await res.json();
-            if(r.exito) {
-                alert("✅ Cambios guardados correctamente.");
-                cerrarModal();
-                cargarHistorial(); // Recargar tabla
-            } else {
-                alert("Error al guardar: " + (r.mensaje || "Desconocido"));
-                // Fallback si no tienes endpoint PUT: Simulamos en local para demo
-                // (Borra esto si ya tienes el backend)
-                // alert("Nota: Necesitas configurar la ruta app.put('/cotizaciones') en tu servidor.");
-            }
+            if(r.exito) { alert("✅ Cambios guardados."); cerrarModal(); cargarHistorial(); } 
+            else { alert("Error al guardar."); }
         } catch(e) { console.error(e); alert("Error de conexión"); }
     }
 
-    function cerrarModal() {
-        document.getElementById('modal-detalles').style.display = 'none';
-    }
+    function cerrarModal() { document.getElementById('modal-detalles').style.display = 'none'; }
 
-    // --- (RESTO DE FUNCIONES IGUALES: PAGINACIÓN, EXCEL, ETC) ---
+    // --- PAGINACIÓN, FILTROS, EXCEL, ETC (Igual que antes) ---
     function actualizarControlesPaginacion() {
         const btnPrev = document.getElementById('btn-prev');
         const btnNext = document.getElementById('btn-next');
@@ -432,24 +485,18 @@
     }
     function cambiarPagina(dir) { paginaActual += dir; renderizarTabla(); }
     function aplicarFiltros() { 
-        const cli = document.getElementById('filtro-cliente').value;
-        const cot = document.getElementById('filtro-cotizador').value;
+        const cli = document.getElementById('filtro-cliente').value; const cot = document.getElementById('filtro-cotizador').value;
         datosFiltrados = todasLasCotizaciones.filter(c => (cli ? c.cliente === cli : true) && (cot ? c.quienCotiza === cot : true));
         paginaActual = 1; renderizarTabla(); 
     }
-    function limpiarFiltros() { 
-        document.getElementById('filtro-cliente').value = ""; document.getElementById('filtro-cotizador').value = "";
-        datosFiltrados = todasLasCotizaciones; paginaActual = 1; renderizarTabla(); 
-    }
+    function limpiarFiltros() { document.getElementById('filtro-cliente').value = ""; document.getElementById('filtro-cotizador').value = ""; datosFiltrados = todasLasCotizaciones; paginaActual = 1; renderizarTabla(); }
     function llenarOpcionesFiltros() {
         const selCli = document.getElementById('filtro-cliente'); const selCot = document.getElementById('filtro-cotizador');
         if(selCli.options.length > 1) return;
         [...new Set(todasLasCotizaciones.map(c => c.cliente))].sort().forEach(x => selCli.add(new Option(x, x)));
         [...new Set(todasLasCotizaciones.map(c => c.quienCotiza).filter(Boolean))].sort().forEach(x => selCot.add(new Option(x, x)));
     }
-    // IMPORTAR/EXPORTAR IGUAL QUE ANTES (Resumido para ahorrar espacio, el tuyo anterior sirve)
     function procesarArchivoExcel(input) {
-        // ... (Usa tu función procesarArchivoExcel anterior, funciona igual) ...
         const archivo = input.files[0]; if (!archivo) return;
         const reader = new FileReader();
         reader.onload = async function(e) {
@@ -462,7 +509,6 @@
             document.getElementById('loading-overlay').style.display='flex';
             let ok=0;
             for(let row of datosExcel) {
-                // ... Lógica de fecha y objeto ... (Copia tu lógica aquí)
                  let fechaFinal = new Date(); const fechaRaw = row['Fecha'];
                  if (typeof fechaRaw === 'number') fechaFinal = new Date((fechaRaw - 25569)*86400*1000);
                  else if (typeof fechaRaw === 'string') { const p = fechaRaw.split('/'); if(p.length===3) fechaFinal=new Date(p[2],p[1]-1,p[0]); }
@@ -473,9 +519,36 @@
             alert(`Imp: ${ok}`); input.value=''; cargarHistorial();
         }; reader.readAsArrayBuffer(archivo);
     }
-    function exportarExcel() { /* ... tu lógica de exportar ... */ }
-    async function eliminarTodo() { /* ... tu lógica de eliminar ... */ }
-    async function confirmarBorrado(id) { /* ... tu lógica de borrar uno ... */ }
+    function exportarExcel() {
+        if (datosFiltrados.length === 0) { alert("No hay datos"); return; }
+        const datosFormateados = datosFiltrados.map(c => {
+            let cantidadTotal = 0; if (c.items) c.items.forEach(item => cantidadTotal += Number(item.cantidad) || 0);
+            return { "Folio": c.folioInteligente, "Cliente": c.cliente, "Fecha": new Date(c.fecha).toLocaleDateString('es-MX'), "Cotizador": c.quienCotiza, "Piezas": cantidadTotal, "Total": c.total };
+        });
+        const ws = XLSX.utils.json_to_sheet(datosFormateados); const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Cotizaciones"); XLSX.writeFile(wb, `Reporte_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
+    async function eliminarTodo() {
+        if(todasLasCotizaciones.length === 0) return alert("Nada que borrar.");
+        if (!confirm("⚠️ ¿ELIMINAR TODO EL HISTORIAL?")) return;
+        const password = prompt("🔒 Password:"); if (!password) return;
+        document.querySelector('.loader-text').innerText = "🗑️ Eliminando...";
+        document.getElementById('loading-overlay').style.display='flex';
+        let eliminados = 0;
+        for (let c of todasLasCotizaciones) {
+            try { await fetch('/cotizaciones', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: c._id, password: password }) }); eliminados++; } catch (error) {}
+        }
+        document.getElementById('loading-overlay').style.display='none';
+        alert(`🧹 Eliminados: ${eliminados}`); cargarHistorial();
+    }
+    async function confirmarBorrado(id) {
+        const password = prompt("🔒 Password:"); if (!password) return;
+        try {
+            const res = await fetch('/cotizaciones', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, password: password }) });
+            const data = await res.json();
+            if (data.exito) { alert("Eliminado"); cargarHistorial(); } else { alert(data.mensaje); }
+        } catch (error) { alert("Error red"); }
+    }
 
     cargarHistorial();
    </script>
