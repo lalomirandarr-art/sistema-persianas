@@ -458,6 +458,7 @@
     // --- FUNCIÓN GENERAR PDF CON DESCUENTO ---
     // --- FUNCIÓN GENERAR PDF CON FOLIO CONSECUTIVO REAL ---
     // --- FUNCIÓN GENERAR PDF (ANCHO MÁXIMO) ---
+    // --- FUNCIÓN GENERAR PDF CORREGIDA ---
     async function generarPDF() {
         if (carritoItems.length === 0) { alert("No hay productos."); return; }
 
@@ -488,20 +489,23 @@
         const totales = calcularTotalesGlobales(); 
 
         let filasHTML = '';
+        // AJUSTE 1: Reduje el padding de 6px a 4px para ganar espacio horizontal
+        const cellStyle = "padding: 4px; border-right: 1px solid #17a2b8; font-size: 9px;";
+        
         carritoItems.forEach(item => {
             const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
             filasHTML += `
                 <tr style="border-bottom: 1px solid #17a2b8;">
-                    <td style="padding: 6px; border-right: 1px solid #17a2b8; word-wrap: break-word;">${item.producto}</td>
-                    <td style="padding: 6px; border-right: 1px solid #17a2b8;">${item.tela}</td>
-                    <td style="padding: 6px; border-right: 1px solid #17a2b8;">${item.color}</td>
-                    <td style="padding: 6px; text-align: center; border-right: 1px solid #17a2b8;">${item.cantidad}</td>
-                    <td style="padding: 6px; border-right: 1px solid #17a2b8;">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
-                    <td style="padding: 6px; text-align: center; border-right: 1px solid #17a2b8;">${metrosCuadrados} m²</td>
-                    <td style="padding: 6px; text-align: right;">$${item.total.toFixed(2)}</td>
+                    <td style="${cellStyle} word-wrap: break-word;">${item.producto}</td>
+                    <td style="${cellStyle}">${item.tela}</td>
+                    <td style="${cellStyle}">${item.color}</td>
+                    <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
+                    <td style="${cellStyle}">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
+                    <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
+                    <td style="padding: 4px; text-align: right; font-size: 9px;">$${item.total.toFixed(2)}</td>
                 </tr>
-                <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.9em; background-color: #f9f9f9;">
-                    <td colspan="7" style="padding: 4px 8px;">
+                <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.8em; background-color: #f9f9f9;">
+                    <td colspan="7" style="padding: 2px 4px;">
                         <em>▸ Accesorios: ${item.accesorios.color}, Mando ${item.accesorios.mando} 
                         ${item.motor !== 'Manual' ? ' | ⚙️ ' + item.motor : ''}</em>
                     </td>
@@ -512,15 +516,16 @@
             totales.listaGastos.forEach(g => {
                 filasHTML += `
                 <tr style="border-bottom: 1px solid #17a2b8; background-color: #eef;">
-                    <td colspan="6" style="padding: 6px; text-align: right; border-right: 1px solid #17a2b8;"><strong>${g.descripcion || 'Gasto Extra'}:</strong></td>
-                    <td style="padding: 6px; text-align: right;">$${g.monto.toFixed(2)}</td>
+                    <td colspan="6" style="padding: 4px; text-align: right; border-right: 1px solid #17a2b8;"><strong>${g.descripcion || 'Gasto Extra'}:</strong></td>
+                    <td style="padding: 4px; text-align: right;">$${g.monto.toFixed(2)}</td>
                 </tr>`;
             });
         }
 
         const element = document.createElement('div');
-        // CAMBIO PRINCIPAL: Ancho aumentado a 790px para llenar la hoja
-        element.style.width = '790px'; 
+        
+        // AJUSTE 2: Ancho reducido de 790px a 740px para encajar en hoja carta con márgenes
+        element.style.width = '740px'; 
         element.style.padding = '20px';
         element.style.background = 'white';
         element.style.fontFamily = 'Arial, sans-serif';
@@ -531,7 +536,7 @@
         element.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
                 <div style="width: 45%;">
-                    <img src="/IMG/logopd.png" alt="Persianas Delta" style="max-width: 160px;">
+                    <img src="/IMG/logopd.png" alt="Persianas Delta" style="max-width: 150px;">
                     <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 2px; font-size: 9px;">PRIVACIDAD CON ESTILO</div>
                 </div>
                 <div style="width: 55%; text-align: right; font-size: 10px;">
@@ -556,7 +561,13 @@
 
             <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8;">
                 <thead><tr style="color: #001f3f; text-align: center; background-color: #eef;">
-                    <th style="border: 1px solid #17a2b8; padding: 6px;">TIPO DE PERSIANA</th><th style="border: 1px solid #17a2b8; padding: 6px;">TELA</th><th style="border: 1px solid #17a2b8; padding: 6px;">COLOR</th><th style="border: 1px solid #17a2b8; padding: 6px;">CANT.</th><th style="border: 1px solid #17a2b8; padding: 6px;">MEDIDAS</th><th style="border: 1px solid #17a2b8; padding: 6px;">TOTAL M²</th><th style="border: 1px solid #17a2b8; padding: 6px;">TOTAL</th>
+                    <th style="border: 1px solid #17a2b8; padding: 4px;">TIPO</th>
+                    <th style="border: 1px solid #17a2b8; padding: 4px;">TELA</th>
+                    <th style="border: 1px solid #17a2b8; padding: 4px;">COLOR</th>
+                    <th style="border: 1px solid #17a2b8; padding: 4px;">CANT.</th>
+                    <th style="border: 1px solid #17a2b8; padding: 4px;">MEDIDAS</th>
+                    <th style="border: 1px solid #17a2b8; padding: 4px;">TOTAL M²</th>
+                    <th style="border: 1px solid #17a2b8; padding: 4px;">TOTAL</th>
                 </tr></thead>
                 <tbody>${filasHTML}</tbody>
             </table>
@@ -565,11 +576,11 @@
                 <div style="width: 55%; font-size: 9px; color: #555; text-align: justify;">
                     <p style="margin-bottom: 3px; font-weight: bold; color: #000;">TÉRMINOS Y CONDICIONES:</p>
                     <ul style="padding-left: 15px; margin: 0;">
-                        <li>Se requiere el 50% de anticipo para iniciar producción y el 50% restante contra entrega.</li>
+                        <li>Se requiere el 50% de anticipo para iniciar producción.</li>
                         <li>Una vez realizado el anticipo <strong>no hay cambios ni devoluciones</strong>.</li>
-                        <li>Los precios están expresados en Moneda Nacional (MXN).</li>
-                        <li>Tiempo estimado de entrega: 7 a 10 días hábiles.</li>
-                        <li>Vigencia de cotización: 15 días naturales.</li>
+                        <li>Precios en Moneda Nacional (MXN).</li>
+                        <li>Tiempo estimado: 7 a 10 días hábiles.</li>
+                        <li>Vigencia: 15 días naturales.</li>
                     </ul>
                 </div>
 
@@ -585,7 +596,6 @@
             </div>
             <div style="margin-top: 25px; text-align: center; font-size: 9px; color: #888; border-top: 1px solid #eee; padding-top: 5px;"><p>Gracias por su preferencia - Persianas Delta</p></div>`;
 
-        // CAMBIO: Márgenes ligeramente reducidos para permitir más ancho
         const opt = { 
             margin: [0.2, 0.25, 0.2, 0.25], 
             filename: `Cotizacion_${folio}.pdf`, 
@@ -598,7 +608,6 @@
         await html2pdf().set(opt).from(element).save();
         document.body.style.cursor = 'default';
     }
-
     // --- GUARDAR EN BD ---
     async function guardarCotizacionCompleta() {
         if(carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
