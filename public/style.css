@@ -211,3 +211,49 @@ body {
         border-bottom: none; /* Quitar línea al último */
     }
 }
+
+/* --- ESTILO UNIFICADO DE TABLAS --- */
+.tabla-carrito, 
+#tabla-cotizaciones {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: white;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Sombra suave */
+    border-radius: 8px; /* Bordes redondeados */
+    overflow: hidden; /* Para que el borde redondeado funcione en las esquinas */
+    font-size: 0.95em; /* Tamaño de letra legible */
+}
+
+/* Encabezados */
+.tabla-carrito th, 
+#tabla-cotizaciones th {
+    background-color: #001f3f; /* Azul institucional */
+    color: white;
+    padding: 15px;
+    text-align: left;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 1px;
+}
+
+/* Celdas */
+.tabla-carrito td, 
+#tabla-cotizaciones td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #ddd;
+    color: #333;
+    vertical-align: middle;
+}
+
+/* Efecto Hover en filas */
+.tabla-carrito tr:hover, 
+#tabla-cotizaciones tr:hover {
+    background-color: #f1f5f9; /* Gris muy clarito al pasar el mouse */
+    transition: background-color 0.2s;
+}
+
+/* Alineaciones específicas (opcional) */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-bold { font-weight: bold; }
