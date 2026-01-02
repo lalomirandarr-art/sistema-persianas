@@ -191,7 +191,8 @@
         </div>
 
     </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <script>
     // --- VARIABLES GLOBALES ---
@@ -226,7 +227,7 @@
             const selMotor = document.getElementById('select-motor');
             motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
 
-        } catch (e) { console.error(e); alert("Error cargando datos"); }
+        } catch (e) { console.error(e); alert("Error cargando datos (asegúrate de correr el servidor)"); }
     }
     inicializar();
 
@@ -364,14 +365,14 @@
         return { subtotalProductos, totalGastos, listaGastos, iva, granTotal };
     }
 
-    // --- FUNCIÓN GENERAR PDF CORREGIDA (FIX IMAGEN Y SCROLL) ---
+    // --- FUNCIÓN GENERAR PDF CON "PAUSA" PARA EVITAR BLANCO ---
     async function generarPDF() {
         if (carritoItems.length === 0) {
             alert("No hay productos para generar el PDF.");
             return;
         }
 
-        // 1. FOLIO
+        // 1. FOLIO INTELIGENTE
         const fechaObj = new Date();
         const mesActual = fechaObj.getMonth(); 
         const anioActual = fechaObj.getFullYear();
@@ -397,7 +398,7 @@
         const fechaHoy = fechaObj.toLocaleDateString('es-MX');
         const totales = calcularTotalesGlobales(); 
 
-        // 2. HTML
+        // 2. CONSTRUIR HTML
         let filasHTML = '';
         carritoItems.forEach(item => {
             filasHTML += `
@@ -428,7 +429,7 @@
             });
         }
 
-        // 3. ELEMENTO EN MEMORIA
+        // 3. CREAR ELEMENTO EN MEMORIA
         const elementoPDF = document.createElement('div');
         elementoPDF.style.width = '700px'; 
         elementoPDF.style.padding = '20px';
@@ -438,11 +439,11 @@
         elementoPDF.style.fontFamily = 'Arial, sans-serif';
         elementoPDF.style.color = '#333';
         
-        // **IMPORTANTE: Usamos la ruta '/IMG/logo.jpeg' que SÍ funciona en tu header**
+        // **IMPORTANTE**: Usamos '/IMG/logo.jpeg' que es la ruta que SÍ funciona en tu header
         elementoPDF.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 15px; margin-bottom: 20px;">
                 <div style="width: 40%;">
-                    <img src="/IMG/logopd.png" alt="Persianas Delta" style="max-width: 150px; display: block;" onerror="this.style.display='none'">
+                    <img src="/IMG/logo.jpeg" alt="Persianas Delta" style="max-width: 150px;" onload="console.log('Logo cargado')" onerror="this.style.display='none'">
                     <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 5px;">PRIVACIDAD CON ESTILO</div>
                 </div>
                 <div style="width: 60%; text-align: right; font-size: 0.8em;">
@@ -507,7 +508,7 @@
             </div>
         `;
 
-        // 4. Mostrar y Generar
+        // 4. MOSTRAR CON Z-INDEX ALTO
         elementoPDF.style.display = 'block';
         elementoPDF.style.position = 'absolute';
         elementoPDF.style.top = '0px';
@@ -516,7 +517,7 @@
         
         document.body.appendChild(elementoPDF);
 
-        // TRUCO: Scrollear arriba para asegurar que el canvas capture el inicio
+        // TRUCO 1: SCROLL ARRIBA (Obligatorio para que html2canvas no capture vacío)
         window.scrollTo(0,0);
 
         const opt = {
@@ -527,12 +528,12 @@
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
-        // Esperar un poquito (500ms) para asegurar que la imagen cargó y se pintó
+        // TRUCO 2: ESPERAR 1 SEGUNDO ANTES DE CAPTURAR (Da tiempo a renderizar logo y textos)
         setTimeout(() => {
             html2pdf().set(opt).from(elementoPDF).save().then(function() {
                 document.body.removeChild(elementoPDF);
             });
-        }, 500);
+        }, 1000); 
     }
 
     // --- GUARDAR EN BD ---
@@ -610,7 +611,5 @@
         }
     }
 </script>
-</body>
-</html>
 </body>
 </html>
