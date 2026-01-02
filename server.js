@@ -118,8 +118,7 @@ const cotizacionSchema = new mongoose.Schema({
         producto: String,
         tela: String,
         color: String,
-        descuentoGlobalPct: Number,   // Ejemplo: 10 (por 10%)
-    descuentoGlobalMonto: Number, // Ejemplo: 500.00 (pesos)
+     
         medidas: {
             ancho: Number,
             alto: Number,
@@ -146,6 +145,8 @@ const cotizacionSchema = new mongoose.Schema({
         descripcion: String,
         monto: Number
     }],
+    descuentoGlobalPct: Number,    // <<< AGREGAR
+    descuentoGlobalMonto: Number,  // <<< AGREGAR
     totalGastosAdicionales: Number,
     iva: Number,
     total: Number // Gran Total
