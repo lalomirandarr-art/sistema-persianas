@@ -11,35 +11,39 @@
         .historial-container { padding: 40px; max-width: 1400px; margin: auto; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); font-size: 0.9em; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: middle; }
-        th { background-color: #001f3f; color: white; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: middle; }
+        th { background-color: #001f3f; color: white; white-space: nowrap; }
         tr:hover { background-color: #f8f9fa; }
         
-        .fecha { color: #666; font-size: 0.9em; display: block; margin-top: 4px;}
-        .total { font-weight: bold; font-size: 1.1em; color: #000; }
+        .total { font-weight: bold; font-size: 1.1em; color: #28a745; }
 
-        /* Estilo del Botón Borrar */
+        /* Botón Borrar más discreto */
         .btn-borrar {
-            background-color: transparent; border: 1px solid #dc3545; color: #dc3545;
-            padding: 4px 8px; border-radius: 5px; cursor: pointer; transition: all 0.3s;
-            margin-left: 10px; font-size: 0.8em;
+            background-color: transparent; border: none; color: #dc3545;
+            font-size: 1.1em; cursor: pointer; transition: transform 0.2s;
+            margin-left: 10px;
         }
-        .btn-borrar:hover { background-color: #dc3545; color: white; }
+        .btn-borrar:hover { transform: scale(1.2); }
         
-        /* Centrado de columnas específicas */
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         
-        /* Estilo para el ID (Folio) */
+        /* Estilo para el Folio */
         .id-row { 
-            font-weight: bold; 
-            color: #001f3f; 
-            background: #eef2f5; 
-            padding: 5px 10px; 
-            border-radius: 4px; 
+            font-weight: bold; color: #001f3f; background: #eef2f5; 
+            padding: 4px 8px; border-radius: 4px; display: inline-block;
+            font-size: 0.9em;
+        }
+
+        /* Estilo para la nueva columna Estatus */
+        .badge-status {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
             display: inline-block;
-            min-width: 90px; 
-            text-align: center;
         }
     </style>
 </head>
@@ -47,16 +51,12 @@
 
     <header class="header">
     <div class="nav-container">
-        <div class="logo">
-            <img src="/IMG/logoPD.jpeg" alt="Logo">
-        </div>
-        
+        <div class="logo"><img src="/IMG/logoPD.jpeg" alt="Logo"></div>
         <nav class="nav-links">
             <a href="/index.html" class="btn-logout">Cerrar Sesión</a>
             <a href="/inicio.html">Inicio</a>
             <a href="/productos.html">Productos</a>
             <a href="/clientes.html">Clientes</a>
-            
             <div class="dropdown">
                 <button class="dropbtn">Cotizaciones ▼</button>
                 <div class="dropdown-content">
@@ -71,6 +71,8 @@
     <div class="historial-container">
         <h1>📊 Historial Resumido de Cotizaciones</h1>
         
+        <input type="file" id="input-excel-importar" style="display: none;" accept=".xlsx, .xls" onchange="procesarArchivoExcel(this)">
+
         <div style="background-color: #f1f3f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end;">
             <div style="flex: 1; min-width: 200px;">
                 <label style="font-weight: bold; display: block; margin-bottom: 5px;">👤 Filtrar por Cliente:</label>
@@ -89,7 +91,10 @@
                     🔄 Limpiar
                 </button>
                 <button onclick="exportarExcel()" style="background-color: #217346; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    📂 Excel
+                    ⬇️ Excel
+                </button>
+                <button onclick="document.getElementById('input-excel-importar').click()" style="background-color: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    ⬆️ Importar
                 </button>
             </div>
         </div>
@@ -97,137 +102,160 @@
         <table id="tabla-cotizaciones">
             <thead>
                 <tr>
-                    <th style="width: 120px;" class="text-center">Folio</th>
-                    <th>Cliente / Fecha</th>
-                    <th>Cotizador</th>
-                    <th class="text-center">Cant. Persianas</th>
+                    <th class="text-center" style="width: 50px;">#</th>
+                    <th class="text-center">Folio</th>
+                    <th>Cliente</th>
+                    <th>Fecha</th>
+                    <th class="text-center">Piezas</th>
                     <th class="text-right">Gran Total</th>
+                    <th class="text-center">Estatus</th>
                 </tr>
             </thead>
-            <tbody>
-            </tbody>
+            <tbody></tbody>
         </table>
     </div>
 
    <script>
        let todasLasCotizaciones = []; 
 
-    // 1. CARGAR DATOS Y CALCULAR FOLIOS
     async function cargarHistorial() {
         try {
             const respuesta = await fetch('/cotizaciones');
             let datos = await respuesta.json();
 
-            // ORDENAR POR FECHA (Más antigua primero para calcular folios)
+            // Lógica de Folios
             datos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-
-            // CALCULAR FOLIOS INTELIGENTES
             const contadoresPorMes = {}; 
-
             datos = datos.map(c => {
                 const fecha = new Date(c.fecha);
+                if(isNaN(fecha)) return c; 
+                
                 const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
                 const anio = fecha.getFullYear();
                 const claveMes = `${mes}-${anio}`; 
-
-                if (!contadoresPorMes[claveMes]) {
-                    contadoresPorMes[claveMes] = 0;
-                }
+                if (!contadoresPorMes[claveMes]) contadoresPorMes[claveMes] = 0;
                 contadoresPorMes[claveMes]++;
-
                 const consecutivo = contadoresPorMes[claveMes].toString().padStart(3, '0');
-                
                 c.folioInteligente = `${consecutivo}-${mes}-${anio}`;
                 return c;
             });
 
-            // RE-ORDENAR (Más reciente primero) para mostrar
             datos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
             todasLasCotizaciones = datos;
             
             llenarOpcionesFiltros();
             renderizarTabla(todasLasCotizaciones);
-        } catch (error) {
-            console.error(error);
-            alert("Error al cargar historial (Revisa la consola para más detalles).");
-        }
+        } catch (error) { console.error(error); }
     }
 
-    // 2. DIBUJAR LA TABLA
     function renderizarTabla(datos) {
         const tabla = document.querySelector('#tabla-cotizaciones tbody');
-        
         if (datos.length === 0) {
-            tabla.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #666;">No se encontraron coincidencias.</td></tr>';
+            tabla.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Sin datos.</td></tr>';
             return;
         }
-
         tabla.innerHTML = ''; 
         
-        datos.forEach((c) => {
-            const fecha = new Date(c.fecha).toLocaleDateString('es-MX', { 
-                month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' 
-            });
-
-            const cotizador = c.quienCotiza ? c.quienCotiza : '<span style="color:#ccc;">---</span>';
+        // AÑADIMOS 'index' AL LOOP PARA LA COLUMNA #
+        datos.forEach((c, index) => {
+            const fechaObj = new Date(c.fecha);
+            // Formato de fecha corto: DD/MM/AAAA
+            const fecha = !isNaN(fechaObj) ? fechaObj.toLocaleDateString('es-MX') : '-';
             
             let cantidadTotal = 0;
             if (c.items && c.items.length > 0) {
                 c.items.forEach(item => { cantidadTotal += Number(item.cantidad) || 0; });
             } else {
-                cantidadTotal = Number(c.cantidad) || 0;
+                cantidadTotal = Number(c.cantidad) || 0; 
             }
-
+            
             const totalFinal = c.total ? c.total : 0;
-            let infoIVA = c.iva && c.iva > 0 ? '(c/IVA)' : '';
-
+            
+            // CONSTRUCCIÓN DE LAS 7 COLUMNAS
             const fila = `
                 <tr>
-                    <td class="text-center">
-                        <span class="id-row">${c.folioInteligente}</span>
-                    </td>
-                    <td>
-                        <strong>${c.cliente}</strong>
-                        <span class="fecha">${fecha}</span>
-                    </td>
-                    <td style="color: #007bff; font-weight: 500;">${cotizador}</td>
-                    <td class="text-center" style="font-size: 1.1em;">
-                        ${cantidadTotal} pzas
-                    </td>
+                    <td class="text-center" style="color:#666;">${index + 1}</td>
+                    
+                    <td class="text-center"><span class="id-row">${c.folioInteligente || 'N/A'}</span></td>
+                    
+                    <td style="font-weight: bold; color: #333;">${c.cliente}</td>
+                    
+                    <td>${fecha}</td>
+                    
+                    <td class="text-center">${cantidadTotal}</td>
+                    
                     <td class="text-right">
-                        <span class="total">$${totalFinal.toFixed(2)}</span> <small>${infoIVA}</small>
-                        <button class="btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Eliminar Cotización">
-                            🗑️
-                        </button>
+                        <span class="total">$${totalFinal.toFixed(2)}</span>
                     </td>
-                </tr>
-            `;
+                    
+                    <td class="text-center">
+                        <span class="badge-status">Emitida</span>
+                        <button class="btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Borrar">🗑️</button>
+                    </td>
+                </tr>`;
             tabla.innerHTML += fila;
         });
     }
 
-    // 3. LLENAR SELECTS
+    // --- LÓGICA DE IMPORTACIÓN ---
+    function procesarArchivoExcel(input) {
+        const archivo = input.files[0];
+        if (!archivo) return;
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array', cellDates: true}); 
+            const primerHoja = workbook.SheetNames[0];
+            const hoja = workbook.Sheets[primerHoja];
+            const datosExcel = XLSX.utils.sheet_to_json(hoja);
+            if(datosExcel.length === 0) { alert("Vacío."); return; }
+            const confirmar = confirm(`¿Importar ${datosExcel.length} filas?`);
+            if(!confirmar) return;
+
+            let importados = 0; let errores = 0;
+            for (let row of datosExcel) {
+                const folioAntiguo = row['Folio'] || 'S/N';
+                const objetoParaBD = {
+                    cliente: row['Cliente'] || "Cliente Importado",
+                    quienCotiza: row['Cotizador'] || "Sistema",
+                    fecha: row['Fecha'] || new Date(),
+                    total: parseFloat(row['Gran Total'] || 0),
+                    iva: 0, 
+                    items: [{
+                        producto: `Importación (Folio Antiguo: ${folioAntiguo})`,
+                        cantidad: parseInt(row['Cantidad de Persianas'] || 1),
+                        total: parseFloat(row['Gran Total'] || 0)
+                    }],
+                    gastosAdicionales: []
+                };
+                try {
+                    const res = await fetch('/cotizaciones', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(objetoParaBD)
+                    });
+                    if(res.ok) importados++; else errores++;
+                } catch(e) { errores++; }
+            }
+            alert(`Finalizado. Importados: ${importados}. Errores: ${errores}`);
+            input.value = ''; cargarHistorial(); 
+        };
+        reader.readAsArrayBuffer(archivo);
+    }
+
     function llenarOpcionesFiltros() {
         const selectCliente = document.getElementById('filtro-cliente');
         const selectCotizador = document.getElementById('filtro-cotizador');
-
+        selectCliente.innerHTML = '<option value="">-- Ver Todos --</option>';
+        selectCotizador.innerHTML = '<option value="">-- Ver Todos --</option>';
         const clientesUnicos = [...new Set(todasLasCotizaciones.map(c => c.cliente))].sort();
         const cotizadoresUnicos = [...new Set(todasLasCotizaciones.map(c => c.quienCotiza).filter(Boolean))].sort(); 
-
-        clientesUnicos.forEach(cliente => {
-            selectCliente.add(new Option(cliente, cliente));
-        });
-        cotizadoresUnicos.forEach(cotizador => {
-            selectCotizador.add(new Option(cotizador, cotizador));
-        });
+        clientesUnicos.forEach(cliente => selectCliente.add(new Option(cliente, cliente)));
+        cotizadoresUnicos.forEach(cotizador => selectCotizador.add(new Option(cotizador, cotizador)));
     }
 
-    // 4. APLICAR FILTROS
     function aplicarFiltros() {
         const clienteSeleccionado = document.getElementById('filtro-cliente').value;
         const cotizadorSeleccionado = document.getElementById('filtro-cotizador').value;
-
         const listaFiltrada = todasLasCotizaciones.filter(c => {
             const coincideCliente = clienteSeleccionado ? c.cliente === clienteSeleccionado : true;
             const coincideCotizador = cotizadorSeleccionado ? c.quienCotiza === cotizadorSeleccionado : true;
@@ -236,81 +264,47 @@
         renderizarTabla(listaFiltrada);
     }
 
-    // 5. LIMPIAR
     function limpiarFiltros() {
         document.getElementById('filtro-cliente').value = "";
         document.getElementById('filtro-cotizador').value = "";
         renderizarTabla(todasLasCotizaciones);
     }
 
-    // 6. FUNCIÓN EXPORTAR A EXCEL (NUEVA)
     function exportarExcel() {
-        // Obtenemos los filtros actuales para solo exportar lo que el usuario está viendo
         const clienteSeleccionado = document.getElementById('filtro-cliente').value;
         const cotizadorSeleccionado = document.getElementById('filtro-cotizador').value;
-
-        // Filtramos de nuevo (igual que en aplicarFiltros)
         const listaParaExcel = todasLasCotizaciones.filter(c => {
             const coincideCliente = clienteSeleccionado ? c.cliente === clienteSeleccionado : true;
             const coincideCotizador = cotizadorSeleccionado ? c.quienCotiza === cotizadorSeleccionado : true;
             return coincideCliente && coincideCotizador;
         });
-
-        if (listaParaExcel.length === 0) {
-            alert("No hay datos para exportar");
-            return;
-        }
-
-        // Mapeamos los datos para que en Excel salgan las columnas limpias
+        if (listaParaExcel.length === 0) { alert("No hay datos"); return; }
         const datosFormateados = listaParaExcel.map(c => {
-            // Calcular cantidad total de items
             let cantidadTotal = 0;
-            if (c.items && c.items.length > 0) {
-                c.items.forEach(item => { cantidadTotal += Number(item.cantidad) || 0; });
-            }
-
+            if (c.items && c.items.length > 0) c.items.forEach(item => cantidadTotal += Number(item.cantidad) || 0);
             return {
-                "Folio": c.folioInteligente,
-                "Cliente": c.cliente,
-                "Fecha": new Date(c.fecha).toLocaleDateString('es-MX'),
-                "Cotizador": c.quienCotiza || "N/A",
-                "Cant. Persianas": cantidadTotal,
-                "Total ($)": c.total || 0,
-                "IVA Incluido": (c.iva && c.iva > 0) ? "Sí" : "No"
+                "Folio": c.folioInteligente, "Cliente": c.cliente, "Fecha": new Date(c.fecha).toLocaleDateString('es-MX'),
+                "Cotizador": c.quienCotiza, "Piezas": cantidadTotal, "Total": c.total
             };
         });
-
-        // Crear hoja de trabajo y libro
-        const worksheet = XLSX.utils.json_to_sheet(datosFormateados);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Cotizaciones");
-
-        // Generar nombre de archivo con fecha
-        const fechaHoy = new Date().toISOString().split('T')[0];
-        XLSX.writeFile(workbook, `Reporte_Cotizaciones_${fechaHoy}.xlsx`);
+        const ws = XLSX.utils.json_to_sheet(datosFormateados);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Cotizaciones");
+        XLSX.writeFile(wb, `Reporte_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
-    // BORRAR
     async function confirmarBorrado(id) {
-        const password = prompt("🔒 ACCESO RESTRINGIDO\nPara eliminar esta cotización, ingresa la contraseña de administrador:");
+        const password = prompt("🔒 Admin Password:");
         if (!password) return;
-
         try {
             const res = await fetch('/cotizaciones', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'DELETE', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: id, password: password })
             });
             const data = await res.json();
-            if (data.exito) {
-                alert("✅ " + data.mensaje);
-                cargarHistorial(); 
-            } else {
-                alert("⛔ Error: " + data.mensaje); 
-            }
-        } catch (error) {
-            alert("Error de conexión con el servidor.");
-        }
+            if (data.exito) { alert("Eliminado"); cargarHistorial(); } 
+            else { alert(data.mensaje); }
+        } catch (error) { alert("Error red"); }
     }
 
     cargarHistorial();
