@@ -339,7 +339,6 @@
         actualizarTablaCarrito();
     }
 
-    // --- FUNCIÓN DE CÁLCULO CORREGIDA ---
     function calcularTotalesGlobales() {
         let subtotalProductos = carritoItems.reduce((sum, item) => sum + item.total, 0);
         let totalGastos = 0;
@@ -358,11 +357,7 @@
         }
 
         const aplicarIva = document.getElementById('check-iva').checked;
-        
-        // CORRECCIÓN AQUÍ: El IVA solo se aplica al subtotal de productos
         const iva = aplicarIva ? subtotalProductos * 0.16 : 0;
-        
-        // El Gran Total es Subtotal + IVA + Gastos (Los gastos van netos al final)
         const granTotal = subtotalProductos + iva + totalGastos;
 
         document.getElementById('lbl-subtotal-items').innerText = `$${subtotalProductos.toFixed(2)}`;
@@ -387,7 +382,7 @@
         return { subtotalProductos, totalGastos, listaGastos, iva, granTotal };
     }
 
-    // --- FUNCIÓN GENERAR PDF ACTUALIZADA (Cálculos corregidos y Diseño Limpio) ---
+    // --- FUNCIÓN GENERAR PDF CON COLUMNA M² ---
     async function generarPDF() {
         if (carritoItems.length === 0) { alert("No hay productos."); return; }
 
@@ -401,6 +396,9 @@
 
         let filasHTML = '';
         carritoItems.forEach(item => {
+            // CALCULO M² (Ancho * Alto)
+            const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
+
             filasHTML += `
                 <tr style="border-bottom: 1px solid #17a2b8;">
                     <td style="padding: 6px; border-right: 1px solid #17a2b8; word-wrap: break-word;">${item.producto}</td>
@@ -408,10 +406,11 @@
                     <td style="padding: 6px; border-right: 1px solid #17a2b8;">${item.color}</td>
                     <td style="padding: 6px; text-align: center; border-right: 1px solid #17a2b8;">${item.cantidad}</td>
                     <td style="padding: 6px; border-right: 1px solid #17a2b8;">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
+                    <td style="padding: 6px; text-align: center; border-right: 1px solid #17a2b8;">${metrosCuadrados} m²</td>
                     <td style="padding: 6px; text-align: right;">$${item.total.toFixed(2)}</td>
                 </tr>
                 <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.9em; background-color: #f9f9f9;">
-                    <td colspan="6" style="padding: 4px 8px;">
+                    <td colspan="7" style="padding: 4px 8px;">
                         <em>▸ Accesorios: ${item.accesorios.color}, Mando ${item.accesorios.mando} 
                         ${item.motor !== 'Manual' ? ' | ⚙️ ' + item.motor : ''}</em>
                     </td>
@@ -419,13 +418,24 @@
             `;
         });
 
+        // Filas de Gastos
+        if(totales.totalGastos > 0) {
+            totales.listaGastos.forEach(g => {
+                filasHTML += `
+                <tr style="border-bottom: 1px solid #17a2b8; background-color: #eef;">
+                    <td colspan="6" style="padding: 6px; text-align: right; border-right: 1px solid #17a2b8;"><strong>${g.descripcion || 'Gasto Extra'}:</strong></td>
+                    <td style="padding: 6px; text-align: right;">$${g.monto.toFixed(2)}</td>
+                </tr>`;
+            });
+        }
+
         const element = document.createElement('div');
         element.style.width = '720px'; 
         element.style.padding = '20px';
         element.style.background = 'white';
         element.style.fontFamily = 'Arial, sans-serif';
         element.style.color = '#333';
-        element.style.fontSize = '11px'; 
+        element.style.fontSize = '10px'; // Reducimos un poco la fuente para que quepan las columnas extra
         element.style.lineHeight = '1.3';
         
         element.innerHTML = `
@@ -444,24 +454,26 @@
 
             <div style="display: flex; justify-content: space-between; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 5px;">
                 <div style="width: 60%;">
-                    <div style="margin-bottom: 3px;"><strong style="color: #001f3f;">CLIENTE:</strong> <span style="font-size: 1.1em;">${nombreCliente}</span></div>
-                    <div><strong style="color: #001f3f;">ATENDIÓ:</strong> ${document.getElementById('quienCotiza').value}</div>
+                    <div style="margin-bottom: 3px;"><strong style="color: #001f3f;">COTIZACIÓN:</strong> <span style="font-size: 1.1em;">${folio}</span></div>
+                    <div><strong style="color: #001f3f;">CLIENTE:</strong> <span style="font-size: 1.1em;">${nombreCliente}</span></div>
                 </div>
                 <div style="text-align: right;">
                     <strong style="color: #001f3f;">FECHA:</strong><br>
                     ${fechaObj.toLocaleDateString('es-MX', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
+                    <br><strong>ATENDIÓ:</strong> ${document.getElementById('quienCotiza').value}
                 </div>
             </div>
 
-            <table style="width: 100%; border-collapse: collapse; font-size: 10px; border: 2px solid #17a2b8; table-layout: fixed;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8;">
                 <thead>
                     <tr style="color: #001f3f; text-align: center; background-color: #eef;">
-                        <th style="border: 1px solid #17a2b8; padding: 6px; width: 30%;">TIPO DE PERSIANA</th>
-                        <th style="border: 1px solid #17a2b8; padding: 6px; width: 20%;">TELA</th>
-                        <th style="border: 1px solid #17a2b8; padding: 6px; width: 15%;">COLOR</th>
-                        <th style="border: 1px solid #17a2b8; padding: 6px; width: 10%;">CANT.</th>
-                        <th style="border: 1px solid #17a2b8; padding: 6px; width: 10%;">MEDIDAS</th>
-                        <th style="border: 1px solid #17a2b8; padding: 6px; width: 15%;">TOTAL</th>
+                        <th style="border: 1px solid #17a2b8; padding: 6px;">TIPO DE PERSIANA</th>
+                        <th style="border: 1px solid #17a2b8; padding: 6px;">TELA</th>
+                        <th style="border: 1px solid #17a2b8; padding: 6px;">COLOR</th>
+                        <th style="border: 1px solid #17a2b8; padding: 6px;">CANT.</th>
+                        <th style="border: 1px solid #17a2b8; padding: 6px;">MEDIDAS</th>
+                        <th style="border: 1px solid #17a2b8; padding: 6px;">TOTAL M²</th>
+                        <th style="border: 1px solid #17a2b8; padding: 6px;">TOTAL</th>
                     </tr>
                 </thead>
                 <tbody>
