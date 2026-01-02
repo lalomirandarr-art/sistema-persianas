@@ -164,6 +164,32 @@ app.post('/cotizaciones', async (req, res) => {
     }
 });
 
+
+                // Ruta para EDITAR (ACTUALIZAR)
+app.put('/cotizaciones', async (req, res) => {
+    try {
+        const { id, ...datosActualizados } = req.body;
+        
+        console.log(`📝 Actualizando cotización ID: ${id}`);
+
+        // Buscamos la cotización y actualizamos solo los campos enviados
+        const resultado = await Cotizacion.findByIdAndUpdate(id, datosActualizados, { new: true });
+
+        if (resultado) {
+            console.log("✅ Cotización actualizada con éxito.");
+            res.json({ exito: true, mensaje: "Actualización correcta" });
+        } else {
+            console.log("⚠️ No se encontró la cotización.");
+            res.status(404).json({ exito: false, mensaje: "Cotización no encontrada" });
+        }
+    } catch (error) {
+        console.error("❌ Error al actualizar:", error);
+        res.status(500).json({ exito: false, mensaje: "Error interno del servidor" });
+    }
+});
+
+
+
 // Ruta para VER HISTORIAL
 app.get('/cotizaciones', async (req, res) => {
     const historial = await Cotizacion.find().sort({ fecha: -1 });
