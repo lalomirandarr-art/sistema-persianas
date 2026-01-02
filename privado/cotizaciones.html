@@ -263,6 +263,16 @@
                     carritoItems = d.items;
                     actualizarTablaCarrito();
                 }
+                // RECUPERAR DESCUENTO
+                if (d.descuentoGlobalPct) {
+                    document.getElementById('select-descuento').value = d.descuentoGlobalPct;
+                }
+
+                if (d.items && Array.isArray(d.items) && d.items.length > 0) {
+                    carritoItems = d.items;
+                    actualizarTablaCarrito(); // Esto recalculá todo con el descuento puesto
+                }
+
                 localStorage.removeItem('datosCotizacionEditar');
             } catch (e) { console.error("Error al cargar datos de edición", e); }
         }
@@ -615,6 +625,8 @@
             cliente: cliente,
             quienCotiza: quienCotiza,
             items: carritoItems,
+            descuentoGlobalPct: globales.pctDescuento, 
+            descuentoGlobalMonto: globales.montoDescuento,
             gastosAdicionales: globales.listaGastos,
             totalGastosAdicionales: globales.totalGastos,
             iva: globales.iva,
