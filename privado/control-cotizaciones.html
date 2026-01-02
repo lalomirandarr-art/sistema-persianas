@@ -123,8 +123,11 @@
             const respuesta = await fetch('/cotizaciones');
             let datos = await respuesta.json();
 
-            // Lógica de Folios
+            // ORDENAR DATOS: 
+            // Esto asegura que al asignar folios, se respete el orden cronológico
             datos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+            // GENERAR FOLIOS INTELIGENTES (Consecutivo-Mes-Año)
             const contadoresPorMes = {}; 
             datos = datos.map(c => {
                 const fecha = new Date(c.fecha);
@@ -133,13 +136,16 @@
                 const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
                 const anio = fecha.getFullYear();
                 const claveMes = `${mes}-${anio}`; 
+                
                 if (!contadoresPorMes[claveMes]) contadoresPorMes[claveMes] = 0;
                 contadoresPorMes[claveMes]++;
+                
                 const consecutivo = contadoresPorMes[claveMes].toString().padStart(3, '0');
                 c.folioInteligente = `${consecutivo}-${mes}-${anio}`;
                 return c;
             });
 
+            // REVERTIR ORDEN: Para que el usuario vea lo más reciente arriba
             datos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
             todasLasCotizaciones = datos;
             
@@ -150,16 +156,16 @@
 
     function renderizarTabla(datos) {
         const tabla = document.querySelector('#tabla-cotizaciones tbody');
+        
         if (datos.length === 0) {
             tabla.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Sin datos.</td></tr>';
             return;
         }
+
         tabla.innerHTML = ''; 
         
-        // AÑADIMOS 'index' AL LOOP PARA LA COLUMNA #
         datos.forEach((c, index) => {
             const fechaObj = new Date(c.fecha);
-            // Formato de fecha corto: DD/MM/AAAA
             const fecha = !isNaN(fechaObj) ? fechaObj.toLocaleDateString('es-MX') : '-';
             
             let cantidadTotal = 0;
@@ -171,23 +177,15 @@
             
             const totalFinal = c.total ? c.total : 0;
             
-            // CONSTRUCCIÓN DE LAS 7 COLUMNAS
+            // Renderizado de las 7 columnas
             const fila = `
                 <tr>
                     <td class="text-center" style="color:#666;">${index + 1}</td>
-                    
                     <td class="text-center"><span class="id-row">${c.folioInteligente || 'N/A'}</span></td>
-                    
                     <td style="font-weight: bold; color: #333;">${c.cliente}</td>
-                    
                     <td>${fecha}</td>
-                    
                     <td class="text-center">${cantidadTotal}</td>
-                    
-                    <td class="text-right">
-                        <span class="total">$${totalFinal.toFixed(2)}</span>
-                    </td>
-                    
+                    <td class="text-right"><span class="total">$${totalFinal.toFixed(2)}</span></td>
                     <td class="text-center">
                         <span class="badge-status">Emitida</span>
                         <button class="btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Borrar">🗑️</button>
@@ -197,58 +195,91 @@
         });
     }
 
-    // --- LÓGICA DE IMPORTACIÓN ---
+    // --- FUNCIÓN DE IMPORTACIÓN AJUSTADA A TU EXCEL ---
     function procesarArchivoExcel(input) {
         const archivo = input.files[0];
         if (!archivo) return;
+
         const reader = new FileReader();
+        
         reader.onload = async function(e) {
             const data = new Uint8Array(e.target.result);
+            // cellDates: true es VITAL para que la fecha '04/12/2025' se lea bien
             const workbook = XLSX.read(data, {type: 'array', cellDates: true}); 
+            
             const primerHoja = workbook.SheetNames[0];
             const hoja = workbook.Sheets[primerHoja];
-            const datosExcel = XLSX.utils.sheet_to_json(hoja);
-            if(datosExcel.length === 0) { alert("Vacío."); return; }
-            const confirmar = confirm(`¿Importar ${datosExcel.length} filas?`);
+            
+            // --- CORRECCIÓN CLAVE: RANGE: 1 ---
+            // Como tu fila 1 dice "Cotizaciones", le decimos que empiece a leer desde la fila 2 (índice 1)
+            // para que detecte "folio", "Cliente", "Fecha", etc. como encabezados.
+            const datosExcel = XLSX.utils.sheet_to_json(hoja, { range: 1 });
+            
+            if(datosExcel.length === 0) { alert("No se encontraron datos (Revisa que los encabezados estén en la fila 2)."); return; }
+
+            const confirmar = confirm(`Se encontraron ${datosExcel.length} filas. ¿Importar ahora?`);
             if(!confirmar) return;
 
-            let importados = 0; let errores = 0;
+            let importados = 0;
+            let errores = 0;
+
             for (let row of datosExcel) {
-                const folioAntiguo = row['Folio'] || 'S/N';
+                // --- MAPEO EXACTO DE TUS COLUMNAS ---
+                // Izquierda: Nombre en base de datos || Derecha: Nombre EXACTO en tu Excel
+                
+                const folioExcel = row['folio'] || 'S/N'; // 'folio' en minúscula según tu imagen
+                
                 const objetoParaBD = {
-                    cliente: row['Cliente'] || "Cliente Importado",
-                    quienCotiza: row['Cotizador'] || "Sistema",
-                    fecha: row['Fecha'] || new Date(),
-                    total: parseFloat(row['Gran Total'] || 0),
+                    cliente: row['Cliente'] || "Cliente Desconocido", // Columna C
+                    fecha: row['Fecha'] || new Date(),                // Columna D
+                    total: parseFloat(row['Total'] || 0),             // Columna F
+                    
+                    // Como NO tienes columna Cotizador, ponemos "Importado" o lo dejamos vacío
+                    quienCotiza: "Importado", 
+                    
                     iva: 0, 
-                    items: [{
-                        producto: `Importación (Folio Antiguo: ${folioAntiguo})`,
-                        cantidad: parseInt(row['Cantidad de Persianas'] || 1),
-                        total: parseFloat(row['Gran Total'] || 0)
-                    }],
+                    
+                    items: [
+                        {
+                            // Guardamos el folio antiguo en el nombre del producto para referencia
+                            producto: `Imp. Excel (Folio: ${folioExcel})`, 
+                            cantidad: parseInt(row['Piezas'] || 1),   // Columna E
+                            total: parseFloat(row['Total'] || 0)
+                        }
+                    ],
                     gastosAdicionales: []
                 };
+
+                // Enviamos al servidor
                 try {
                     const res = await fetch('/cotizaciones', {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(objetoParaBD)
                     });
-                    if(res.ok) importados++; else errores++;
+                    if(res.ok) importados++;
+                    else errores++;
                 } catch(e) { errores++; }
             }
-            alert(`Finalizado. Importados: ${importados}. Errores: ${errores}`);
-            input.value = ''; cargarHistorial(); 
+
+            alert(`Resumen de Importación:\n✅ Éxito: ${importados}\n❌ Fallos: ${errores}`);
+            input.value = ''; 
+            cargarHistorial(); 
         };
+
         reader.readAsArrayBuffer(archivo);
     }
 
+    // (El resto de funciones auxiliares se mantienen igual: llenarFiltros, exportarExcel, etc.)
     function llenarOpcionesFiltros() {
         const selectCliente = document.getElementById('filtro-cliente');
         const selectCotizador = document.getElementById('filtro-cotizador');
         selectCliente.innerHTML = '<option value="">-- Ver Todos --</option>';
         selectCotizador.innerHTML = '<option value="">-- Ver Todos --</option>';
+
         const clientesUnicos = [...new Set(todasLasCotizaciones.map(c => c.cliente))].sort();
         const cotizadoresUnicos = [...new Set(todasLasCotizaciones.map(c => c.quienCotiza).filter(Boolean))].sort(); 
+
         clientesUnicos.forEach(cliente => selectCliente.add(new Option(cliente, cliente)));
         cotizadoresUnicos.forEach(cotizador => selectCotizador.add(new Option(cotizador, cotizador)));
     }
@@ -278,6 +309,7 @@
             const coincideCotizador = cotizadorSeleccionado ? c.quienCotiza === cotizadorSeleccionado : true;
             return coincideCliente && coincideCotizador;
         });
+
         if (listaParaExcel.length === 0) { alert("No hay datos"); return; }
         const datosFormateados = listaParaExcel.map(c => {
             let cantidadTotal = 0;
