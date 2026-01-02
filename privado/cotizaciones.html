@@ -456,21 +456,51 @@
     }
 
     // --- FUNCIÓN GENERAR PDF CON DESCUENTO ---
+    // --- FUNCIÓN GENERAR PDF CON FOLIO CONSECUTIVO REAL ---
     async function generarPDF() {
         if (carritoItems.length === 0) { alert("No hay productos."); return; }
 
         const fechaObj = new Date();
-        const mesStr = (fechaObj.getMonth() + 1).toString().padStart(2, '0');
-        const anio = fechaObj.getFullYear();
-        const folio = `COT-${mesStr}${anio}`;
+        const mesActual = fechaObj.getMonth(); // 0 = Enero
+        const anioActual = fechaObj.getFullYear();
         
+        // --- 1. CÁLCULO DEL FOLIO CONSECUTIVO (XXX-MM-AAAA) ---
+        let consecutivo = 1; 
+        try {
+            // Consultamos el historial para saber cuál es el siguiente número
+            const respuesta = await fetch('/cotizaciones');
+            if(respuesta.ok) {
+                const historial = await respuesta.json();
+                
+                // Filtramos solo las cotizaciones de ESTE mes y ESTE año
+                const cotizacionesEsteMes = historial.filter(c => {
+                    const fechaCoti = new Date(c.fecha);
+                    // Validamos que la fecha sea válida para evitar errores
+                    if (isNaN(fechaCoti)) return false;
+                    return fechaCoti.getMonth() === mesActual && fechaCoti.getFullYear() === anioActual;
+                });
+                
+                // El nuevo folio será la cantidad encontrada + 1
+                consecutivo = cotizacionesEsteMes.length + 1;
+            }
+        } catch (error) { 
+            console.error("Error calculando consecutivo:", error); 
+            // Si falla la red, se queda en 1 por defecto
+        }
+
+        // Formateamos: 005-01-2026
+        const consStr = consecutivo.toString().padStart(3, '0'); // Agrega ceros a la izquierda
+        const mesStr = (mesActual + 1).toString().padStart(2, '0');
+        const folio = `${consStr}-${mesStr}-${anioActual}`;
+        
+        // --- FIN DEL CÁLCULO DE FOLIO ---
+
         const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
         const totales = calcularTotalesGlobales(); 
 
         let filasHTML = '';
         carritoItems.forEach(item => {
             const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
-
             filasHTML += `
                 <tr style="border-bottom: 1px solid #17a2b8;">
                     <td style="padding: 6px; border-right: 1px solid #17a2b8; word-wrap: break-word;">${item.producto}</td>
@@ -486,11 +516,9 @@
                         <em>▸ Accesorios: ${item.accesorios.color}, Mando ${item.accesorios.mando} 
                         ${item.motor !== 'Manual' ? ' | ⚙️ ' + item.motor : ''}</em>
                     </td>
-                </tr>
-            `;
+                </tr>`;
         });
 
-        // Gastos Extra en PDF
         if(totales.totalGastos > 0) {
             totales.listaGastos.forEach(g => {
                 filasHTML += `
@@ -530,27 +558,17 @@
                     <div><strong style="color: #001f3f;">CLIENTE:</strong> <span style="font-size: 1.1em;">${nombreCliente}</span></div>
                 </div>
                 <div style="text-align: right;">
-                    <strong style="color: #001f3f;">FECHA DE EMISIÓN:</strong><br>
+                    <strong style="color: #001f3f;">FECHA:</strong><br>
                     ${fechaObj.toLocaleDateString('es-MX', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
                     <br><strong>ATENDIÓ:</strong> ${document.getElementById('quienCotiza').value}
                 </div>
             </div>
 
             <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8;">
-                <thead>
-                    <tr style="color: #001f3f; text-align: center; background-color: #eef;">
-                        <th style="border: 1px solid #17a2b8; padding: 6px;">TIPO DE PERSIANA</th>
-                        <th style="border: 1px solid #17a2b8; padding: 6px;">TELA</th>
-                        <th style="border: 1px solid #17a2b8; padding: 6px;">COLOR</th>
-                        <th style="border: 1px solid #17a2b8; padding: 6px;">CANT.</th>
-                        <th style="border: 1px solid #17a2b8; padding: 6px;">MEDIDAS</th>
-                        <th style="border: 1px solid #17a2b8; padding: 6px;">TOTAL M²</th>
-                        <th style="border: 1px solid #17a2b8; padding: 6px;">TOTAL</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${filasHTML}
-                </tbody>
+                <thead><tr style="color: #001f3f; text-align: center; background-color: #eef;">
+                    <th style="border: 1px solid #17a2b8; padding: 6px;">TIPO DE PERSIANA</th><th style="border: 1px solid #17a2b8; padding: 6px;">TELA</th><th style="border: 1px solid #17a2b8; padding: 6px;">COLOR</th><th style="border: 1px solid #17a2b8; padding: 6px;">CANT.</th><th style="border: 1px solid #17a2b8; padding: 6px;">MEDIDAS</th><th style="border: 1px solid #17a2b8; padding: 6px;">TOTAL M²</th><th style="border: 1px solid #17a2b8; padding: 6px;">TOTAL</th>
+                </tr></thead>
+                <tbody>${filasHTML}</tbody>
             </table>
 
             <div style="margin-top: 15px; display: flex; justify-content: space-between;">
@@ -571,16 +589,8 @@
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
                             <td style="text-align: right; padding: 4px; color: #333;">$${totales.subtotalProductos.toFixed(2)}</td>
                         </tr>
-                        ${totales.montoDescuento > 0 ? `
-                        <tr>
-                            <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${totales.pctDescuento}%):</td>
-                            <td style="text-align: right; padding: 4px; color: #dc3545;">-$${totales.montoDescuento.toFixed(2)}</td>
-                        </tr>` : ''}
-                        ${totales.totalGastos > 0 ? `
-                        <tr>
-                            <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">GASTOS EXTRA:</td>
-                            <td style="text-align: right; padding: 4px; color: #333;">$${totales.totalGastos.toFixed(2)}</td>
-                        </tr>` : ''}
+                        ${totales.montoDescuento > 0 ? `<tr><td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${totales.pctDescuento}%):</td><td style="text-align: right; padding: 4px; color: #dc3545;">-$${totales.montoDescuento.toFixed(2)}</td></tr>` : ''}
+                        ${totales.totalGastos > 0 ? `<tr><td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">GASTOS EXTRA:</td><td style="text-align: right; padding: 4px; color: #333;">$${totales.totalGastos.toFixed(2)}</td></tr>` : ''}
                         <tr>
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
                             <td style="text-align: right; padding: 4px; color: #333;">$${totales.iva.toFixed(2)}</td>
@@ -592,20 +602,9 @@
                     </table>
                 </div>
             </div>
-            
-            <div style="margin-top: 25px; text-align: center; font-size: 9px; color: #888; border-top: 1px solid #eee; padding-top: 5px;">
-                <p>Gracias por su preferencia - Persianas Delta</p>
-            </div>
-        `;
+            <div style="margin-top: 25px; text-align: center; font-size: 9px; color: #888; border-top: 1px solid #eee; padding-top: 5px;"><p>Gracias por su preferencia - Persianas Delta</p></div>`;
 
-        const opt = {
-            margin:       [0.2, 0.3, 0.2, 0.3], 
-            filename:     `Cotizacion_${folio}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
-
+        const opt = { margin: [0.2, 0.3, 0.2, 0.3], filename: `Cotizacion_${folio}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
         document.body.style.cursor = 'wait';
         await html2pdf().set(opt).from(element).save();
         document.body.style.cursor = 'default';
