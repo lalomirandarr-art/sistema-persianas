@@ -205,17 +205,19 @@
         window.location.href = '/cotizaciones.html';
     }
 
-    // --- FUNCIÓN PDF SIN BORDE ---
    // --- FUNCIÓN PDF UNIFICADA (DISEÑO IDÉNTICO A NUEVA COTIZACIÓN) ---
     async function generarPDFDesdeHistorial(id) {
+        // 1. Buscar datos
         const c = todasLasCotizaciones.find(item => item._id === id);
         if(!c) return alert("Error: No se encontraron datos.");
 
+        // 2. Construir filas de la tabla
         let filasHTML = '';
         if(c.items && c.items.length > 0) {
             c.items.forEach(item => {
-                // Calcular M2 si no viene guardado (retrocompatibilidad)
-                let m2 = 0;
+                // CALCULAR M2 (Igual que en Nueva Cotización)
+                // Usamos validación por si es una cotización vieja sin medidas
+                let m2 = "0.00";
                 if(item.medidas && item.medidas.ancho && item.medidas.alto) {
                     m2 = (item.medidas.ancho * item.medidas.alto).toFixed(2);
                 }
@@ -239,7 +241,7 @@
             });
         }
 
-        // Ingeniería Inversa de Totales
+        // 3. Ingeniería Inversa de Totales (para recuperar descuentos si existen)
         const granTotal = c.total || 0;
         const iva = c.iva || 0;
         const totalGastos = c.totalGastosAdicionales || 0;
@@ -257,13 +259,14 @@
             montoDescuento = subtotalOriginal - subtotalConDescuento;
         }
 
+        // 4. Construir el Documento (PLANTILLA EXACTA)
         const element = document.createElement('div');
         element.style.width = '720px';
         element.style.padding = '20px';
         element.style.background = 'white';
         element.style.fontFamily = 'Arial, sans-serif';
         element.style.color = '#333';
-        element.style.fontSize = '10px';
+        element.style.fontSize = '10px'; // Tamaño unificado
         element.style.lineHeight = '1.3';
 
         element.innerHTML = `
@@ -292,7 +295,7 @@
                 </div>
             </div>
 
-            <table>
+            <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8;">
                 <thead>
                     <tr style="color: #001f3f; text-align: center; background-color: #eef;">
                         <th style="border: 1px solid #17a2b8; padding: 6px;">TIPO DE PERSIANA</th>
@@ -366,7 +369,6 @@
         await html2pdf().set(opt).from(element).save();
         document.body.style.cursor = 'default';
     }
-    
     function abrirModalDetalles(id) { const c = todasLasCotizaciones.find(item => item._id === id); if(!c) return; document.getElementById('edit-id').value = c._id; document.getElementById('modal-titulo').innerText = `Detalles: ${c.folioInteligente}`; document.getElementById('edit-folio').value = c.folioInteligente; document.getElementById('edit-cliente').value = c.cliente; document.getElementById('edit-cotizador').value = c.quienCotiza || 'N/A'; document.getElementById('edit-fecha').value = new Date(c.fecha).toLocaleString(); document.getElementById('edit-estatus').value = c.estatus || 'Emitida'; let total = c.total || 0; let gastos = c.totalGastosAdicionales || 0; let iva = c.iva || 0; let subtotal = total - iva - gastos; if(subtotal < 0) subtotal = total; document.getElementById('edit-subtotal').value = subtotal.toFixed(2); document.getElementById('edit-gastos').value = gastos.toFixed(2); let costoTotal = 0; const listaItems = document.getElementById('lista-items'); listaItems.innerHTML = ''; if(c.items && c.items.length > 0) { c.items.forEach(item => { let costoItem = 0; if(item.financiero && item.financiero.costoBase) { costoItem = item.financiero.costoBase; costoTotal += (costoItem * item.cantidad); } listaItems.innerHTML += `<div class="item-row"><span>${item.cantidad}x ${item.producto}</span><strong>$${(item.total || 0).toFixed(2)}</strong></div>`; }); } document.getElementById('val-costo').innerText = `$${costoTotal.toFixed(2)}`; recalcularTotal(); document.getElementById('modal-detalles').style.display = 'flex'; }
     function recalcularTotal() { const sub = parseFloat(document.getElementById('edit-subtotal').value) || 0; const gas = parseFloat(document.getElementById('edit-gastos').value) || 0; const iva = (sub + gas) * 0.16; const total = sub + gas + iva; const txtCosto = document.getElementById('val-costo').innerText.replace('$',''); const costo = parseFloat(txtCosto) || 0; const utilidad = (sub + gas) - costo; document.getElementById('val-iva').innerText = `$${iva.toFixed(2)}`; document.getElementById('val-total').innerText = `$${total.toFixed(2)}`; const lblUtil = document.getElementById('val-utilidad'); lblUtil.innerText = `$${utilidad.toFixed(2)}`; lblUtil.style.color = utilidad >= 0 ? 'green' : 'red'; }
     async function guardarCambios() { const id = document.getElementById('edit-id').value; const cliente = document.getElementById('edit-cliente').value; const estatus = document.getElementById('edit-estatus').value; const sub = parseFloat(document.getElementById('edit-subtotal').value) || 0; const gas = parseFloat(document.getElementById('edit-gastos').value) || 0; const iva = (sub + gas) * 0.16; const total = sub + gas + iva; const datosUpdate = { id: id, cliente: cliente, estatus: estatus, total: total, iva: iva, totalGastosAdicionales: gas }; try { const res = await fetch('/cotizaciones', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(datosUpdate) }); const r = await res.json(); if(r.exito) { alert("✅ Cambios guardados."); cerrarModal(); cargarHistorial(); } else { alert("Error al guardar."); } } catch(e) { console.error(e); alert("Error de conexión"); } }
