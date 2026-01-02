@@ -69,7 +69,7 @@
 
     <header class="header">
         <div class="nav-container">
-            <div class="logo"><img src="/IMG/logo.jpeg" alt="Logo"></div>
+            <div class="logo"><img src="/IMG/logoPD.jpeg" alt="Logo"></div>
             <nav class="nav-links">
                 <a href="/index.html" class="btn-logout">Cerrar Sesión</a>
                 <a href="/inicio.html">Inicio</a>
@@ -107,7 +107,7 @@
                     <th class="text-center">#</th>
                     <th class="text-center">Folio</th>
                     <th>Cliente</th>
-                    <th>Fecha</th>
+                    <th>Cotizador</th> <th>Fecha</th>
                     <th class="text-center">Piezas</th>
                     <th class="text-right">Gran Total</th>
                     <th class="text-center">Estatus</th>
@@ -154,7 +154,7 @@
         const tabla = document.querySelector('#tabla-cotizaciones tbody');
         const panelPaginacion = document.getElementById('panel-paginacion');
         if (datosFiltrados.length === 0) {
-            tabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Sin datos.</td></tr>';
+            tabla.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">Sin datos.</td></tr>'; // Aumentado colspan a 9
             panelPaginacion.style.display = 'none'; return;
         }
         panelPaginacion.style.display = 'flex';
@@ -172,7 +172,7 @@
                     <td class="text-center" style="color:#666;">${indiceReal}</td>
                     <td class="text-center"><span class="id-row">${c.folioInteligente || 'N/A'}</span></td>
                     <td style="font-weight: bold;">${c.cliente}</td>
-                    <td>${fecha}</td>
+                    <td style="color: #555;">${c.quienCotiza || '---'}</td> <td>${fecha}</td>
                     <td class="text-center">${cantidadTotal}</td>
                     <td class="text-right"><span class="total">$${(c.total || 0).toFixed(2)}</span></td>
                     <td class="text-center"><span class="badge-status">${estatus}</span></td>
@@ -237,9 +237,6 @@
         element.style.color = '#333';
         element.style.fontSize = '11px'; 
         element.style.lineHeight = '1.3';
-        
-        // **AQUÍ ESTÁ LA CORRECCIÓN: SIN BORDE (border eliminado)**
-        // Antes: element.style.border = '4px solid #17a2b8'; 
         
         element.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
@@ -321,9 +318,8 @@
             </div>
         `;
 
-        // AJUSTE DE MÁRGENES DE HOJA
         const opt = {
-            margin:       [0.2, 0.3, 0.2, 0.3], // Arriba, Izq, Abajo, Der
+            margin:       [0.2, 0.3, 0.2, 0.3], 
             filename:     `Cotizacion_${c.folioInteligente}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
