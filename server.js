@@ -111,6 +111,7 @@ const cotizacionSchema = new mongoose.Schema({
     cliente: String,
     quienCotiza: String,
     fecha: { type: Date, default: Date.now },
+    estatus: { type: String, default: 'Emitida' },
 
     // LISTA DE PRODUCTOS (Array de objetos)
     items: [{
