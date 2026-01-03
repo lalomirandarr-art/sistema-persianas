@@ -412,16 +412,17 @@
 
 
 
-// --- FUNCIÓN PDF UNIFICADA Y ROBUSTA ---
+ // --- FUNCIÓN PDF UNIFICADA (CORREGIDA PARA MÓVIL) ---
 async function generarPDFDesdeHistorial(id) {
     // 1. Buscar datos
     const c = todasLasCotizaciones.find(item => item._id === id);
     if (!c) return alert("Error: No se encontraron datos.");
 
-    // 2. Construir filas de la tabla (Igual que siempre)
+    // 2. Construir filas de la tabla
     let filasHTML = '';
     if (c.items && c.items.length > 0) {
         c.items.forEach(item => {
+            // CALCULAR M2
             let m2 = "0.00";
             if (item.medidas && item.medidas.ancho && item.medidas.alto) {
                 m2 = (item.medidas.ancho * item.medidas.alto).toFixed(2);
@@ -446,7 +447,7 @@ async function generarPDFDesdeHistorial(id) {
         });
     }
 
-    // 3. Cálculos (Igual que siempre)
+    // 3. Ingeniería Inversa de Totales
     const granTotal = c.total || 0;
     const iva = c.iva || 0;
     const totalGastos = c.totalGastosAdicionales || 0;
@@ -464,25 +465,16 @@ async function generarPDFDesdeHistorial(id) {
         montoDescuento = subtotalOriginal - subtotalConDescuento;
     }
 
-    // 4. Construir el Contenedor
+    // 4. Construir el Documento
     const element = document.createElement('div');
-    
-    // --- CAMBIO CLAVE 1: ESTILOS PARA "ELEMENTO FANTASMA" ---
-    // En lugar de confiar en la ventana, forzamos el CSS del contenedor
-    element.style.width = '750px';   // Ancho fijo simulando una hoja carta
+    element.style.width = '720px'; // Tu ancho fijo definido
     element.style.padding = '20px';
     element.style.background = 'white';
     element.style.fontFamily = 'Arial, sans-serif';
     element.style.color = '#333';
     element.style.fontSize = '10px';
     element.style.lineHeight = '1.3';
-    
-    // Esto asegura que no afecte tu diseño visual actual
-    element.style.position = 'absolute';
-    element.style.left = '-9999px'; // Lo mandamos muy lejos a la izquierda
-    element.style.top = '0';
 
-    // Insertamos el HTML (Tu diseño)
     element.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
             <div style="width: 45%;">
@@ -571,21 +563,17 @@ async function generarPDFDesdeHistorial(id) {
         </div>
     `;
 
-    // --- CAMBIO CLAVE 2: AGREGAR AL DOM ---
-    // Esto soluciona el problema de "PDF en Blanco" en móviles.
-    // El navegador necesita que el elemento exista en el "body" para renderizarlo bien.
-    document.body.appendChild(element);
-
-    // --- CONFIGURACIÓN SIMPLIFICADA ---
-    // Ya no usamos windowWidth condicional porque el ancho lo definimos arriba con element.style.width = '750px'
+    // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
     const opt = {
         margin:       [0.2, 0.3, 0.2, 0.3],
         filename:     `Cotizacion_${c.folioInteligente}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
+        image:        { type: 'jpeg', quality: 0.98 }, // Cambié 'pdf' a 'jpeg' para mejor compatibilidad, aunque 'pdf' funciona en algunas versiones
         html2canvas:  { 
             scale: 2, 
             useCORS: true, 
-            scrollY: 0 
+            letterRendering: true, 
+            scrollY: 0,
+            windowWidth: 1024  // <--- ¡ESTA LÍNEA ARREGLA EL PROBLEMA EN EL CELULAR!
         },
         jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
@@ -595,13 +583,9 @@ async function generarPDFDesdeHistorial(id) {
         await html2pdf().set(opt).from(element).save();
     } catch (error) {
         console.error("Error generando PDF", error);
-        alert("Hubo un problema generando el PDF. Intenta de nuevo.");
-    } finally {
-        // --- LIMPIEZA ---
-        // Borramos el elemento temporal para que no ensucie la página
-        document.body.removeChild(element);
-        document.body.style.cursor = 'default';
+        alert("Hubo un problema generando el PDF.");
     }
+    document.body.style.cursor = 'default';
 }
 
     function abrirModalDetalles(id) { const c = todasLasCotizaciones.find(item => item._id === id); if(!c) return; document.getElementById('edit-id').value = c._id; document.getElementById('modal-titulo').innerText = `Detalles: ${c.folioInteligente}`; document.getElementById('edit-folio').value = c.folioInteligente; document.getElementById('edit-cliente').value = c.cliente; document.getElementById('edit-cotizador').value = c.quienCotiza || 'N/A'; document.getElementById('edit-fecha').value = new Date(c.fecha).toLocaleString(); document.getElementById('edit-estatus').value = c.estatus || 'Emitida'; let total = c.total || 0; let gastos = c.totalGastosAdicionales || 0; let iva = c.iva || 0; let subtotal = total - iva - gastos; if(subtotal < 0) subtotal = total; document.getElementById('edit-subtotal').value = subtotal.toFixed(2); document.getElementById('edit-gastos').value = gastos.toFixed(2); let costoTotal = 0; const listaItems = document.getElementById('lista-items'); listaItems.innerHTML = ''; if(c.items && c.items.length > 0) { c.items.forEach(item => { let costoItem = 0; if(item.financiero && item.financiero.costoBase) { costoItem = item.financiero.costoBase; costoTotal += (costoItem * item.cantidad); } listaItems.innerHTML += `<div class="item-row"><span>${item.cantidad}x ${item.producto}</span><strong>$${(item.total || 0).toFixed(2)}</strong></div>`; }); } document.getElementById('val-costo').innerText = `$${costoTotal.toFixed(2)}`; recalcularTotal(); document.getElementById('modal-detalles').style.display = 'flex'; }
