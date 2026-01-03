@@ -467,7 +467,7 @@ async function generarPDFDesdeHistorial(id) {
 
     // 4. Construir el Documento
     const element = document.createElement('div');
-    element.style.width = '720px'; // Tu ancho fijo definido
+    element.style.width = '740'; // Tu ancho fijo definido
     element.style.padding = '20px';
     element.style.background = 'white';
     element.style.fontFamily = 'Arial, sans-serif';
@@ -565,17 +565,11 @@ async function generarPDFDesdeHistorial(id) {
 
     // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
     const opt = {
-        margin:       [0.2, 0.3, 0.2, 0.3],
+         margin: [0.2, 0.25, 0.2, 0.25], 
         filename:     `Cotizacion_${c.folioInteligente}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 }, // Cambié 'pdf' a 'jpeg' para mejor compatibilidad, aunque 'pdf' funciona en algunas versiones
-        html2canvas:  { 
-            scale: 2, 
-            useCORS: true, 
-            letterRendering: true, 
-            scrollY: 0,
-            windowWidth: 1024  // <--- ¡ESTA LÍNEA ARREGLA EL PROBLEMA EN EL CELULAR!
-        },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 }, 
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
     };
 
     document.body.style.cursor = 'wait';
