@@ -412,7 +412,7 @@
 
 
 
-   // --- FUNCIÓN PDF UNIFICADA (CORREGIDA PARA MÓVIL) ---
+ // --- FUNCIÓN PDF UNIFICADA (CORREGIDA PARA AMBOS: PC Y MÓVIL) ---
 async function generarPDFDesdeHistorial(id) {
     // 1. Buscar datos
     const c = todasLasCotizaciones.find(item => item._id === id);
@@ -422,7 +422,6 @@ async function generarPDFDesdeHistorial(id) {
     let filasHTML = '';
     if (c.items && c.items.length > 0) {
         c.items.forEach(item => {
-            // CALCULAR M2
             let m2 = "0.00";
             if (item.medidas && item.medidas.ancho && item.medidas.alto) {
                 m2 = (item.medidas.ancho * item.medidas.alto).toFixed(2);
@@ -467,7 +466,7 @@ async function generarPDFDesdeHistorial(id) {
 
     // 4. Construir el Documento
     const element = document.createElement('div');
-    element.style.width = '720px'; // Tu ancho fijo definido
+    element.style.width = '720px'; 
     element.style.padding = '20px';
     element.style.background = 'white';
     element.style.fontFamily = 'Arial, sans-serif';
@@ -564,16 +563,23 @@ async function generarPDFDesdeHistorial(id) {
     `;
 
     // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
+    
+    // Detectamos si el ancho de la ventana es menor a 800px (típico de móviles y tablets verticales)
+    const esMovil = window.innerWidth < 800;
+
     const opt = {
         margin:       [0.2, 0.3, 0.2, 0.3],
         filename:     `Cotizacion_${c.folioInteligente}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 }, // Cambié 'pdf' a 'jpeg' para mejor compatibilidad, aunque 'pdf' funciona en algunas versiones
+        image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { 
             scale: 2, 
             useCORS: true, 
             letterRendering: true, 
             scrollY: 0,
-            windowWidth: 1024  // <--- ¡ESTA LÍNEA ARREGLA EL PROBLEMA EN EL CELULAR!
+            // CONDICIONAL:
+            // Si es móvil (esMovil es true) -> usa windowWidth: 1024
+            // Si es PC (esMovil es false) -> usa null (lo que deja que la PC decida el mejor tamaño)
+            windowWidth: esMovil ? 1024 : null 
         },
         jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
