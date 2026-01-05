@@ -405,8 +405,11 @@ app.post('/colores', async (req, res) => {
 // ==========================================
 const telaSchema = new mongoose.Schema({
     nombre: String,
-    precioExtra: Number,
-    productos: [String]
+    // Array de configuraciones: Cada objeto vincula un producto con su precio específico
+    configuraciones: [{
+        producto: String, // Nombre del producto (ej: "Persiana Sheer")
+        precio: Number    // Precio específico para ESTE producto
+    }]
 });
 const Tela = mongoose.model('Tela', telaSchema);
 
@@ -471,6 +474,69 @@ app.get('/migrar-datos-ahora', async (req, res) => {
         res.status(500).send(`<h1>Error</h1><p>${error.message}</p>`);
     }
 });
+
+app.post('/telas', async (req, res) => {
+    try {
+        // req.body espera: { nombre: "Screen", configuraciones: [{ producto: "X", precio: 100 }, ...] }
+        const nuevaTela = new Tela(req.body);
+        await nuevaTela.save();
+        res.json({ exito: true, mensaje: "Tela guardada con precios dinámicos" });
+    } catch (error) {
+        res.status(500).json({ error: "Error al guardar tela" });
+    }
+});
+
+
+// ==========================================
+// 🚑 ZONA DE REPARACIÓN DE TELAS (EJECUTAR SOLO UNA VEZ)
+// ==========================================
+async function migrarTelasAlNuevoFormato() {
+    console.log("🔄 Comprobando formato de telas...");
+    
+    // Buscamos telas que tengan la propiedad vieja 'precioExtra'
+    // (Usamos .lean() para obtener objetos JS puros y poder manipularlos)
+    const telasViejas = await Tela.find({ precioExtra: { $exists: true } }).lean();
+
+    if (telasViejas.length === 0) {
+        console.log("✅ Todas las telas ya tienen el formato nuevo.");
+        return;
+    }
+
+    console.log(`⚠️ Encontradas ${telasViejas.length} telas con formato antiguo. Migrando...`);
+
+    for (const tela of telasViejas) {
+        // 1. Crear el nuevo array de configuraciones basado en los datos viejos
+        const nuevasConfiguraciones = [];
+
+        // Si la tela tenía productos asignados, le ponemos el precio viejo a cada uno
+        if (tela.productos && tela.productos.length > 0) {
+            tela.productos.forEach(prodNombre => {
+                nuevasConfiguraciones.push({
+                    producto: prodNombre,
+                    precio: tela.precioExtra || 0 // Usamos el precio viejo
+                });
+            });
+        }
+
+        // 2. Actualizamos la tela en la BD
+        // $unset elimina los campos viejos, $set pone los nuevos
+        await Tela.updateOne(
+            { _id: tela._id },
+            { 
+                $set: { configuraciones: nuevasConfiguraciones },
+                $unset: { precioExtra: "", productos: "" } 
+            }
+        );
+        console.log(`🛠️ Tela migrada: ${tela.nombre}`);
+    }
+    console.log("🎉 Migración de telas finalizada.");
+}
+
+// Llama a la función al iniciar (comentar después de usar)
+ setTimeout(() => { migrarTelasAlNuevoFormato(); }, 5000);
+
+
+
 // ==========================================
 //        RUTAS PROTEGIDAS (HTML)
 // ==========================================

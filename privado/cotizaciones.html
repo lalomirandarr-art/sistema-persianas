@@ -449,63 +449,74 @@
     inicializar();
 
 // --- 1. AGREGAR AL CARRITO (SOLO COSTO BASE) ---
-    function agregarAlCarrito() {
-        const idProd = document.getElementById('select-producto').value;
-        const idTela = document.getElementById('select-tela').value;
-        const ancho = parseFloat(document.getElementById('ancho').value);
-        const alto = parseFloat(document.getElementById('alto').value);
-        const cant = parseInt(document.getElementById('cantidad').value);
+    // --- MODIFICACIÓN 2: USAR PRECIO ESPECÍFICO EN EL CÁLCULO ---
+function agregarAlCarrito() {
+    const idProd = document.getElementById('select-producto').value;
+    const idTela = document.getElementById('select-tela').value;
+    const ancho = parseFloat(document.getElementById('ancho').value);
+    const alto = parseFloat(document.getElementById('alto').value);
+    const cant = parseInt(document.getElementById('cantidad').value);
 
-        if(!idProd || !idTela || !ancho || !alto || !cant) {
-            alert("Por favor completa los campos del producto.");
-            return;
-        }
-
-        const prodObj = productosDB.find(p => p._id === idProd);
-        const telaObj = telasDB.find(t => t._id === idTela);
-        const color = document.getElementById('select-color').value;
-        
-        // Motorización
-        const usaMotor = document.getElementById('check-motor').checked;
-        const idMotor = document.getElementById('select-motor').value;
-        let motorObj = null;
-        let precioMotor = 0;
-        if(usaMotor && idMotor) {
-            motorObj = motoresDB.find(m => m._id === idMotor);
-            precioMotor = motorObj.precio;
-        }
-
-        const accColor = document.getElementById('accesorio-color').value;
-        const accMando = document.getElementById('accesorio-mando').value;
-        
-        // CÁLCULO DE COSTO BASE (Lo que te cuesta a ti)
-        let area = ancho * alto;
-        if(area < 1) area = 1; 
-        
-        const costoBaseUnitario = ((prodObj.precio + telaObj.precioExtra) * area) + precioMotor;
-        const totalCostoBase = costoBaseUnitario * cant;
-
-        // Creamos el item (Nótese que NO aplicamos utilidad aquí todavía)
-        const item = {
-            producto: prodObj.nombre,
-            tela: telaObj.nombre,
-            color: color,
-            medidas: { ancho, alto, areaCobrada: area },
-            cantidad: cant,
-            motor: motorObj ? motorObj.nombre : "Manual",
-            accesorios: { color: accColor, mando: accMando },
-            
-            // Guardamos DATOS PUROS
-            financiero: { costoBase: costoBaseUnitario }, 
-            
-            // Para la tabla, mostramos COSTO BASE (Tu petición)
-            precioUnitario: costoBaseUnitario, 
-            total: totalCostoBase
-        };
-
-        carritoItems.push(item);
-        actualizarTablaCarrito();
+    if(!idProd || !idTela || !ancho || !alto || !cant) {
+        alert("Por favor completa los campos del producto.");
+        return;
     }
+
+    const prodObj = productosDB.find(p => p._id === idProd);
+    const telaObj = telasDB.find(t => t._id === idTela);
+    const color = document.getElementById('select-color').value;
+    
+    // --- NUEVA LÓGICA DE PRECIO DE TELA ---
+    let precioTela = 0;
+    if (telaObj && telaObj.configuraciones) {
+        // Buscamos el precio que corresponde a ESTE producto
+        const config = telaObj.configuraciones.find(c => c.producto === prodObj.nombre);
+        if (config) {
+            precioTela = config.precio;
+        }
+    }
+    // --------------------------------------
+
+    // Motorización
+    const usaMotor = document.getElementById('check-motor').checked;
+    const idMotor = document.getElementById('select-motor').value;
+    let motorObj = null;
+    let precioMotor = 0;
+    if(usaMotor && idMotor) {
+        motorObj = motoresDB.find(m => m._id === idMotor);
+        precioMotor = motorObj.precio;
+    }
+
+    const accColor = document.getElementById('accesorio-color').value;
+    const accMando = document.getElementById('accesorio-mando').value;
+    
+    // CÁLCULO DE COSTO BASE (Usando la nueva variable precioTela)
+    let area = ancho * alto;
+    if(area < 1) area = 1; 
+    
+    // AQUÍ USAMOS precioTela EN LUGAR DE telaObj.precioExtra
+    const costoBaseUnitario = ((prodObj.precio + precioTela) * area) + precioMotor;
+    const totalCostoBase = costoBaseUnitario * cant;
+
+    // Creamos el item
+    const item = {
+        producto: prodObj.nombre,
+        tela: telaObj.nombre,
+        color: color,
+        medidas: { ancho, alto, areaCobrada: area },
+        cantidad: cant,
+        motor: motorObj ? motorObj.nombre : "Manual",
+        accesorios: { color: accColor, mando: accMando },
+        
+        financiero: { costoBase: costoBaseUnitario }, 
+        
+        precioUnitario: costoBaseUnitario, 
+        total: totalCostoBase
+    };
+
+    carritoItems.push(item);
+    actualizarTablaCarrito();
+}
 
     // --- FUNCIÓN ACTUALIZAR TABLA (CON CÁLCULO EN TIEMPO REAL) ---
     function actualizarTablaCarrito() {
@@ -881,16 +892,33 @@
     }
 
     // Helpers
-    function actualizarListaTelas() {
-        const idProd = document.getElementById('select-producto').value;
-        const selTela = document.getElementById('select-tela');
-        selTela.innerHTML = '<option value="">-- Seleccione --</option>';
-        const prod = productosDB.find(p => p._id === idProd);
-        if(!prod) return;
-        const telas = telasDB.filter(t => t.productos && t.productos.includes(prod.nombre));
-        telas.forEach(t => selTela.add(new Option(`${t.nombre} (+$${t.precioExtra})`, t._id)));
-        actualizarListaColores();
-    }
+    // --- MODIFICACIÓN 1: BUSCAR PRECIO ESPECÍFICO EN EL SELECT ---
+function actualizarListaTelas() {
+    const idProd = document.getElementById('select-producto').value;
+    const selTela = document.getElementById('select-tela');
+    selTela.innerHTML = '<option value="">-- Seleccione --</option>';
+
+    // Buscamos el objeto del producto seleccionado
+    const prodObj = productosDB.find(p => p._id === idProd);
+    if (!prodObj) return;
+
+    // Filtramos las telas que tengan una configuración para este producto
+    const telasCompatibles = telasDB.filter(t => {
+        // Verificamos si existe el array configuraciones y si incluye nuestro producto
+        return t.configuraciones && t.configuraciones.some(c => c.producto === prodObj.nombre);
+    });
+
+    telasCompatibles.forEach(t => {
+        // Encontramos el precio ESPECÍFICO para este producto
+        const config = t.configuraciones.find(c => c.producto === prodObj.nombre);
+        const precioEspecifico = config ? config.precio : 0;
+
+        // Mostramos el nombre y el precio correcto en el menú
+        selTela.add(new Option(`${t.nombre} (+$${precioEspecifico})`, t._id));
+    });
+
+    actualizarListaColores();
+}
     function actualizarListaColores() {
         const idTela = document.getElementById('select-tela').value;
         const selColor = document.getElementById('select-color');
