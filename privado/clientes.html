@@ -318,6 +318,7 @@
                         <td style="text-align: center;">
                             <button class="btn-editar" onclick="abrirModalEditar('${cliente._id}')" title="Editar">✏️</button>
                             <button class="btn-borrar" onclick="eliminarCliente('${cliente._id}')" title="Borrar">🗑️</button>
+        </td>
                         </td>
                     </tr>
                 `;
@@ -420,36 +421,6 @@
 
         // Cargar al inicio
         cargarClientes();
-
-        // --- 7. ELIMINAR CLIENTE ---
-async function eliminarCliente(id) {
-    // 1. Pedir contraseña
-    const password = prompt("⚠️ Esta acción es irreversible.\nIntroduce la contraseña de administrador (1234):");
-    
-    // Si el usuario cancela o no escribe nada
-    if (password === null || password.trim() === "") return;
-
-    try {
-        const res = await fetch('/clientes', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: id, password: password })
-        });
-
-        const data = await res.json();
-
-        if (data.exito) {
-            alert("✅ " + data.mensaje);
-            cargarClientes(); // Recargar la tabla para que desaparezca
-        } else {
-            alert("❌ Error: " + data.mensaje); // Aquí dirá si la contraseña está mal
-        }
-
-    } catch (error) {
-        console.error(error);
-        alert("Error de conexión al intentar borrar.");
-    }
-}
     </script>
 
 </body>
