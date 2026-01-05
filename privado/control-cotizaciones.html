@@ -122,6 +122,84 @@
 
         .btn-save { background-color: #28a745; color: white; padding: 12px 20px; border: none; border-radius: 5px; font-size: 1.1em; width: 100%; margin-top: 20px; }
 
+        /* --- ESTILOS DEL PANEL DE CONTROL (NUEVO) --- */
+.controls-panel {
+    background-color: #f1f3f5;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filter-item {
+    flex: 1;
+    min-width: 200px; /* Evita que se aplasten en pantallas medianas */
+}
+
+.filter-item select {
+    width: 100%;
+}
+
+.actions-group {
+    display: flex;
+    gap: 10px;
+}
+
+/* Estilos base para los botones del panel */
+.btn-control {
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    white-space: nowrap; /* Evita que el texto se rompa feo */
+}
+.btn-gray { background: #6c757d; }
+.btn-green { background: #217346; }
+.btn-blue { background: #007bff; }
+.btn-red { background: #dc3545; }
+
+/* --- AQUÍ ESTÁ LA MAGIA PARA CELULARES --- */
+@media (max-width: 768px) {
+    /* 1. Reducimos el relleno general para ganar espacio */
+    .historial-container {
+        padding: 10px 15px; 
+    }
+
+    /* 2. Cambiamos el panel a vertical */
+    .controls-panel {
+        flex-direction: column; /* Apilar elementos */
+        align-items: stretch;   /* Que ocupen todo el ancho */
+        padding: 15px;
+        gap: 15px;
+    }
+
+    /* 3. Los filtros ocupan todo el ancho */
+    .filter-item {
+        width: 100%;
+        min-width: 0;
+    }
+
+    /* 4. Transformamos los botones en una cuadrícula 2x2 */
+    .actions-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Dos columnas */
+        gap: 10px;
+        margin-top: 5px;
+    }
+    
+    /* 5. Ajustamos los botones para que se vean bien en la cuadrícula */
+    .btn-control {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.9em;
+    }
+}
+
     </style>
 
 </head>
@@ -184,24 +262,22 @@
 
 
 
-        <div style="background-color: #f1f3f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end;">
-
-            <div style="flex: 1;"><label>Filtro Cliente:</label><select id="filtro-cliente" onchange="aplicarFiltros()" style="width:100%"><option value="">-- Todos --</option></select></div>
-
-            <div style="flex: 1;"><label>Filtro Cotizador:</label><select id="filtro-cotizador" onchange="aplicarFiltros()" style="width:100%"><option value="">-- Todos --</option></select></div>
-
-            <div style="display: flex; gap: 10px;">
-
-                <button onclick="limpiarFiltros()" style="background:#6c757d; color:white; border:none; padding:10px; border-radius:5px;">🔄 Limpiar</button>
-
-                <button onclick="exportarExcel()" style="background:#217346; color:white; border:none; padding:10px; border-radius:5px;">⬇️ Excel</button>
-
-                <button onclick="document.getElementById('input-excel-importar').click()" style="background:#007bff; color:white; border:none; padding:10px; border-radius:5px;">⬆️ Importar</button>
-
-                <button onclick="eliminarTodo()" style="background:#dc3545; color:white; border:none; padding:10px; border-radius:5px;">☢️ Borrar Todo</button>
-
-            </div>
-
+       <div class="controls-panel">
+    <div class="filter-item">
+        <label>Filtro Cliente:</label>
+        <select id="filtro-cliente" onchange="aplicarFiltros()"><option value="">-- Todos --</option></select>
+    </div>
+    <div class="filter-item">
+        <label>Filtro Cotizador:</label>
+        <select id="filtro-cotizador" onchange="aplicarFiltros()"><option value="">-- Todos --</option></select>
+    </div>
+    <div class="actions-group">
+        <button onclick="limpiarFiltros()" class="btn-control btn-gray">🔄 Limpiar</button>
+        <button onclick="exportarExcel()" class="btn-control btn-green">⬇️ Excel</button>
+        <button onclick="document.getElementById('input-excel-importar').click()" class="btn-control btn-blue">⬆️ Importar</button>
+        <button onclick="eliminarTodo()" class="btn-control btn-red">☢️ Borrar</button>
+    </div>
+</div>
         </div>
 
 
