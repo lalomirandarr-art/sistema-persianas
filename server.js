@@ -125,60 +125,6 @@ const clienteSchema = new mongoose.Schema({
 
 const Cliente = mongoose.model('Cliente', clienteSchema);
 
-// ==========================================
-// 🚀 ZONA DE MIGRACIÓN (USAR UNA SOLA VEZ)
-// ==========================================
-app.get('/migrar-datos-ahora', async (req, res) => {
-    try {
-        // 1. Obtener todos los nombres distintos de la colección de Cotizaciones
-        // (Esto es lo que hacías antes, recuperar solo los nombres)
-        const nombresClientes = await Cotizacion.distinct("cliente");
-        
-        let contados = 0;
-        let existentes = 0;
-
-        // 2. Recorrer cada nombre encontrado
-        for (const nombreViejo of nombresClientes) {
-            
-            // Verificamos que el nombre no esté vacío
-            if (!nombreViejo) continue; 
-
-            // 3. Revisar si ya existe en la nueva colección de Clientes
-            // (Para no duplicarlos si recargas la página)
-            const existe = await Cliente.findOne({ nombre: nombreViejo });
-
-            if (!existe) {
-                // 4. Si no existe, CREAMOS el cliente nuevo
-                await Cliente.create({
-                    nombre: nombreViejo,
-                    tipo: 'Cliente',      // Asumimos que es cliente porque ya tiene cotización
-                    canal: 'Histórico',   // Para saber que vino de la migración
-                    email: '',            // Campos vacíos para llenar después
-                    telefono: '',
-                    fechaRegistro: new Date()
-                });
-                contados++;
-                console.log(`✅ Migrado: ${nombreViejo}`);
-            } else {
-                existentes++;
-            }
-        }
-
-        res.send(`
-            <h1>✅ Migración Completada</h1>
-            <p>Se encontraron <strong>${nombresClientes.length}</strong> nombres en el historial.</p>
-            <ul>
-                <li style="color:green">Nuevos clientes creados: <strong>${contados}</strong></li>
-                <li style="color:blue">Clientes que ya existían (omitidos): <strong>${existentes}</strong></li>
-            </ul>
-            <a href="/clientes.html">Ir al Directorio de Clientes</a>
-        `);
-
-    } catch (error) {
-        console.error("Error en migración:", error);
-        res.status(500).send("<h1>❌ Error en la migración</h1><p>" + error.message + "</p>");
-    }
-});
 
 
 
@@ -419,7 +365,58 @@ app.get('/telas', async (req, res) => {
     }
 });
 
+// ==========================================
+// 🚀 ZONA DE MIGRACIÓN (EJECUTAR UNA VEZ)
+// ==========================================
+app.get('/migrar-datos-ahora', async (req, res) => {
+    try {
+        console.log("🚀 Iniciando migración de clientes...");
+        
+        // 1. Obtener todos los nombres únicos de las cotizaciones
+        const nombresEnCotizaciones = await Cotizacion.distinct("cliente");
+        
+        let agregados = 0;
+        let yaExistian = 0;
 
+        // 2. Recorrer cada nombre y crearlo si no existe
+        for (const nombreViejo of nombresEnCotizaciones) {
+            if (!nombreViejo) continue; // Saltar vacíos
+
+            // Buscamos si ya existe en la NUEVA colección de Clientes
+            const existe = await Cliente.findOne({ nombre: nombreViejo });
+
+            if (!existe) {
+                // Si no existe, lo creamos
+                await Cliente.create({
+                    nombre: nombreViejo,
+                    tipo: 'Cliente',      // Asumimos que es cliente
+                    canal: 'Histórico',   // Etiqueta para saber que viene de la migración
+                    fechaRegistro: new Date()
+                });
+                agregados++;
+                console.log(`✅ Agregado: ${nombreViejo}`);
+            } else {
+                yaExistian++;
+            }
+        }
+
+        res.send(`
+            <div style="font-family: sans-serif; padding: 50px;">
+                <h1 style="color: green;">✅ ¡Migración Completada!</h1>
+                <p>Se analizaron las cotizaciones antiguas.</p>
+                <ul>
+                    <li>Nuevos clientes recuperados: <strong>${agregados}</strong></li>
+                    <li>Clientes que ya existían: <strong>${yaExistian}</strong></li>
+                </ul>
+                <a href="/clientes.html" style="font-size: 1.2em; font-weight: bold;">Ir a mi Directorio de Clientes ➡</a>
+            </div>
+        `);
+
+    } catch (error) {
+        console.error("❌ Error en migración:", error);
+        res.status(500).send(`<h1>Error</h1><p>${error.message}</p>`);
+    }
+});
 // ==========================================
 //        RUTAS PROTEGIDAS (HTML)
 // ==========================================
