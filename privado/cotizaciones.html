@@ -203,16 +203,13 @@
                 </div>
 
                 <div style="margin-top: 15px;">
-                    <div class="campo">
-                        <label>Utilidad (%):</label>
-                        <select id="select-utilidad"></select>
-                    </div>
+                   
                     <button class="btn-add" onclick="agregarAlCarrito()">➕ AGREGAR PERSIANA</button>
                 </div>
             </div>
 
             <div class="card">
-                <h3>📝 Resumen del Pedido</h3>
+                <h3>📝 Resumen del Pedido (Costos Base)</h3>
                 
                 <div class="tabla-wrapper">
                     <table class="tabla-carrito" id="tabla-items">
@@ -221,34 +218,25 @@
                                 <th>Descripción</th>
                                 <th>Medidas</th>
                                 <th>Cant</th>
-                                <th>P. Unit</th>
-                                <th>Total</th>
-                                <th></th>
+                                <th>Costo Base</th> <th>Subtotal Costo</th> <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><td colspan="6" style="text-align:center; color:#888; padding: 20px;">Tu carrito está vacío. Agrega productos desde el panel izquierdo.</td></tr>
+                            <tr><td colspan="6" style="text-align:center; color:#888; padding: 20px;">Tu carrito está vacío.</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="panel-totales">
                     
-                    <div style="display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 15px; margin-bottom: 10px;">
-                        
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
                         <div style="display: flex; align-items: center; gap: 5px;">
                             <input type="checkbox" id="check-gastos" onchange="toggleGastos()" style="width: auto;">
                             <label for="check-gastos" style="margin:0; font-weight:normal;">Gastos Extra</label>
                         </div>
-
-                        <div style="display: flex; align-items: center; gap: 5px; background: #fff3cd; padding: 5px 10px; border-radius: 4px;">
-                            <label style="margin:0; font-size:0.85rem;">🎁 Descuento Global:</label>
-                            <select id="select-descuento" onchange="calcularTotalesGlobales()" style="width: 70px; padding: 2px;">
-                                </select>
-                        </div>
                     </div>
 
-                    <div id="panel-gastos" style="display: none; background: #f1f1f1; padding: 10px; margin-bottom: 10px; border-radius: 5px; text-align: left;">
+                    <div id="panel-gastos" style="display: none; background: #f1f1f1; padding: 10px; margin-bottom: 15px; border-radius: 5px; text-align: left;">
                         <label>Nº Gastos:</label>
                         <select id="cantidad-gastos" onchange="generarCamposGastos()" style="width: 60px; margin-bottom: 5px;">
                             <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
@@ -256,34 +244,58 @@
                         <div id="contenedor-inputs-gastos"></div>
                     </div>
 
+                    <div style="background-color: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <label style="margin:0; color:#155724; font-weight:bold;">📈 Margen de Utilidad:</label>
+                            <select id="select-utilidad" onchange="calcularTotalesGlobales()" style="width: 120px; padding: 5px; border: 1px solid #28a745; font-weight:bold; color:#155724;">
+                                </select>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label style="margin:0; color:#856404;">🎁 Descuento Global:</label>
+                            <select id="select-descuento" onchange="calcularTotalesGlobales()" style="width: 120px; padding: 5px;">
+                                </select>
+                        </div>
+                    </div>
+
                     <div style="display: flex; justify-content: flex-end; align-items: center; gap: 5px; margin-bottom: 10px;">
                         <input type="checkbox" id="check-iva" checked onchange="calcularTotalesGlobales()" style="width: auto;">
                         <label for="check-iva" style="margin:0; font-size: 0.9rem;">Aplicar IVA (16%)</label>
                     </div>
 
-                    <div style="font-size: 0.95rem; line-height: 1.6;">
-                        <div style="display:flex; justify-content:space-between;"><span>Subtotal:</span> <span id="lbl-subtotal-items">$0.00</span></div>
+                    <hr>
+
+                    <div style="font-size: 0.95rem; line-height: 1.8;">
+                        <div style="display:flex; justify-content:space-between; color: #666;">
+                            <span>Costo de Producción:</span> 
+                            <span id="lbl-costo-produccion">$0.00</span>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size: 1.1em; color: #001f3f;">
+                            <span>Subtotal Venta (Con Utilidad):</span> 
+                            <span id="lbl-subtotal-venta">$0.00</span>
+                        </div>
                         
                         <div style="display:flex; justify-content:space-between; color:#dc3545; display:none;" id="lbl-descuento-monto">
-                            <span>Descuento:</span> <span>$0.00</span>
+                            <span>- Descuento:</span> <span>$0.00</span>
                         </div>
                         
                         <div style="display:flex; justify-content:space-between; color:#6610f2; display:none;" id="lbl-gastos">
-                            <span>Gastos Extra:</span> <span>$0.00</span>
+                            <span>+ Gastos Extra:</span> <span>$0.00</span>
                         </div>
                         
                         <div style="display:flex; justify-content:space-between; color:#856404;" id="lbl-iva">
-                            <span>IVA:</span> <span>$0.00</span>
+                            <span>+ IVA:</span> <span>$0.00</span>
                         </div>
                         
-                        <hr>
-                        <div class="gran-total" style="display:flex; justify-content:space-between;">
-                            <span>Total:</span> <span id="lbl-gran-total">$0.00</span>
+                        <div class="gran-total" style="display:flex; justify-content:space-between; margin-top: 10px; border-top: 2px solid #ccc; padding-top: 10px;">
+                            <span>TOTAL A PAGAR:</span> <span id="lbl-gran-total">$0.00</span>
                         </div>
                     </div>
 
-                    <div style="margin-top: 10px;">
-                        <span class="utilidad-box">💰 Utilidad Neta: <span id="lbl-utilidad">$0.00</span></span>
+                    <div style="margin-top: 10px; text-align: center;">
+                        <span class="utilidad-box">💰 Tu Ganancia Neta: <span id="lbl-utilidad">$0.00</span></span>
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
@@ -436,7 +448,7 @@
     }
     inicializar();
 
-    // --- AGREGAR AL CARRITO ---
+// --- 1. AGREGAR AL CARRITO (SOLO COSTO BASE) ---
     function agregarAlCarrito() {
         const idProd = document.getElementById('select-producto').value;
         const idTela = document.getElementById('select-tela').value;
@@ -453,6 +465,7 @@
         const telaObj = telasDB.find(t => t._id === idTela);
         const color = document.getElementById('select-color').value;
         
+        // Motorización
         const usaMotor = document.getElementById('check-motor').checked;
         const idMotor = document.getElementById('select-motor').value;
         let motorObj = null;
@@ -464,15 +477,15 @@
 
         const accColor = document.getElementById('accesorio-color').value;
         const accMando = document.getElementById('accesorio-mando').value;
-        const pctUtilidad = parseInt(document.getElementById('select-utilidad').value);
         
+        // CÁLCULO DE COSTO BASE (Lo que te cuesta a ti)
         let area = ancho * alto;
         if(area < 1) area = 1; 
         
         const costoBaseUnitario = ((prodObj.precio + telaObj.precioExtra) * area) + precioMotor;
-        const precioConUtilidad = (costoBaseUnitario)/(1-(pctUtilidad/100));
-        const totalLinea = precioConUtilidad * cant;
+        const totalCostoBase = costoBaseUnitario * cant;
 
+        // Creamos el item (Nótese que NO aplicamos utilidad aquí todavía)
         const item = {
             producto: prodObj.nombre,
             tela: telaObj.nombre,
@@ -481,15 +494,20 @@
             cantidad: cant,
             motor: motorObj ? motorObj.nombre : "Manual",
             accesorios: { color: accColor, mando: accMando },
-            financiero: { costoBase: costoBaseUnitario, utilidad: pctUtilidad }, 
-            precioUnitario: precioConUtilidad,
-            total: totalLinea
+            
+            // Guardamos DATOS PUROS
+            financiero: { costoBase: costoBaseUnitario }, 
+            
+            // Para la tabla, mostramos COSTO BASE (Tu petición)
+            precioUnitario: costoBaseUnitario, 
+            total: totalCostoBase
         };
 
         carritoItems.push(item);
         actualizarTablaCarrito();
     }
 
+    // --- 2. ACTUALIZAR TABLA (Muestra Costos Base) ---
     function actualizarTablaCarrito() {
         const tbody = document.querySelector('#tabla-items tbody');
         tbody.innerHTML = '';
@@ -510,8 +528,8 @@
                     </td>
                     <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
                     <td>${item.cantidad}</td>
-                    <td>$${item.precioUnitario.toFixed(2)}</td>
-                    <td style="font-weight:bold;">$${item.total.toFixed(2)}</td>
+                    <td style="color: #666;">$${item.precioUnitario.toFixed(2)}</td>
+                    <td style="font-weight:bold; color: #333;">$${item.total.toFixed(2)}</td>
                     <td><button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer; font-size: 1.2em;">&times;</button></td>
                 </tr>
             `;
@@ -526,11 +544,24 @@
         actualizarTablaCarrito();
     }
 
-    // --- FUNCIÓN DE CÁLCULO ---
+    // --- 3. CÁLCULO GLOBAL DINÁMICO (LA MAGIA) ---
     function calcularTotalesGlobales() {
-        let subtotalProductos = carritoItems.reduce((sum, item) => sum + item.total, 0);
-        let costoTotalProduccion = carritoItems.reduce((sum, item) => sum + (item.financiero.costoBase * item.cantidad), 0);
+        // 1. Sumamos todos los Costos Base de la tabla
+        let costoTotalProduccion = carritoItems.reduce((sum, item) => sum + item.total, 0);
+        
+        // 2. Obtenemos la Utilidad Global seleccionada
+        const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
+        
+        // 3. Calculamos el Precio de Venta (Fórmula de Margen)
+        // Precio Venta = Costo / (1 - %Utilidad)
+        let subtotalVenta = 0;
+        if(pctUtilidad < 100) {
+            subtotalVenta = costoTotalProduccion / (1 - (pctUtilidad / 100));
+        } else {
+            subtotalVenta = costoTotalProduccion; // Evitar división por cero
+        }
 
+        // 4. Gastos Extra
         let totalGastos = 0;
         let listaGastos = [];
         if (document.getElementById('check-gastos').checked) {
@@ -545,31 +576,32 @@
             }
         }
 
+        // 5. Descuento Global (Sobre el precio de venta)
         const pctDescuento = parseInt(document.getElementById('select-descuento').value) || 0;
-        const montoDescuento = subtotalProductos * (pctDescuento / 100);
-        const subtotalConDescuento = subtotalProductos - montoDescuento;
+        const montoDescuento = subtotalVenta * (pctDescuento / 100);
+        const ventaConDescuento = subtotalVenta - montoDescuento;
 
+        // 6. IVA
         const aplicarIva = document.getElementById('check-iva').checked;
-        const iva = aplicarIva ? subtotalConDescuento * 0.16 : 0;
+        const iva = aplicarIva ? ventaConDescuento * 0.16 : 0;
         
-        const granTotal = subtotalConDescuento + iva + totalGastos;
-        const utilidadNeta = subtotalConDescuento - costoTotalProduccion;
+        // 7. Gran Total
+        const granTotal = ventaConDescuento + iva + totalGastos;
 
-        document.getElementById('lbl-subtotal-items').innerText = `$${subtotalProductos.toFixed(2)}`;
+        // 8. Utilidad Neta Real (Dinero en el bolsillo)
+        // (Lo que cobro al cliente sin iva) - (Lo que me cuesta producir)
+        const utilidadNeta = ventaConDescuento - costoTotalProduccion;
+
+        // --- ACTUALIZAR PANTALLA ---
+        document.getElementById('lbl-costo-produccion').innerText = `$${costoTotalProduccion.toFixed(2)}`;
+        document.getElementById('lbl-subtotal-venta').innerText = `$${subtotalVenta.toFixed(2)}`;
         
         const lblDesc = document.getElementById('lbl-descuento-monto');
         if(montoDescuento > 0) {
-            lblDesc.innerHTML = `<span>Descuento (${pctDescuento}%):</span> <span>-$${montoDescuento.toFixed(2)}</span>`;
+            lblDesc.innerHTML = `<span>- Descuento (${pctDescuento}%):</span> <span>$${montoDescuento.toFixed(2)}</span>`;
             lblDesc.style.display = 'flex';
         } else {
             lblDesc.style.display = 'none';
-        }
-
-        const lblIva = document.getElementById('lbl-iva');
-        if(aplicarIva) {
-            lblIva.innerHTML = `<span>IVA (16%):</span> <span>$${iva.toFixed(2)}</span>`;
-        } else {
-            lblIva.innerHTML = `<span>IVA:</span> <span>No incluido</span>`;
         }
 
         const lblGastos = document.getElementById('lbl-gastos');
@@ -580,14 +612,31 @@
             lblGastos.style.display = 'none';
         }
 
+        const lblIva = document.getElementById('lbl-iva');
+        if(aplicarIva) {
+            lblIva.innerHTML = `<span>+ IVA (16%):</span> <span>$${iva.toFixed(2)}</span>`;
+        } else {
+            lblIva.innerHTML = `<span>IVA:</span> <span>No incluido</span>`;
+        }
+
         document.getElementById('lbl-gran-total').innerText = `$${granTotal.toFixed(2)}`;
         
+        // Colorcito para la ganancia
         const lblUtilidad = document.getElementById('lbl-utilidad');
         lblUtilidad.innerText = `$${utilidadNeta.toFixed(2)}`;
         lblUtilidad.parentElement.style.backgroundColor = utilidadNeta >= 0 ? '#d4edda' : '#f8d7da';
-        lblUtilidad.parentElement.style.color = utilidadNeta >= 0 ? '#155724' : '#721c24';
-
-        return { subtotalProductos, montoDescuento, pctDescuento, totalGastos, listaGastos, iva, granTotal };
+        
+        return { 
+            costoProduccion: costoTotalProduccion,
+            subtotalVenta,
+            montoDescuento, 
+            pctDescuento, 
+            pctUtilidad, // Retornamos la utilidad usada
+            totalGastos, 
+            listaGastos, 
+            iva, 
+            granTotal 
+        };
     }
 
     async function generarPDF() {
