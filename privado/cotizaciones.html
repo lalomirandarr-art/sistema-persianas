@@ -299,13 +299,15 @@
         for(let i=0; i<=50; i++) selDesc.add(new Option(`${i}%`, i));
 
         try {
-            // Hacemos las peticiones
+            // --- AQUÍ ESTÁ EL CAMBIO ---
+            // Agregamos '?limit=5000' para intentar forzar al servidor a enviar todos
+            // Si tu servidor usa paginación estándar, esto debería traerlos todos.
             const [resP, resT, resM, resC, resCl] = await Promise.all([
                 fetch('/productos'), 
                 fetch('/telas'), 
                 fetch('/motores'), 
                 fetch('/colores'),
-                fetch('/clientes') 
+                fetch('/clientes?limit=5000&n=5000') // Probamos dos formas comunes de pedir "todos"
             ]);
             
             // Convertimos a JSON
@@ -314,28 +316,26 @@
             motoresDB = await resM.json();
             coloresDB = await resC.json();
             
-            // --- LÓGICA DE CLIENTES MEJORADA (Auto-Detectar Array) ---
+            // --- LÓGICA DE CLIENTES INTELIGENTE ---
             const respuestaClientes = await resCl.json();
-            console.log("📦 Respuesta Clientes Cruda:", respuestaClientes);
+            console.log("📦 Respuesta Clientes:", respuestaClientes);
 
             if (Array.isArray(respuestaClientes)) {
-                // Caso ideal: El servidor devuelve directamente la lista [ ... ]
                 clientesDB = respuestaClientes;
             } else if (typeof respuestaClientes === 'object' && respuestaClientes !== null) {
-                // Caso común: El servidor devuelve { exito: true, datos: [ ... ] }
-                // Buscamos "automáticamente" la propiedad que sea un Array
+                // Buscamos el array dentro del objeto
                 const posibleArray = Object.values(respuestaClientes).find(val => Array.isArray(val));
-                
                 if (posibleArray) {
-                    console.log("✅ Lista de clientes encontrada dentro del objeto.");
                     clientesDB = posibleArray;
                 } else {
-                    console.warn("⚠️ No se encontró ninguna lista dentro del objeto de respuesta.");
+                    console.warn("⚠️ No se encontró lista de clientes.");
                     clientesDB = [];
                 }
             } else {
                 clientesDB = [];
             }
+            
+            console.log(`✅ Total clientes cargados: ${clientesDB.length}`);
 
             // 1. LLENAR SELECT DE PRODUCTOS
             const selProd = document.getElementById('select-producto');
@@ -355,8 +355,14 @@
             selCliente.innerHTML = '<option value="">-- Seleccione Cliente --</option>';
             
             if (clientesDB.length > 0) {
+                // Ordenamos alfabéticamente para que sea más fácil buscar
+                clientesDB.sort((a, b) => {
+                    const nameA = (a.nombre || a.nombreCliente || "").toUpperCase();
+                    const nameB = (b.nombre || b.nombreCliente || "").toUpperCase();
+                    return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+                });
+
                 clientesDB.forEach(c => {
-                    // Nos aseguramos que el cliente tenga nombre, si no, usamos un placeholder
                     const nombreMostrar = c.nombre || c.nombreCliente || c.razonSocial || "Cliente sin nombre";
                     selCliente.add(new Option(nombreMostrar, nombreMostrar));
                 }); 
@@ -365,11 +371,11 @@
             }
 
         } catch (e) { 
-            console.error("❌ Error grave en inicializar:", e); 
+            console.error("❌ Error inicializar:", e); 
             alert("Error cargando datos. Revisa la consola."); 
         }
 
-        // --- CARGAR DATOS DESDE HISTORIAL (SI EXISTEN) ---
+        // --- CARGAR DATOS DESDE HISTORIAL ---
         const datosEditar = localStorage.getItem('datosCotizacionEditar');
         if (datosEditar) {
             try {
