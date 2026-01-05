@@ -122,7 +122,7 @@
 
         .btn-save { background-color: #28a745; color: white; padding: 12px 20px; border: none; border-radius: 5px; font-size: 1.1em; width: 100%; margin-top: 20px; }
 
-        /* --- ESTILOS DEL PANEL DE CONTROL (NUEVO) --- */
+/* --- ESTILOS DEL PANEL DE CONTROL (MEJORADO) --- */
 .controls-panel {
     background-color: #f1f3f5;
     padding: 20px;
@@ -132,71 +132,90 @@
     gap: 20px;
     flex-wrap: wrap;
     align-items: flex-end;
+    width: 100%; /* Ocupar todo el ancho disponible */
+    box-sizing: border-box; /* Para que el padding no deforme el ancho */
 }
 
 .filter-item {
     flex: 1;
-    min-width: 200px; /* Evita que se aplasten en pantallas medianas */
+    min-width: 200px;
 }
 
 .filter-item select {
     width: 100%;
+    box-sizing: border-box;
 }
 
 .actions-group {
     display: flex;
     gap: 10px;
+    flex: 1; /* Para que los botones intenten llenar espacio si sobra */
+    justify-content: flex-end; /* Alineados a la derecha en PC */
 }
 
-/* Estilos base para los botones del panel */
 .btn-control {
     color: white;
     border: none;
     padding: 10px 15px;
     border-radius: 5px;
-    white-space: nowrap; /* Evita que el texto se rompa feo */
+    cursor: pointer;
+    font-weight: bold;
 }
 .btn-gray { background: #6c757d; }
 .btn-green { background: #217346; }
 .btn-blue { background: #007bff; }
 .btn-red { background: #dc3545; }
 
-/* --- AQUÍ ESTÁ LA MAGIA PARA CELULARES --- */
+/* --- NUEVO: CONTENEDOR PARA QUE LA TABLA NO ROMPA EL DISEÑO --- */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto; /* Permite deslizar si la tabla es muy ancha */
+    -webkit-overflow-scrolling: touch; /* Deslizamiento suave en iPhone */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    background: white;
+}
+
+/* --- ESTILOS MÓVILES --- */
 @media (max-width: 768px) {
-    /* 1. Reducimos el relleno general para ganar espacio */
     .historial-container {
-        padding: 10px 15px; 
+        padding: 10px; /* Menos margen en celular */
+        width: 100%;
+        box-sizing: border-box;
     }
 
-    /* 2. Cambiamos el panel a vertical */
     .controls-panel {
-        flex-direction: column; /* Apilar elementos */
-        align-items: stretch;   /* Que ocupen todo el ancho */
+        flex-direction: column; /* Uno debajo del otro */
+        align-items: stretch;   /* Estirar al ancho completo */
         padding: 15px;
         gap: 15px;
     }
 
-    /* 3. Los filtros ocupan todo el ancho */
     .filter-item {
         width: 100%;
         min-width: 0;
     }
 
-    /* 4. Transformamos los botones en una cuadrícula 2x2 */
     .actions-group {
         display: grid;
-        grid-template-columns: 1fr 1fr; /* Dos columnas */
+        grid-template-columns: 1fr 1fr; /* Cuadrícula 2x2 */
         gap: 10px;
-        margin-top: 5px;
     }
     
-    /* 5. Ajustamos los botones para que se vean bien en la cuadrícula */
     .btn-control {
-        width: 100%;
+        width: 100%; /* Botones anchos */
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 0.9em;
+        padding: 12px; /* Botones más altos para el dedo */
+    }
+
+    /* Ajuste para que la tabla ocupe el 100% visual sin forzar zoom */
+    table {
+        margin-top: 0;
+        box-shadow: none; /* La sombra la tiene el contenedor ahora */
+        width: 100%; 
+        white-space: nowrap; /* Evita que el texto de la tabla se parta feo */
     }
 }
 
@@ -265,11 +284,15 @@
        <div class="controls-panel">
     <div class="filter-item">
         <label>Filtro Cliente:</label>
-        <select id="filtro-cliente" onchange="aplicarFiltros()"><option value="">-- Todos --</option></select>
+        <select id="filtro-cliente" onchange="aplicarFiltros()">
+            <option value="">-- Todos --</option>
+        </select>
     </div>
     <div class="filter-item">
         <label>Filtro Cotizador:</label>
-        <select id="filtro-cotizador" onchange="aplicarFiltros()"><option value="">-- Todos --</option></select>
+        <select id="filtro-cotizador" onchange="aplicarFiltros()">
+            <option value="">-- Todos --</option>
+        </select>
     </div>
     <div class="actions-group">
         <button onclick="limpiarFiltros()" class="btn-control btn-gray">🔄 Limpiar</button>
@@ -281,7 +304,7 @@
         </div>
 
 
-
+<div class="table-responsive">
         <table id="tabla-cotizaciones">
 
             <thead>
@@ -311,7 +334,7 @@
             <tbody></tbody>
 
         </table>
-
+</div>
 
 
         <div class="pagination-container" id="panel-paginacion" style="display:none;">
