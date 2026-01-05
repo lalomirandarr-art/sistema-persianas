@@ -639,6 +639,7 @@
         };
     }
 
+    // --- FUNCIÓN GENERAR PDF CORREGIDA Y ADAPTADA A UTILIDAD GLOBAL ---
     async function generarPDF() {
         if (carritoItems.length === 0) { alert("No hay productos."); return; }
 
@@ -646,9 +647,11 @@
         const mesActual = fechaObj.getMonth();
         const anioActual = fechaObj.getFullYear();
         
+        // --- 1. CÁLCULO DEL FOLIO ---
         let consecutivo = 1; 
         try {
-            const respuesta = await fetch('/cotizaciones');
+            // Intentamos obtener el consecutivo, si falla usamos 1
+            const respuesta = await fetch('/cotizaciones?limit=5000'); // Traemos todas para contar bien
             if(respuesta.ok) {
                 const historial = await respuesta.json();
                 const cotizacionesEsteMes = historial.filter(c => {
@@ -665,13 +668,27 @@
         const folio = `${consStr}-${mesStr}-${anioActual}`;
         
         const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
+        
+        // OBTENEMOS LOS TOTALES ACTUALES (CON LA UTILIDAD SELECCIONADA)
         const totales = calcularTotalesGlobales(); 
+
+        // Calculamos el factor de utilidad para mostrar PRECIOS DE VENTA en el PDF
+        // Si utilidad es 50%, el factor divisor es 0.5. Precio = Costo / 0.5
+        let factorUtilidad = 1;
+        if(totales.pctUtilidad < 100) {
+            factorUtilidad = 1 - (totales.pctUtilidad / 100);
+        }
 
         let filasHTML = '';
         const cellStyle = "padding: 4px; border-right: 1px solid #17a2b8; font-size: 9px;";
         
         carritoItems.forEach(item => {
             const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
+            
+            // IMPORTANTE: Convertimos el Costo Base a Precio Venta para el PDF
+            const precioUnitarioVenta = item.precioUnitario / factorUtilidad;
+            const totalVenta = item.total / factorUtilidad;
+
             filasHTML += `
                 <tr style="border-bottom: 1px solid #17a2b8;">
                     <td style="${cellStyle} word-wrap: break-word;">${item.producto}</td>
@@ -680,7 +697,7 @@
                     <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
                     <td style="${cellStyle}">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
                     <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
-                    <td style="padding: 4px; text-align: right; font-size: 9px;">$${item.total.toFixed(2)}</td>
+                    <td style="padding: 4px; text-align: right; font-size: 9px;">$${totalVenta.toFixed(2)}</td>
                 </tr>
                 <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.8em; background-color: #f9f9f9;">
                     <td colspan="7" style="padding: 2px 4px;">
@@ -764,21 +781,21 @@
                 <div style="width: 40%;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
                         <tr><td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
-                            <td style="text-align: right; padding: 4px; color: #333;">$${totales.subtotalProductos.toFixed(2)}</td>
+                            <td style="text-align: right; padding: 4px; color: #333;">$${totales.subtotalVenta.toFixed(2)}</td>
                         </tr>
                         ${totales.montoDescuento > 0 ? `
                         <tr>
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${totales.pctDescuento}%):</td>
-                            <td style="text-align: right; padding: 4px; color: #dc3545;">$${totales.montoDescuento.toFixed(2)}</td>
+                            <td style="text-align: right; padding: 4px; color: #dc3545;">-$${totales.montoDescuento.toFixed(2)}</td>
                             </tr>` : ''}
                         ${totales.totalGastos > 0 ? `
                         <tr>
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">GASTOS EXTRA:</td>
-                            <td style="text-align: right; padding: 4px; color: #333;">$${totales.totalGastos.toFixed(2)}</td>
+                            <td style="text-align: right; padding: 4px; color: #333;">+$${totales.totalGastos.toFixed(2)}</td>
                         </tr>` : ''}
                         <tr>
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
-                            <td style="text-align: right; padding: 4px; color: #333;">$${totales.iva.toFixed(2)}</td>
+                            <td style="text-align: right; padding: 4px; color: #333;">${totales.iva > 0 ? '$'+totales.iva.toFixed(2) : 'No Incluido'}</td>
                         </tr>
                         <tr style="border-top: 2px solid #17a2b8;"><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${totales.granTotal.toFixed(2)}</td></tr>
                     </table>
