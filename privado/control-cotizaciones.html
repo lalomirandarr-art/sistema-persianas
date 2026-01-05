@@ -217,6 +217,34 @@
         width: 100%; 
         white-space: nowrap; /* Evita que el texto de la tabla se parta feo */
     }
+
+    /* --- ARREGLO DEL MODAL EN CELULAR --- */
+    
+    /* 1. Cambiamos de 2 columnas a 1 columna */
+    .modal-grid {
+        grid-template-columns: 1fr; 
+        gap: 10px; /* Menos espacio entre elementos */
+    }
+
+    /* 2. Ajustamos la caja blanca del modal */
+    .modal-content {
+        padding: 15px; /* Reducimos el relleno (antes era 30px) */
+        width: 95%;    /* Que ocupe casi todo el ancho de la pantalla */
+        max-height: 85vh; /* Asegura que no sea más alto que la pantalla */
+    }
+
+    /* 3. Ajustamos el título para que no choque con la X de cerrar */
+    .modal-header h2 {
+        font-size: 1.3em;
+        margin: 0;
+    }
+
+    /* 4. Hacemos que la caja de totales (verde) se destaque mejor */
+    .financial-box {
+        margin-top: 15px;
+        padding: 10px;
+    }
+
 }
 
     </style>
