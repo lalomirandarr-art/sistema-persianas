@@ -282,59 +282,94 @@
 <script>
     // --- VARIABLES GLOBALES ---
     let productosDB = [], motoresDB = [], telasDB = [], coloresDB = [];
-    let clientesDB = []; // NUEVA VARIABLE PARA CLIENTES
+    let clientesDB = []; 
     let carritoItems = []; 
 
     // Inicialización
     async function inicializar() {
+        // Llenar select de utilidad
         const selUtil = document.getElementById('select-utilidad');
         for(let i=0; i<=99; i+=5) {
             let opt = new Option(`${i}% Utilidad`, i);
             if(i === 50) opt.selected = true; 
             selUtil.add(opt);
         }
+        // Llenar select de descuento
         const selDesc = document.getElementById('select-descuento');
         for(let i=0; i<=50; i++) selDesc.add(new Option(`${i}%`, i));
 
         try {
-            // AÑADIDO: fetch('/clientes') a la lista de cargas
+            // Hacemos las peticiones
             const [resP, resT, resM, resC, resCl] = await Promise.all([
                 fetch('/productos'), 
                 fetch('/telas'), 
                 fetch('/motores'), 
                 fetch('/colores'),
-                fetch('/clientes') // <-- NUEVO
+                fetch('/clientes') 
             ]);
             
+            // Convertimos a JSON
             productosDB = await resP.json();
             telasDB = await resT.json();
             motoresDB = await resM.json();
             coloresDB = await resC.json();
-            clientesDB = await resCl.json(); // Guardamos los clientes
+            
+            // --- DIAGNÓSTICO DE CLIENTES ---
+            // Aquí capturamos la respuesta cruda para ver qué es
+            const respuestaClientes = await resCl.json();
+            console.log("📦 Respuesta del servidor (/clientes):", respuestaClientes);
+
+            // Verificamos si es un array o si viene dentro de una propiedad
+            if (Array.isArray(respuestaClientes)) {
+                clientesDB = respuestaClientes;
+            } else if (respuestaClientes.clientes && Array.isArray(respuestaClientes.clientes)) {
+                // Caso: { exito: true, clientes: [...] }
+                clientesDB = respuestaClientes.clientes;
+            } else if (respuestaClientes.data && Array.isArray(respuestaClientes.data)) {
+                // Caso: { data: [...] }
+                clientesDB = respuestaClientes.data;
+            } else {
+                console.warn("⚠️ La ruta /clientes no devolvió una lista válida. Se usará lista vacía.");
+                clientesDB = [];
+            }
 
             // 1. LLENAR SELECT DE PRODUCTOS
             const selProd = document.getElementById('select-producto');
             selProd.innerHTML = '<option value="">-- Seleccione Producto --</option>';
-            productosDB.forEach(p => selProd.add(new Option(p.nombre, p._id)));
+            if(Array.isArray(productosDB)) {
+                productosDB.forEach(p => selProd.add(new Option(p.nombre, p._id)));
+            }
             
             // 2. LLENAR SELECT DE MOTORES
             const selMotor = document.getElementById('select-motor');
-            motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
+            if(Array.isArray(motoresDB)) {
+                motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
+            }
 
-            // 3. LLENAR SELECT DE CLIENTES (NUEVO)
+            // 3. LLENAR SELECT DE CLIENTES (CORREGIDO)
             const selCliente = document.getElementById('cliente');
             selCliente.innerHTML = '<option value="">-- Seleccione Cliente --</option>';
-            // Usamos el nombre como valor para que funcione con el PDF existente
-            clientesDB.forEach(c => selCliente.add(new Option(c.nombre, c.nombre))); 
+            
+            if (clientesDB.length > 0) {
+                clientesDB.forEach(c => {
+                    // Nos aseguramos que el cliente tenga nombre, si no, usamos un placeholder
+                    const nombreMostrar = c.nombre || c.nombreCliente || "Cliente sin nombre";
+                    selCliente.add(new Option(nombreMostrar, nombreMostrar));
+                }); 
+            } else {
+                selCliente.innerHTML = '<option value="">No hay clientes (o error de carga)</option>';
+            }
 
-        } catch (e) { console.error(e); alert("Error cargando datos (asegúrate de correr el servidor)"); }
+        } catch (e) { 
+            console.error("❌ Error grave en inicializar:", e); 
+            alert("Error cargando datos. Revisa la consola (F12) para más detalles."); 
+        }
 
         // --- CARGAR DATOS DESDE HISTORIAL (SI EXISTEN) ---
         const datosEditar = localStorage.getItem('datosCotizacionEditar');
         if (datosEditar) {
             try {
                 const d = JSON.parse(datosEditar);
-                // ESTO FUNCIONARÁ AUTOMÁTICAMENTE SI EL NOMBRE DEL CLIENTE COINCIDE
                 if (d.cliente) document.getElementById('cliente').value = d.cliente;
                 if (d.quienCotiza) document.getElementById('quienCotiza').value = d.quienCotiza;
                 
@@ -342,23 +377,20 @@
                     carritoItems = d.items;
                     actualizarTablaCarrito();
                 }
-                // RECUPERAR DESCUENTO
                 if (d.descuentoGlobalPct) {
                     document.getElementById('select-descuento').value = d.descuentoGlobalPct;
                 }
-
                 if (d.items && Array.isArray(d.items) && d.items.length > 0) {
                     carritoItems = d.items;
-                    actualizarTablaCarrito(); // Esto recalculá todo con el descuento puesto
+                    actualizarTablaCarrito();
                 }
-
                 localStorage.removeItem('datosCotizacionEditar');
             } catch (e) { console.error("Error al cargar datos de edición", e); }
         }
     }
     inicializar();
 
-    // --- AGREGAR AL CARRITO (MODIFICADO: SIN DESCUENTO INDIVIDUAL) ---
+    // --- AGREGAR AL CARRITO ---
     function agregarAlCarrito() {
         const idProd = document.getElementById('select-producto').value;
         const idTela = document.getElementById('select-tela').value;
@@ -391,12 +423,8 @@
         let area = ancho * alto;
         if(area < 1) area = 1; 
         
-        // 1. Costo Base (Costo puro para la empresa)
         const costoBaseUnitario = ((prodObj.precio + telaObj.precioExtra) * area) + precioMotor;
-        
-        // 2. Precio con Utilidad (Precio de Lista antes de descuentos globales)
         const precioConUtilidad = (costoBaseUnitario)/(1-(pctUtilidad/100));
-        
         const totalLinea = precioConUtilidad * cant;
 
         const item = {
@@ -407,7 +435,6 @@
             cantidad: cant,
             motor: motorObj ? motorObj.nombre : "Manual",
             accesorios: { color: accColor, mando: accMando },
-            // Guardamos el costo base para calcular utilidad real después
             financiero: { costoBase: costoBaseUnitario, utilidad: pctUtilidad }, 
             precioUnitario: precioConUtilidad,
             total: totalLinea
@@ -453,15 +480,11 @@
         actualizarTablaCarrito();
     }
 
-    // --- FUNCIÓN DE CÁLCULO REESCRITA (DESCUENTO GLOBAL) ---
+    // --- FUNCIÓN DE CÁLCULO ---
     function calcularTotalesGlobales() {
-        // 1. Subtotal de productos (Suma de precios con utilidad, sin descuento aún)
         let subtotalProductos = carritoItems.reduce((sum, item) => sum + item.total, 0);
-        
-        // 2. Costo Total (Lo que nos cuesta a nosotros fabricar todo)
         let costoTotalProduccion = carritoItems.reduce((sum, item) => sum + (item.financiero.costoBase * item.cantidad), 0);
 
-        // 3. Gastos Extra
         let totalGastos = 0;
         let listaGastos = [];
         if (document.getElementById('check-gastos').checked) {
@@ -476,22 +499,16 @@
             }
         }
 
-        // 4. Descuento Global (Sobre subtotal productos solamente)
         const pctDescuento = parseInt(document.getElementById('select-descuento').value) || 0;
         const montoDescuento = subtotalProductos * (pctDescuento / 100);
         const subtotalConDescuento = subtotalProductos - montoDescuento;
 
-        // 5. IVA (Sobre el subtotal ya descontado)
         const aplicarIva = document.getElementById('check-iva').checked;
         const iva = aplicarIva ? subtotalConDescuento * 0.16 : 0;
         
-        // 6. Gran Total
         const granTotal = subtotalConDescuento + iva + totalGastos;
-
-        // 7. Utilidad Neta (Total Venta sin IVA - Costo Producción - Gastos que asumimos nosotros o son passthrough)
         const utilidadNeta = subtotalConDescuento - costoTotalProduccion;
 
-        // --- ACTUALIZAR UI ---
         document.getElementById('lbl-subtotal-items').innerText = `$${subtotalProductos.toFixed(2)}`;
         
         const lblDesc = document.getElementById('lbl-descuento-monto');
@@ -519,7 +536,6 @@
 
         document.getElementById('lbl-gran-total').innerText = `$${granTotal.toFixed(2)}`;
         
-        // Actualizar Utilidad (Solo visible en pantalla)
         const lblUtilidad = document.getElementById('lbl-utilidad');
         lblUtilidad.innerText = `$${utilidadNeta.toFixed(2)}`;
         lblUtilidad.parentElement.style.backgroundColor = utilidadNeta >= 0 ? '#d4edda' : '#f8d7da';
@@ -535,7 +551,6 @@
         const mesActual = fechaObj.getMonth();
         const anioActual = fechaObj.getFullYear();
         
-        // --- 1. CÁLCULO DEL FOLIO CONSECUTIVO ---
         let consecutivo = 1; 
         try {
             const respuesta = await fetch('/cotizaciones');
@@ -554,7 +569,6 @@
         const mesStr = (mesActual + 1).toString().padStart(2, '0');
         const folio = `${consStr}-${mesStr}-${anioActual}`;
         
-        // AQUI TOMA EL VALOR DEL SELECT (Que configuramos como el nombre del cliente)
         const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
         const totales = calcularTotalesGlobales(); 
 
@@ -691,7 +705,7 @@
         await html2pdf().set(opt).from(element).save();
         document.body.style.cursor = 'default';
     }
-    // --- GUARDAR EN BD ---
+
     async function guardarCotizacionCompleta() {
         if(carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
         const cliente = document.getElementById('cliente').value;
