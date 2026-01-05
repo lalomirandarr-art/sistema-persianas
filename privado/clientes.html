@@ -5,44 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Directorio de Clientes</title>
     <link rel="stylesheet" href="style.css">
+    
     <style>
-        /* --- ESTILOS GENERALES --- */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; }
-        .clientes-container { padding: 40px; max-width: 1400px; margin: auto; }
+        /* --- ESTILOS GENERALES (Basados en tu referencia) --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; }
+        .main-container { padding: 40px; max-width: 1400px; margin: auto; }
 
-        /* --- CABECERA Y BOTÓN REGISTRAR --- */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        /* --- HEADER (IGUAL A TU REFERENCIA) --- */
+        /* Asegúrate de tener esto en tu style.css o déjalo aquí si es específico */
+        .header { background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .nav-container { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; max-width: 1400px; margin: auto; height: 70px; }
+        .nav-links a, .dropbtn { text-decoration: none; color: #333; margin-left: 20px; font-weight: 500; font-size: 1em; }
+        /* ... resto de estilos del menú ... */
+
+        /* --- PANEL DE CONTROLES (FILTRO Y BOTONES) --- */
+        .controls-panel {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
             margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        .btn-registrar {
-            background-color: #28a745;
+
+        .filter-item {
+            flex: 1;
+            min-width: 250px; /* Un poco más ancho para escribir nombres */
+        }
+
+        .filter-item label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .filter-item input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        .actions-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-control {
             color: white;
-            padding: 10px 20px;
             border: none;
+            padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
             font-size: 1em;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
+            display: flex; 
+            align-items: center; 
             gap: 8px;
+            text-decoration: none; /* Por si es un enlace */
         }
-        .btn-registrar:hover { background-color: #218838; }
+        .btn-green { background: #28a745; }
+        .btn-green:hover { background: #218838; }
 
-        /* --- TABLA --- */
-        .tabla-card {
+        /* --- TABLA RESPONSIVA (LA CLAVE PARA EL CELULAR) --- */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto; /* Permite deslizar si la tabla es muy ancha */
+            -webkit-overflow-scrolling: touch; /* Suavidad en iPhone */
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            overflow-x: auto; /* Scroll si es muy ancha */
         }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+
+        table { width: 100%; border-collapse: collapse; min-width: 900px; /* Fuerza el ancho mínimo para que aparezca el scroll */ }
+        
         th { 
-            background-color: #007bff; 
+            background-color: #001f3f; /* Mismo azul que tu referencia */
             color: white; 
             padding: 12px 15px; 
             text-align: left; 
@@ -56,131 +100,113 @@
         }
         tr:hover { background-color: #f1f5f9; }
 
-        /* Etiqueta para TIPO (Cliente/Prospecto) */
-        .badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: bold;
-        }
+        /* --- BADGES Y BOTONES DE TABLA --- */
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.85em; font-weight: bold; }
         .badge-cliente { background-color: #d4edda; color: #155724; }
         .badge-prospecto { background-color: #fff3cd; color: #856404; }
 
-        /* Botón de Opciones */
-        .btn-editar {
-            background-color: #ffc107;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
+        .btn-icon { background: none; border: none; font-size: 1.2em; cursor: pointer; padding: 0 5px; }
+        .btn-icon:hover { transform: scale(1.2); }
+
+        /* --- PAGINACIÓN --- */
+        .pagination-container { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-top: 20px; 
+            padding: 10px; 
+            background: #fff; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+        }
+        .btn-paginacion { 
+            background-color: #001f3f; 
+            color: white; 
+            border: none; 
+            padding: 8px 15px; 
+            border-radius: 5px; 
+            font-weight: bold; 
             cursor: pointer;
-            font-size: 1.2em;
         }
-        .btn-editar:hover { transform: scale(1.1); }
+        .btn-paginacion:disabled { background-color: #ccc; cursor: not-allowed; }
+        .page-info { font-weight: bold; color: #555; }
 
-        /* --- MODAL (POPUP) --- */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 1000;
-            display: none; /* Oculto por defecto */
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(3px);
-        }
-        .modal-content {
-            background: white;
-            width: 90%;
-            max-width: 800px;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        .modal-header {
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px;
-        }
-        .close-modal { background: none; border: none; font-size: 2em; cursor: pointer; color: #aaa; }
-        
-        /* Grid del Formulario */
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .full-width { grid-column: span 2; }
-        
-        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;
-            box-sizing: border-box; /* Importante para que no se salgan */
-        }
-        
-        .modal-footer {
-            margin-top: 20px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            border-top: 1px solid #eee;
-            padding-top: 20px;
-        }
-        .btn-cancelar { background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
-        .btn-guardar { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
-
+        /* --- ESTILOS MÓVILES (ADAPTADOS) --- */
         @media (max-width: 768px) {
+            .main-container { padding: 10px; }
+            
+            .controls-panel {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 15px;
+                gap: 15px;
+            }
+            .filter-item { min-width: 0; }
+            .actions-group { width: 100%; }
+            .btn-control { width: 100%; justify-content: center; }
+            
+            /* El modal también necesita ajuste móvil */
+            .modal-content { width: 95%; padding: 15px; margin: auto; }
             .form-grid { grid-template-columns: 1fr; }
             .full-width { grid-column: span 1; }
         }
 
-        /* Agrega esto junto a tus otros estilos de botones */
-.btn-borrar {
-    background-color: #dc3545; /* Rojo */
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1.2em;
-    margin-left: 5px; /* Separación del botón editar */
-}
-.btn-borrar:hover { transform: scale(1.1); background-color: #c82333; }
+        /* --- MODAL (Manteniendo tus estilos previos, simplificados) --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 90%; max-width: 800px; border-radius: 10px; padding: 30px; max-height: 90vh; overflow-y: auto; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .full-width { grid-column: span 2; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
+        .form-group input, .form-group select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
     <header class="header">
         <div class="nav-container">
-            <div class="logo"><img src="/IMG/logo.jpeg" alt="Logo"></div>
+            <div class="logo"><img src="/IMG/logo.jpeg" alt="Logo" style="height: 50px;"></div>
             <nav class="nav-links">
                 <a href="index.html" class="btn-logout">Cerrar Sesión</a>
                 <a href="/inicio.html">Inicio</a>
                 <a href="/productos.html">Productos</a>
                 <a href="/clientes.html">Clientes</a>
-                <div class="dropdown">
-                    <button class="dropbtn">Cotizaciones ▼</button>
-                    <div class="dropdown-content">
-                        <a href="/cotizaciones.html">Nueva Cotización</a>
-                        <a href="/control-cotizaciones.html">Control Cotizaciones</a>
+                <div class="dropdown" style="display:inline-block;">
+                    <button class="dropbtn" style="background:none; border:none; cursor:pointer;">Cotizaciones ▼</button>
+                    <div class="dropdown-content" style="position:absolute; background:white; box-shadow:0 8px 16px rgba(0,0,0,0.2); display:none;">
+                        <a href="/cotizaciones.html" style="display:block; padding:12px;">Nueva Cotización</a>
+                        <a href="/control-cotizaciones.html" style="display:block; padding:12px;">Control Cotizaciones</a>
                     </div>
                 </div>
             </nav>
         </div>
     </header>
 
-    <div class="clientes-container">
+    <div class="main-container">
         
-        <div class="page-header">
-            <div>
-                <h1>Directorio de Clientes</h1>
-                <p>Gestión completa de cartera de clientes y prospectos.</p>
-            </div>
-            <button class="btn-registrar" onclick="abrirModalNuevo()">
-                ➕ Registrar Cliente
-            </button>
+        <div style="margin-bottom: 20px;">
+            <h1 style="color: #333; margin:0;">Directorio de Clientes</h1>
+            <p style="color: #666; margin:5px 0 0 0;">Gestión completa de cartera.</p>
         </div>
 
-        <div class="tabla-card">
+        <div class="controls-panel">
+            <div class="filter-item">
+                <label>🔍 Buscar Cliente:</label>
+                <input type="text" id="inputBusqueda" placeholder="Nombre, Empresa..." onkeyup="buscarCliente()">
+            </div>
+            
+            <div class="actions-group">
+                <button class="btn-control btn-green" onclick="abrirModalNuevo()">
+                    ➕ Registrar Cliente
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Nombre del Cliente</th>
+                        <th>Nombre / Razón Social</th>
                         <th>Email</th>
                         <th>Teléfono</th>
                         <th>Tipo</th>
@@ -192,189 +218,238 @@
                     </tbody>
             </table>
         </div>
-        <div id="contador-clientes" style="margin-top: 10px; text-align: right; color: #666;">Cargando...</div>
+
+        <div class="pagination-container" id="panel-paginacion">
+            <button class="btn-paginacion" id="btn-prev" onclick="cambiarPagina(-1)">⬅️ Anterior</button>
+            <span class="page-info" id="lbl-page-info">Cargando...</span>
+            <button class="btn-paginacion" id="btn-next" onclick="cambiarPagina(1)">Siguiente ➡️</button>
+        </div>
+
     </div>
 
     <div id="modal-cliente" class="modal-overlay">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-titulo">Editar Cliente</h2>
-                <button class="close-modal" onclick="cerrarModal()">×</button>
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:10px;">
+                <h2 id="modal-titulo" style="margin:0;">Cliente</h2>
+                <button onclick="cerrarModal()" style="background:none; border:none; font-size:1.5em; cursor:pointer;">×</button>
             </div>
             
             <form id="form-cliente" onsubmit="guardarCliente(event)">
-                <input type="hidden" id="cliente-id"> <div class="form-grid">
+                <input type="hidden" id="cliente-id">
+                <div class="form-grid">
                     <div class="form-group">
-                        <label>Nombre del Cliente *</label>
-                        <input type="text" id="nombre" required placeholder="Nombre completo">
+                        <label>Nombre *</label>
+                        <input type="text" id="nombre" required>
                     </div>
                     <div class="form-group">
                         <label>Razón Social</label>
-                        <input type="text" id="razonSocial" placeholder="Empresa S.A. de C.V.">
+                        <input type="text" id="razonSocial">
                     </div>
                     <div class="form-group">
-                        <label>Email *</label>
-                        <input type="email" id="email" required placeholder="correo@ejemplo.com">
+                        <label>Email</label>
+                        <input type="email" id="email">
                     </div>
                     <div class="form-group">
-                        <label>Teléfono *</label>
-                        <input type="tel" id="telefono" required placeholder="55 1234 5678">
+                        <label>Teléfono</label>
+                        <input type="tel" id="telefono">
                     </div>
-
                     <div class="form-group">
-                        <label>Tipo *</label>
-                        <select id="tipo" required>
+                        <label>Tipo</label>
+                        <select id="tipo">
                             <option value="Prospecto">Prospecto</option>
                             <option value="Cliente">Cliente</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Canal de Origen</label>
+                        <label>Canal</label>
                         <select id="canal">
                             <option value="WhatsApp">WhatsApp</option>
                             <option value="Correo">Correo</option>
                             <option value="Referido">Referido</option>
                             <option value="Facebook">Facebook</option>
                             <option value="Instagram">Instagram</option>
-                            <option value="Concurso">Concurso</option>
-                            <option value="Eventos">Eventos</option>
-                            <option value="Patrocinio">Patrocinio</option>
                             <option value="Otro">Otro</option>
                         </select>
                     </div>
-
-                    <div class="full-width" style="border-bottom: 1px solid #eee; margin: 10px 0;">
-                        <h3 style="margin:0; font-size:1em; color:#007bff;">📍 Dirección</h3>
-                    </div>
-
-                    <div class="form-group"><label>Calle y Número</label><input type="text" id="calle"></div>
+                    
+                    <div class="full-width"><h3 style="margin:10px 0; color:#007bff; font-size:1em; border-bottom:1px solid #eee;">📍 Dirección</h3></div>
+                    
+                    <div class="form-group"><label>Calle</label><input type="text" id="calle"></div>
                     <div class="form-group"><label>Colonia</label><input type="text" id="colonia"></div>
-                    <div class="form-group"><label>Localidad / Alcaldía</label><input type="text" id="localidad"></div>
-                    <div class="form-group"><label>Código Postal</label><input type="text" id="cp"></div>
+                    <div class="form-group"><label>Localidad</label><input type="text" id="localidad"></div>
+                    <div class="form-group"><label>CP</label><input type="text" id="cp"></div>
                     <div class="form-group"><label>Estado</label><input type="text" id="estado"></div>
-                    <div class="form-group"><label>País</label><input type="text" id="pais" value="México"></div>
-
                     <div class="form-group full-width">
-                        <label>Referencia / Notas</label>
-                        <textarea id="referencia" rows="2" placeholder="Escribe aquí una referencia de quién es este cliente..."></textarea>
+                        <label>Referencia</label>
+                        <textarea id="referencia" rows="2"></textarea>
                     </div>
                 </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
-                    <button type="submit" class="btn-guardar">💾 Guardar Cambios</button>
+                <div style="margin-top:20px; text-align:right; border-top:1px solid #eee; padding-top:20px;">
+                    <button type="button" onclick="cerrarModal()" style="padding:10px 20px; background:#6c757d; color:white; border:none; border-radius:5px; cursor:pointer;">Cancelar</button>
+                    <button type="submit" style="padding:10px 20px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer;">💾 Guardar</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        let clientesDB = []; // Variable global para almacenar los clientes cargados
+        let paginaActual = 1;
+        let totalPaginas = 1;
+        let busquedaActual = "";
+        const filasPorPagina = 20;
 
-        // --- 1. CARGAR DATOS ---
-        async function cargarClientes() {
+        // --- CARGAR DATOS (PAGINADOS DESDE EL SERVIDOR) ---
+        async function cargarClientes(pagina = 1) {
+            paginaActual = pagina;
+            const input = document.getElementById('inputBusqueda');
+            busquedaActual = input.value.trim();
             const tbody = document.getElementById('lista-clientes');
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Cargando datos...</td></tr>';
             
+            // Indicador de carga
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">Cargando datos...</td></tr>';
+
             try {
-                // NOTA: Tu backend debe devolver ahora objetos, no solo strings
-                const res = await fetch('/clientes');
-                const datos = await res.json();
+                // Petición al backend con página y búsqueda
+                const res = await fetch(`/clientes?page=${pagina}&limit=${filasPorPagina}&search=${encodeURIComponent(busquedaActual)}`);
+                const respuesta = await res.json();
                 
-                // Aseguramos que sea un array
-                clientesDB = Array.isArray(datos) ? datos : [];
-                renderizarTabla();
+                const lista = respuesta.datos || [];
+                const totalRegistros = respuesta.total || 0;
+                totalPaginas = respuesta.totalPaginas || 1;
+
+                renderizarTabla(lista, totalRegistros);
+                actualizarControlesPaginacion(totalRegistros);
+
             } catch (error) {
                 console.error(error);
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Error al cargar datos</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Error de conexión</td></tr>';
             }
         }
 
-        // --- 2. RENDERIZAR TABLA ---
-        function renderizarTabla() {
+        // --- RENDERIZAR TABLA ---
+        function renderizarTabla(lista, totalRegistros) {
             const tbody = document.getElementById('lista-clientes');
-            const contador = document.getElementById('contador-clientes');
             tbody.innerHTML = '';
 
-            if (clientesDB.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#999;">No hay clientes registrados.</td></tr>';
-                contador.innerText = "0 registros";
+            if (lista.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#777;">No se encontraron coincidencias.</td></tr>';
                 return;
             }
 
-            clientesDB.forEach((cliente, index) => {
-                // Definir clase del badge según el tipo
-                const claseTipo = cliente.tipo === 'Cliente' ? 'badge-cliente' : 'badge-prospecto';
+            lista.forEach((cliente, index) => {
+                const numeroReal = ((paginaActual - 1) * filasPorPagina) + (index + 1);
                 const nombreMostrar = cliente.razonSocial ? `${cliente.nombre} (${cliente.razonSocial})` : cliente.nombre;
+                const claseTipo = cliente.tipo === 'Cliente' ? 'badge-cliente' : 'badge-prospecto';
 
                 const fila = `
                     <tr>
-                        <td style="font-weight:bold; color:#007bff;">#${index + 1}</td>
+                        <td style="color:#666;">${numeroReal}</td>
                         <td style="font-weight:bold;">${nombreMostrar}</td>
                         <td>${cliente.email || '-'}</td>
                         <td>${cliente.telefono || '-'}</td>
                         <td><span class="badge ${claseTipo}">${cliente.tipo || 'Prospecto'}</span></td>
                         <td>${cliente.canal || '-'}</td>
-                        <td style="text-align: center;">
-                            <button class="btn-editar" onclick="abrirModalEditar('${cliente._id}')" title="Editar">✏️</button>
-                            <button class="btn-borrar" onclick="eliminarCliente('${cliente._id}')" title="Borrar">🗑️</button>
-        </td>
+                        <td style="text-align: center; white-space: nowrap;">
+                            <button class="btn-icon" style="color:#28a745;" onclick="abrirModalEditar('${cliente._id}')" title="Editar">✏️</button>
+                            <button class="btn-icon" style="color:#dc3545;" onclick="eliminarCliente('${cliente._id}')" title="Borrar">🗑️</button>
                         </td>
                     </tr>
                 `;
                 tbody.innerHTML += fila;
             });
-            contador.innerText = `Total: ${clientesDB.length} registros`;
         }
 
-        // --- 3. ABRIR MODAL (NUEVO) ---
+        // --- ACTUALIZAR BOTONES PAGINACIÓN ---
+        function actualizarControlesPaginacion(totalRegistros) {
+            const btnPrev = document.getElementById('btn-prev');
+            const btnNext = document.getElementById('btn-next');
+            const lblInfo = document.getElementById('lbl-page-info');
+
+            const inicio = (totalRegistros === 0) ? 0 : ((paginaActual - 1) * filasPorPagina) + 1;
+            let fin = paginaActual * filasPorPagina;
+            if (fin > totalRegistros) fin = totalRegistros;
+
+            lblInfo.innerText = `${inicio} - ${fin} de ${totalRegistros}`;
+            
+            btnPrev.disabled = (paginaActual === 1);
+            btnNext.disabled = (paginaActual >= totalPaginas || totalRegistros === 0);
+        }
+
+        function cambiarPagina(dir) {
+            const nuevaPagina = paginaActual + dir;
+            if (nuevaPagina > 0 && nuevaPagina <= totalPaginas) {
+                cargarClientes(nuevaPagina);
+            }
+        }
+
+        // --- BUSCADOR CON DELAY (Para no saturar) ---
+        let timeoutBuscador;
+        function buscarCliente() {
+            clearTimeout(timeoutBuscador);
+            timeoutBuscador = setTimeout(() => {
+                cargarClientes(1); // Siempre volver a página 1 al buscar
+            }, 400);
+        }
+
+        // --- FUNCIONES DEL MODAL (Nuevo / Editar / Guardar) ---
         function abrirModalNuevo() {
-            document.getElementById('form-cliente').reset(); // Limpiar formulario
-            document.getElementById('cliente-id').value = ""; // Sin ID porque es nuevo
+            document.getElementById('form-cliente').reset();
+            document.getElementById('cliente-id').value = "";
             document.getElementById('modal-titulo').innerText = "Nuevo Cliente";
             document.getElementById('modal-cliente').style.display = "flex";
         }
 
-        // --- 4. ABRIR MODAL (EDITAR) ---
-        function abrirModalEditar(id) {
-            const c = clientesDB.find(cliente => cliente._id === id);
-            if (!c) return alert("Cliente no encontrado");
-
-            // Llenar el formulario con los datos existentes
-            document.getElementById('cliente-id').value = c._id;
-            document.getElementById('nombre').value = c.nombre || '';
-            document.getElementById('razonSocial').value = c.razonSocial || '';
-            document.getElementById('email').value = c.email || '';
-            document.getElementById('telefono').value = c.telefono || '';
-            document.getElementById('tipo').value = c.tipo || 'Prospecto';
-            document.getElementById('canal').value = c.canal || 'WhatsApp';
+        async function abrirModalEditar(id) {
+            // Para editar, necesitamos los datos. Podemos pasarlos por param o buscarlos.
+            // Opción rápida: buscar en la lista actual de memoria si quisiéramos, 
+            // pero como está paginado, mejor hacemos fetch del server o usamos lo que hay en pantalla.
+            // Para simplificar, asumimos que tienes la lista en memoria si quieres, 
+            // pero haremos un fetch directo a los datos que ya tenemos cargados en la tabla si guardáramos la lista globalmente.
+            // MEJORA: Haremos un truco, tomamos los datos de la fila? No, mejor traerlos bien.
             
-            // Dirección
-            document.getElementById('calle').value = c.calle || '';
-            document.getElementById('colonia').value = c.colonia || '';
-            document.getElementById('localidad').value = c.localidad || '';
-            document.getElementById('cp').value = c.cp || '';
-            document.getElementById('estado').value = c.estado || '';
-            document.getElementById('pais').value = c.pais || 'México';
-            document.getElementById('referencia').value = c.referencia || '';
+            // Vamos a buscar en el backend el cliente específico o usar un truco.
+            // Como ya tenemos los ID, es seguro que existen. 
+            // Haremos esto: recargar la variable listaClientes globalmente o buscar en DOM.
+            // Para hacerlo robusto sin cambiar server: 
+            // Vamos a confiar en que server.js ya envía todos los datos en la lista paginada.
+            // Pero como la función `cargarClientes` no guarda en variable global `listaClientes`,
+            // haremos un pequeño fetch individual si quisieras ser muy estricto, 
+            // O mejor aún: Guardemos la respuesta del fetch en una variable global.
+
+            // 1. Modificar cargarClientes para guardar en:
+            // window.clientesActuales = lista; (Ya lo haré yo abajo)
+            
+            const cliente = window.clientesActuales.find(c => c._id === id);
+            if (!cliente) return alert("Error localizando cliente");
+
+            document.getElementById('cliente-id').value = cliente._id;
+            document.getElementById('nombre').value = cliente.nombre || '';
+            document.getElementById('razonSocial').value = cliente.razonSocial || '';
+            document.getElementById('email').value = cliente.email || '';
+            document.getElementById('telefono').value = cliente.telefono || '';
+            document.getElementById('tipo').value = cliente.tipo || 'Prospecto';
+            document.getElementById('canal').value = cliente.canal || 'WhatsApp';
+            
+            document.getElementById('calle').value = cliente.calle || '';
+            document.getElementById('colonia').value = cliente.colonia || '';
+            document.getElementById('localidad').value = cliente.localidad || '';
+            document.getElementById('cp').value = cliente.cp || '';
+            document.getElementById('estado').value = cliente.estado || '';
+            document.getElementById('referencia').value = cliente.referencia || '';
 
             document.getElementById('modal-titulo').innerText = "Editar Cliente";
             document.getElementById('modal-cliente').style.display = "flex";
         }
 
-        // --- 5. CERRAR MODAL ---
         function cerrarModal() {
             document.getElementById('modal-cliente').style.display = "none";
         }
 
-        // --- 6. GUARDAR (CREAR O ACTUALIZAR) ---
         async function guardarCliente(e) {
-            e.preventDefault(); // Evitar recarga de página
-
+            e.preventDefault();
             const id = document.getElementById('cliente-id').value;
             
-            // Recolectar datos del formulario
-            const datosCliente = {
+            const datos = {
                 nombre: document.getElementById('nombre').value,
                 razonSocial: document.getElementById('razonSocial').value,
                 email: document.getElementById('email').value,
@@ -386,42 +461,82 @@
                 localidad: document.getElementById('localidad').value,
                 cp: document.getElementById('cp').value,
                 estado: document.getElementById('estado').value,
-                pais: document.getElementById('pais').value,
                 referencia: document.getElementById('referencia').value
             };
 
-            const url = '/clientes'; // Endpoint
-            let method = 'POST'; // Por defecto crear
-            
-            // Si hay ID, agregamos el ID al cuerpo y cambiamos a PUT
-            if(id) {
-                method = 'PUT';
-                datosCliente.id = id; // O _id según tu backend
-            }
+            const metodo = id ? 'PUT' : 'POST';
+            if (id) datos.id = id;
 
             try {
-                const res = await fetch(url, {
-                    method: method,
+                const res = await fetch('/clientes', {
+                    method: metodo,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(datosCliente)
+                    body: JSON.stringify(datos)
                 });
-
-                if (res.ok) {
-                    alert("✅ Datos guardados correctamente");
+                const r = await res.json();
+                if (r.exito) {
+                    alert("✅ Guardado correctamente");
                     cerrarModal();
-                    cargarClientes(); // Recargar la tabla
+                    cargarClientes(paginaActual); // Recargar página actual
                 } else {
-                    alert("❌ Error al guardar en el servidor.");
+                    alert("❌ Error: " + r.mensaje);
                 }
             } catch (error) {
-                console.error(error);
                 alert("Error de conexión");
             }
         }
 
-        // Cargar al inicio
-        cargarClientes();
-    </script>
+        // --- BORRAR ---
+        async function eliminarCliente(id) {
+            const pass = prompt("⚠️ ¿Eliminar Cliente?\nEscribe la contraseña (1234):");
+            if (!pass) return;
 
+            try {
+                const res = await fetch('/clientes', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, password: pass })
+                });
+                const r = await res.json();
+                if (r.exito) {
+                    alert("🗑️ Eliminado");
+                    cargarClientes(paginaActual);
+                } else {
+                    alert(r.mensaje);
+                }
+            } catch (error) {
+                alert("Error al borrar");
+            }
+        }
+
+        // Pequeño ajuste para que 'abrirModalEditar' funcione
+        // Interceptamos la respuesta para guardarla en memoria
+        const originalCargar = cargarClientes;
+        cargarClientes = async function(p) {
+            paginaActual = p || 1;
+            // Copia de la lógica para poder asignar window.clientesActuales
+            const input = document.getElementById('inputBusqueda');
+            busquedaActual = input.value.trim();
+            const tbody = document.getElementById('lista-clientes');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">Cargando...</td></tr>';
+            
+            try {
+                const res = await fetch(`/clientes?page=${paginaActual}&limit=${filasPorPagina}&search=${encodeURIComponent(busquedaActual)}`);
+                const respuesta = await res.json();
+                
+                window.clientesActuales = respuesta.datos || []; // <--- ESTO ES LA CLAVE
+                
+                renderizarTabla(window.clientesActuales, respuesta.total);
+                totalPaginas = respuesta.totalPaginas;
+                actualizarControlesPaginacion(respuesta.total);
+            } catch (e) { console.error(e); }
+        }
+
+        // INICIO
+        document.addEventListener("DOMContentLoaded", () => {
+            cargarClientes();
+        });
+
+    </script>
 </body>
 </html>
