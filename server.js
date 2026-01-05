@@ -100,7 +100,30 @@ app.get('/productos', async (req, res) => {
         res.status(500).json({ error: "Error al obtener productos" });
     }
 });
+// ==========================================
+//              ZONA DE CLIENTES (NUEVA)
+// ==========================================
+const clienteSchema = new mongoose.Schema({
+    nombre: String,
+    razonSocial: String,
+    email: String,
+    telefono: String,
+    tipo: String, // Cliente o Prospecto
+    canal: String, // Origen (WhatsApp, Facebook, etc)
+    
+    // Dirección
+    calle: String,
+    colonia: String,
+    localidad: String,
+    cp: String,
+    estado: String,
+    pais: String,
+    referencia: String,
 
+    fechaRegistro: { type: Date, default: Date.now }
+});
+
+const Cliente = mongoose.model('Cliente', clienteSchema);
 // ==========================================
 //           ZONA DE COTIZACIONES (ACTUALIZADA)
 // ==========================================
@@ -201,14 +224,41 @@ app.get('/cotizaciones', async (req, res) => {
     res.json(historial);
 });
 
-// Ruta para DIRECTORIO CLIENTES
+// 1. LEER CLIENTES (GET)
 app.get('/clientes', async (req, res) => {
     try {
-        const listaClientes = await Cotizacion.distinct("cliente");
-        listaClientes.sort();
+        // Ahora buscamos en la colección de Clientes, no en cotizaciones
+        const listaClientes = await Cliente.find().sort({ nombre: 1 });
         res.json(listaClientes);
     } catch (error) {
         res.status(500).json({ error: "Error al obtener clientes" });
+    }
+});
+
+// 2. CREAR CLIENTE (POST)
+app.post('/clientes', async (req, res) => {
+    try {
+        console.log("👤 Registrando nuevo cliente:", req.body.nombre);
+        const nuevoCliente = new Cliente(req.body);
+        await nuevoCliente.save();
+        res.json({ exito: true, mensaje: "Cliente registrado" });
+    } catch (error) {
+        console.error("Error al guardar cliente:", error);
+        res.status(500).json({ exito: false, mensaje: "Error al guardar" });
+    }
+});
+
+// 3. ACTUALIZAR CLIENTE (PUT)
+app.put('/clientes', async (req, res) => {
+    try {
+        const { id, ...datos } = req.body; // Separamos el ID de los datos
+        console.log("✏️ Editando cliente ID:", id);
+        
+        await Cliente.findByIdAndUpdate(id, datos);
+        res.json({ exito: true, mensaje: "Cliente actualizado" });
+    } catch (error) {
+        console.error("Error al actualizar cliente:", error);
+        res.status(500).json({ exito: false, mensaje: "Error al actualizar" });
     }
 });
 
