@@ -229,12 +229,44 @@ app.get('/cotizaciones', async (req, res) => {
 });
 
 // 1. LEER CLIENTES (GET)
+// 1. LEER CLIENTES (GET) - CON PAGINACIÓN Y BÚSQUEDA
 app.get('/clientes', async (req, res) => {
     try {
-        // Ahora buscamos en la colección de Clientes, no en cotizaciones
-        const listaClientes = await Cliente.find().sort({ nombre: 1 });
-        res.json(listaClientes);
+        // Recoger parámetros de la URL (página, límite, búsqueda)
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const search = req.query.search || "";
+
+        // Crear filtro de búsqueda
+        let query = {};
+        if (search) {
+            query = {
+                $or: [
+                    { nombre: { $regex: search, $options: 'i' } },
+                    { razonSocial: { $regex: search, $options: 'i' } }
+                ]
+            };
+        }
+
+        // 1. Contar total de resultados (para saber cuántas páginas hay)
+        const totalDocumentos = await Cliente.countDocuments(query);
+        
+        // 2. Obtener solo los clientes de la página actual
+        const listaClientes = await Cliente.find(query)
+            .sort({ nombre: 1 }) // Ordenar alfabéticamente
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        // 3. Enviar PAQUETE COMPLETO (Esto es lo que tu HTML espera)
+        res.json({
+            datos: listaClientes,
+            total: totalDocumentos,
+            paginaActual: page,
+            totalPaginas: Math.ceil(totalDocumentos / limit)
+        });
+
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: "Error al obtener clientes" });
     }
 });
