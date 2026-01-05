@@ -140,7 +140,9 @@
                     </div>
                     <div class="campo">
                         <label>🏢 Cliente:</label>
-                        <input type="text" id="cliente" placeholder="Nombre del cliente">
+                        <select id="cliente">
+                            <option value="">Cargando clientes...</option>
+                        </select>
                     </div>
                 </div>
 
@@ -263,7 +265,7 @@
                         <div class="gran-total" style="display:flex; justify-content:space-between;"><span>Total:</span> <span id="lbl-gran-total">$0.00</span></div>
                     </div>
 
-                   
+                    
 
                     <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
                         <button class="hero-button" onclick="generarPDF()" style="background-color: #dc3545;">📄 Generar PDF</button>
@@ -278,9 +280,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <script>
-    // --- MANTUVE EL SCRIPT EXACTAMENTE IGUAL PARA NO ROMPER NINGUNA LÓGICA ---
     // --- VARIABLES GLOBALES ---
     let productosDB = [], motoresDB = [], telasDB = [], coloresDB = [];
+    let clientesDB = []; // NUEVA VARIABLE PARA CLIENTES
     let carritoItems = []; 
 
     // Inicialización
@@ -295,21 +297,35 @@
         for(let i=0; i<=50; i++) selDesc.add(new Option(`${i}%`, i));
 
         try {
-            const [resP, resT, resM, resC] = await Promise.all([
-                fetch('/productos'), fetch('/telas'), fetch('/motores'), fetch('/colores')
+            // AÑADIDO: fetch('/clientes') a la lista de cargas
+            const [resP, resT, resM, resC, resCl] = await Promise.all([
+                fetch('/productos'), 
+                fetch('/telas'), 
+                fetch('/motores'), 
+                fetch('/colores'),
+                fetch('/clientes') // <-- NUEVO
             ]);
             
             productosDB = await resP.json();
             telasDB = await resT.json();
             motoresDB = await resM.json();
             coloresDB = await resC.json();
+            clientesDB = await resCl.json(); // Guardamos los clientes
 
+            // 1. LLENAR SELECT DE PRODUCTOS
             const selProd = document.getElementById('select-producto');
-            selProd.innerHTML = '<option value="">-- Seleccione --</option>';
+            selProd.innerHTML = '<option value="">-- Seleccione Producto --</option>';
             productosDB.forEach(p => selProd.add(new Option(p.nombre, p._id)));
             
+            // 2. LLENAR SELECT DE MOTORES
             const selMotor = document.getElementById('select-motor');
             motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
+
+            // 3. LLENAR SELECT DE CLIENTES (NUEVO)
+            const selCliente = document.getElementById('cliente');
+            selCliente.innerHTML = '<option value="">-- Seleccione Cliente --</option>';
+            // Usamos el nombre como valor para que funcione con el PDF existente
+            clientesDB.forEach(c => selCliente.add(new Option(c.nombre, c.nombre))); 
 
         } catch (e) { console.error(e); alert("Error cargando datos (asegúrate de correr el servidor)"); }
 
@@ -318,6 +334,7 @@
         if (datosEditar) {
             try {
                 const d = JSON.parse(datosEditar);
+                // ESTO FUNCIONARÁ AUTOMÁTICAMENTE SI EL NOMBRE DEL CLIENTE COINCIDE
                 if (d.cliente) document.getElementById('cliente').value = d.cliente;
                 if (d.quienCotiza) document.getElementById('quienCotiza').value = d.quienCotiza;
                 
@@ -537,6 +554,7 @@
         const mesStr = (mesActual + 1).toString().padStart(2, '0');
         const folio = `${consStr}-${mesStr}-${anioActual}`;
         
+        // AQUI TOMA EL VALOR DEL SELECT (Que configuramos como el nombre del cliente)
         const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
         const totales = calcularTotalesGlobales(); 
 
