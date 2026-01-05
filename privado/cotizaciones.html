@@ -314,22 +314,26 @@
             motoresDB = await resM.json();
             coloresDB = await resC.json();
             
-            // --- DIAGNÓSTICO DE CLIENTES ---
-            // Aquí capturamos la respuesta cruda para ver qué es
+            // --- LÓGICA DE CLIENTES MEJORADA (Auto-Detectar Array) ---
             const respuestaClientes = await resCl.json();
-            console.log("📦 Respuesta del servidor (/clientes):", respuestaClientes);
+            console.log("📦 Respuesta Clientes Cruda:", respuestaClientes);
 
-            // Verificamos si es un array o si viene dentro de una propiedad
             if (Array.isArray(respuestaClientes)) {
+                // Caso ideal: El servidor devuelve directamente la lista [ ... ]
                 clientesDB = respuestaClientes;
-            } else if (respuestaClientes.clientes && Array.isArray(respuestaClientes.clientes)) {
-                // Caso: { exito: true, clientes: [...] }
-                clientesDB = respuestaClientes.clientes;
-            } else if (respuestaClientes.data && Array.isArray(respuestaClientes.data)) {
-                // Caso: { data: [...] }
-                clientesDB = respuestaClientes.data;
+            } else if (typeof respuestaClientes === 'object' && respuestaClientes !== null) {
+                // Caso común: El servidor devuelve { exito: true, datos: [ ... ] }
+                // Buscamos "automáticamente" la propiedad que sea un Array
+                const posibleArray = Object.values(respuestaClientes).find(val => Array.isArray(val));
+                
+                if (posibleArray) {
+                    console.log("✅ Lista de clientes encontrada dentro del objeto.");
+                    clientesDB = posibleArray;
+                } else {
+                    console.warn("⚠️ No se encontró ninguna lista dentro del objeto de respuesta.");
+                    clientesDB = [];
+                }
             } else {
-                console.warn("⚠️ La ruta /clientes no devolvió una lista válida. Se usará lista vacía.");
                 clientesDB = [];
             }
 
@@ -346,23 +350,23 @@
                 motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
             }
 
-            // 3. LLENAR SELECT DE CLIENTES (CORREGIDO)
+            // 3. LLENAR SELECT DE CLIENTES
             const selCliente = document.getElementById('cliente');
             selCliente.innerHTML = '<option value="">-- Seleccione Cliente --</option>';
             
             if (clientesDB.length > 0) {
                 clientesDB.forEach(c => {
                     // Nos aseguramos que el cliente tenga nombre, si no, usamos un placeholder
-                    const nombreMostrar = c.nombre || c.nombreCliente || "Cliente sin nombre";
+                    const nombreMostrar = c.nombre || c.nombreCliente || c.razonSocial || "Cliente sin nombre";
                     selCliente.add(new Option(nombreMostrar, nombreMostrar));
                 }); 
             } else {
-                selCliente.innerHTML = '<option value="">No hay clientes (o error de carga)</option>';
+                selCliente.innerHTML = '<option value="">No hay clientes disponibles</option>';
             }
 
         } catch (e) { 
             console.error("❌ Error grave en inicializar:", e); 
-            alert("Error cargando datos. Revisa la consola (F12) para más detalles."); 
+            alert("Error cargando datos. Revisa la consola."); 
         }
 
         // --- CARGAR DATOS DESDE HISTORIAL (SI EXISTEN) ---
