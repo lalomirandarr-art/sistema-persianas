@@ -538,7 +538,9 @@
                     <td>
                         <strong>${item.producto}</strong><br>
                         <small>${item.tela} - ${item.color}</small><br>
-                        <small style="color: #666;">${item.motor !== "Manual" ? "⚙️ "+item.motor : ""} | Acc: ${item.accesorios.color}</small>
+                        <small style="color: #666;">
+    ${item.motor !== "Manual" ? "⚙️ "+item.motor + " | " : ""} Acc: ${item.accesorios.color} | Mando: ${item.accesorios.mando}
+</small>
                     </td>
                     <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
                     <td style="text-align: center;">${item.cantidad}</td>
