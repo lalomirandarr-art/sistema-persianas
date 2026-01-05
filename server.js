@@ -124,6 +124,64 @@ const clienteSchema = new mongoose.Schema({
 });
 
 const Cliente = mongoose.model('Cliente', clienteSchema);
+
+// ==========================================
+// 🚀 ZONA DE MIGRACIÓN (USAR UNA SOLA VEZ)
+// ==========================================
+app.get('/migrar-datos-ahora', async (req, res) => {
+    try {
+        // 1. Obtener todos los nombres distintos de la colección de Cotizaciones
+        // (Esto es lo que hacías antes, recuperar solo los nombres)
+        const nombresClientes = await Cotizacion.distinct("cliente");
+        
+        let contados = 0;
+        let existentes = 0;
+
+        // 2. Recorrer cada nombre encontrado
+        for (const nombreViejo of nombresClientes) {
+            
+            // Verificamos que el nombre no esté vacío
+            if (!nombreViejo) continue; 
+
+            // 3. Revisar si ya existe en la nueva colección de Clientes
+            // (Para no duplicarlos si recargas la página)
+            const existe = await Cliente.findOne({ nombre: nombreViejo });
+
+            if (!existe) {
+                // 4. Si no existe, CREAMOS el cliente nuevo
+                await Cliente.create({
+                    nombre: nombreViejo,
+                    tipo: 'Cliente',      // Asumimos que es cliente porque ya tiene cotización
+                    canal: 'Histórico',   // Para saber que vino de la migración
+                    email: '',            // Campos vacíos para llenar después
+                    telefono: '',
+                    fechaRegistro: new Date()
+                });
+                contados++;
+                console.log(`✅ Migrado: ${nombreViejo}`);
+            } else {
+                existentes++;
+            }
+        }
+
+        res.send(`
+            <h1>✅ Migración Completada</h1>
+            <p>Se encontraron <strong>${nombresClientes.length}</strong> nombres en el historial.</p>
+            <ul>
+                <li style="color:green">Nuevos clientes creados: <strong>${contados}</strong></li>
+                <li style="color:blue">Clientes que ya existían (omitidos): <strong>${existentes}</strong></li>
+            </ul>
+            <a href="/clientes.html">Ir al Directorio de Clientes</a>
+        `);
+
+    } catch (error) {
+        console.error("Error en migración:", error);
+        res.status(500).send("<h1>❌ Error en la migración</h1><p>" + error.message + "</p>");
+    }
+});
+
+
+
 // ==========================================
 //           ZONA DE COTIZACIONES (ACTUALIZADA)
 // ==========================================
@@ -261,6 +319,36 @@ app.put('/clientes', async (req, res) => {
         res.status(500).json({ exito: false, mensaje: "Error al actualizar" });
     }
 });
+
+// 4. ELIMINAR CLIENTE (DELETE)
+app.delete('/clientes', async (req, res) => {
+    const { id, password } = req.body;
+
+    try {
+        // VERIFICACIÓN DE CONTRASEÑA
+        // Opción A: Verificar contra el usuario Admin de la base de datos (Más seguro)
+        const esAdmin = await Usuario.findOne({ usuario: "admin", clave: password });
+        
+        // Opción B: Si prefieres verificar directo el "1234" sin buscar usuario, usa esta línea en vez de la anterior:
+        // const esAdmin = (password === "1234");
+
+        if (!esAdmin) {
+            return res.status(401).json({ exito: false, mensaje: "⛔ Contraseña incorrecta." });
+        }
+
+        // Si la contraseña es correcta, borramos
+        await Cliente.findByIdAndDelete(id);
+        console.log(`🗑️ Cliente eliminado ID: ${id}`);
+        
+        res.json({ exito: true, mensaje: "Cliente eliminado correctamente." });
+
+    } catch (error) {
+        console.error("Error al borrar cliente:", error);
+        res.status(500).json({ exito: false, mensaje: "Error al borrar en servidor." });
+    }
+});
+
+
 
 // Ruta para BORRAR
 app.delete('/cotizaciones', async (req, res) => {

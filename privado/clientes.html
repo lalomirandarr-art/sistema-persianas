@@ -128,6 +128,18 @@
             .form-grid { grid-template-columns: 1fr; }
             .full-width { grid-column: span 1; }
         }
+
+        /* Agrega esto junto a tus otros estilos de botones */
+.btn-borrar {
+    background-color: #dc3545; /* Rojo */
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.2em;
+    margin-left: 5px; /* Separación del botón editar */
+}
+.btn-borrar:hover { transform: scale(1.1); background-color: #c82333; }
     </style>
 </head>
 <body>
@@ -305,6 +317,7 @@
                         <td>${cliente.canal || '-'}</td>
                         <td style="text-align: center;">
                             <button class="btn-editar" onclick="abrirModalEditar('${cliente._id}')" title="Editar">✏️</button>
+                            <button class="btn-borrar" onclick="eliminarCliente('${cliente._id}')" title="Borrar">🗑️</button>
                         </td>
                     </tr>
                 `;
@@ -407,6 +420,36 @@
 
         // Cargar al inicio
         cargarClientes();
+
+        // --- 7. ELIMINAR CLIENTE ---
+async function eliminarCliente(id) {
+    // 1. Pedir contraseña
+    const password = prompt("⚠️ Esta acción es irreversible.\nIntroduce la contraseña de administrador (1234):");
+    
+    // Si el usuario cancela o no escribe nada
+    if (password === null || password.trim() === "") return;
+
+    try {
+        const res = await fetch('/clientes', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, password: password })
+        });
+
+        const data = await res.json();
+
+        if (data.exito) {
+            alert("✅ " + data.mensaje);
+            cargarClientes(); // Recargar la tabla para que desaparezca
+        } else {
+            alert("❌ Error: " + data.mensaje); // Aquí dirá si la contraseña está mal
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión al intentar borrar.");
+    }
+}
     </script>
 
 </body>
