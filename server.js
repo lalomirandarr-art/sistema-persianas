@@ -533,7 +533,7 @@ async function migrarTelasAlNuevoFormato() {
 }
 
 // Llama a la función al iniciar (comentar después de usar)
- setTimeout(() => { migrarTelasAlNuevoFormato(); }, 5000);
+ // setTimeout(() => { migrarTelasAlNuevoFormato(); }, 5000);
 
 
 
