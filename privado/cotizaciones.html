@@ -157,14 +157,14 @@
                         <select id="select-tela" onchange="actualizarListaColores()"></select>
                     </div>
                     <div class="campo">
-    <label>Color:</label>
-    <div style="display: flex; gap: 5px;">
-        <select id="select-color" style="flex: 1;">
-            <option value="">-- Selecciona --</option>
-        </select>
-        <button type="button" onclick="abrirModalColor()" style="width: 40px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1.2rem; font-weight: bold;">+</button>
-    </div>
-</div>
+                          <label>Color:</label>
+                                         <div style="display: flex; gap: 5px;">
+                                                         <select id="select-color" style="flex: 1;">
+                                             <option value="">-- Selecciona --</option>
+                                                            </select>
+                                                      <button type="button" onclick="abrirModalColor()" style="width: 40px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1.2rem; font-weight: bold;">+</button>
+                                                      </div>
+                                                            </div>
                 </div>
 
                 <div class="grid-3">
@@ -244,7 +244,7 @@
                         <div style="display: flex; align-items: center; gap: 5px; background: #fff3cd; padding: 5px 10px; border-radius: 4px;">
                             <label style="margin:0; font-size:0.85rem;">🎁 Descuento Global:</label>
                             <select id="select-descuento" onchange="calcularTotalesGlobales()" style="width: 70px; padding: 2px;">
-                            </select>
+                                </select>
                         </div>
                     </div>
 
@@ -263,14 +263,28 @@
 
                     <div style="font-size: 0.95rem; line-height: 1.6;">
                         <div style="display:flex; justify-content:space-between;"><span>Subtotal:</span> <span id="lbl-subtotal-items">$0.00</span></div>
-                        <div style="display:flex; justify-content:space-between; color:#dc3545;" id="lbl-descuento-monto"><span>Descuento:</span> <span>$0.00</span></div>
-                        <div style="display:flex; justify-content:space-between; color:#6610f2; display:none;" id="lbl-gastos"><span>Gastos Extra:</span> <span>$0.00</span></div>
-                        <div style="display:flex; justify-content:space-between; color:#856404;" id="lbl-iva"><span>IVA:</span> <span>$0.00</span></div>
+                        
+                        <div style="display:flex; justify-content:space-between; color:#dc3545; display:none;" id="lbl-descuento-monto">
+                            <span>Descuento:</span> <span>$0.00</span>
+                        </div>
+                        
+                        <div style="display:flex; justify-content:space-between; color:#6610f2; display:none;" id="lbl-gastos">
+                            <span>Gastos Extra:</span> <span>$0.00</span>
+                        </div>
+                        
+                        <div style="display:flex; justify-content:space-between; color:#856404;" id="lbl-iva">
+                            <span>IVA:</span> <span>$0.00</span>
+                        </div>
+                        
                         <hr>
-                        <div class="gran-total" style="display:flex; justify-content:space-between;"><span>Total:</span> <span id="lbl-gran-total">$0.00</span></div>
+                        <div class="gran-total" style="display:flex; justify-content:space-between;">
+                            <span>Total:</span> <span id="lbl-gran-total">$0.00</span>
+                        </div>
                     </div>
 
-                    
+                    <div style="margin-top: 10px;">
+                        <span class="utilidad-box">💰 Utilidad Neta: <span id="lbl-utilidad">$0.00</span></span>
+                    </div>
 
                     <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
                         <button class="hero-button" onclick="generarPDF()" style="background-color: #dc3545;">📄 Generar PDF</button>
