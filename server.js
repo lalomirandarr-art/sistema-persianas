@@ -283,45 +283,12 @@ app.get('/cotizaciones', async (req, res) => {
 });
 
 // 1. LEER CLIENTES (GET)
-// 1. LEER CLIENTES (CON PAGINACIÓN Y BÚSQUEDA)
 app.get('/clientes', async (req, res) => {
     try {
-        // Recibimos parámetros de la URL (si no vienen, usamos valores por defecto)
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
-        const search = req.query.search || "";
-
-        // Creamos el filtro de búsqueda
-        let query = {};
-        if (search) {
-            // Busca en Nombre O Razón Social (insensible a mayúsculas/minúsculas)
-            query = {
-                $or: [
-                    { nombre: { $regex: search, $options: 'i' } },
-                    { razonSocial: { $regex: search, $options: 'i' } }
-                ]
-            };
-        }
-
-        // 1. Contar cuántos clientes coinciden (para saber el total de páginas)
-        const totalDocumentos = await Cliente.countDocuments(query);
-        
-        // 2. Buscar solo los 20 que necesitamos
-        const listaClientes = await Cliente.find(query)
-            .sort({ fechaRegistro: -1 }) // Los más nuevos primero
-            .skip((page - 1) * limit)    // Saltar los anteriores
-            .limit(limit);               // Tomar solo 20
-
-        // Enviamos todo empaquetado
-        res.json({
-            datos: listaClientes,
-            total: totalDocumentos,
-            paginaActual: page,
-            totalPaginas: Math.ceil(totalDocumentos / limit)
-        });
-
+        // Ahora buscamos en la colección de Clientes, no en cotizaciones
+        const listaClientes = await Cliente.find().sort({ nombre: 1 });
+        res.json(listaClientes);
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: "Error al obtener clientes" });
     }
 });
