@@ -157,9 +157,14 @@
                         <select id="select-tela" onchange="actualizarListaColores()"></select>
                     </div>
                     <div class="campo">
-                        <label>Color:</label>
-                        <select id="select-color"><option value="">-- Selecciona --</option></select>
-                    </div>
+    <label>Color:</label>
+    <div style="display: flex; gap: 5px;">
+        <select id="select-color" style="flex: 1;">
+            <option value="">-- Selecciona --</option>
+        </select>
+        <button type="button" onclick="abrirModalColor()" style="width: 40px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1.2rem; font-weight: bold;">+</button>
+    </div>
+</div>
                 </div>
 
                 <div class="grid-3">
@@ -276,6 +281,23 @@
 
         </div>
     </div>
+
+                    <div id="modal-nuevo-color" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+    <div style="background-color: white; padding: 25px; border-radius: 10px; width: 300px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: center;">
+        <h3 style="margin-top: 0; color: #001f3f;">🎨 Nuevo Color</h3>
+        <p style="font-size: 0.9rem; color: #666;" id="txt-modal-tela">Agregando color para: ...</p>
+        
+        <input type="text" id="input-nuevo-color" placeholder="Nombre del color (Ej. Gris Oxford)" style="width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #ddd; border-radius: 5px;">
+        
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button onclick="cerrarModalColor()" style="background: #ccc; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">Cancelar</button>
+            <button onclick="guardarNuevoColor()" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">Guardar</button>
+        </div>
+    </div>
+</div>
+
+
+
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
@@ -794,6 +816,91 @@
             </div>`;
         }
     }
+
+                // --- LÓGICA PARA MODAL DE NUEVO COLOR ---
+
+    function abrirModalColor() {
+        const idTela = document.getElementById('select-tela').value;
+        if (!idTela) {
+            alert("⚠️ Primero selecciona una tela para asignarle el color.");
+            return;
+        }
+        
+        // Buscamos el nombre de la tela para mostrarlo en el modal
+        const telaObj = telasDB.find(t => t._id === idTela);
+        if(telaObj) {
+            document.getElementById('txt-modal-tela').innerText = `Agregando para tela: ${telaObj.nombre}`;
+        }
+
+        // Limpiamos el input y mostramos el modal
+        document.getElementById('input-nuevo-color').value = '';
+        const modal = document.getElementById('modal-nuevo-color');
+        modal.style.display = 'flex'; // Usamos flex para centrarlo
+        
+        // Poner foco en el input automáticamente
+        setTimeout(() => document.getElementById('input-nuevo-color').focus(), 100);
+    }
+
+    function cerrarModalColor() {
+        document.getElementById('modal-nuevo-color').style.display = 'none';
+    }
+
+    async function guardarNuevoColor() {
+        const nombreColor = document.getElementById('input-nuevo-color').value.trim();
+        const idTela = document.getElementById('select-tela').value;
+        const telaObj = telasDB.find(t => t._id === idTela);
+
+        if (!nombreColor) {
+            alert("Escribe un nombre para el color.");
+            return;
+        }
+
+        try {
+            // 1. Enviamos al servidor (Backend)
+            // IMPORTANTE: Tu servidor debe tener una ruta POST /colores que reciba esto
+            const respuesta = await fetch('/colores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: nombreColor,
+                    telaId: idTela,         // Enviamos ID para referencia
+                    telaNombre: telaObj.nombre // Enviamos Nombre porque tu lógica actual filtra por nombre
+                })
+            });
+
+            const resultado = await respuesta.json();
+
+            if (resultado.exito || respuesta.ok) { // Asumiendo que tu server responde { exito: true, nuevoColor: {...} }
+                
+                // 2. Agregamos el color a la lista local (coloresDB) sin recargar página
+                // Si el servidor te devuelve el objeto creado, úsalo. Si no, creamos uno temporal.
+                const nuevoColorObj = resultado.nuevoColor || { 
+                    _id: Date.now(), // ID temporal si el server no devuelve uno
+                    nombre: nombreColor, 
+                    telaNombre: telaObj.nombre 
+                };
+
+                coloresDB.push(nuevoColorObj);
+
+                // 3. Actualizamos el select y seleccionamos el nuevo color
+                actualizarListaColores();
+                document.getElementById('select-color').value = nombreColor;
+
+                // 4. Cerramos modal
+                cerrarModalColor();
+                // alert("✅ Color agregado correctamente"); // Opcional
+            } else {
+                alert("Error al guardar: " + (resultado.mensaje || "Error desconocido"));
+            }
+
+        } catch (error) {
+            console.error(error);
+            alert("Error de conexión al intentar guardar el color.");
+        }
+    }
+
+
+
 </script>
 </body>
 </html>

@@ -1,7 +1,6 @@
-// Agrega esta línea HASTA ARRIBA, antes de const express...
+
 require('dotenv').config(); 
 
-// ... el resto de tus imports ...
 
 // server.js - Versión Multi-Producto (Carrito)
 const express = require('express');
@@ -376,7 +375,30 @@ app.get('/colores', async (req, res) => {
         res.status(500).json({ error: "Error al obtener colores" });
     }
 });
+// Ruta nueva (CREAR / GUARDAR)
+app.post('/colores', async (req, res) => {
+    try {
+        // Recibimos los datos que envía el Modal
+        const { nombre, telaNombre } = req.body;
 
+        console.log(`🎨 Guardando nuevo color: ${nombre} para tela: ${telaNombre}`);
+
+        // Creamos el nuevo color en la base de datos
+        const nuevoColor = new Color({
+            nombre: nombre,
+            telaNombre: telaNombre
+        });
+
+        await nuevoColor.save();
+
+        // Respondemos al navegador con éxito y los datos del color creado
+        res.json({ exito: true, mensaje: "Color guardado", nuevoColor: nuevoColor });
+
+    } catch (error) {
+        console.error("Error al guardar color:", error);
+        res.status(500).json({ exito: false, mensaje: "Error al guardar en el servidor" });
+    }
+});
 
 // ==========================================
 //               ZONA DE TELAS
