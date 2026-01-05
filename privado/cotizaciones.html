@@ -218,7 +218,7 @@
                                 <th>Descripción</th>
                                 <th>Medidas</th>
                                 <th>Cant</th>
-                                <th>Costo Base</th> <th>Subtotal Costo</th> <th></th>
+                                <th>Costo</th> <th>Precio Venta</th> <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -248,7 +248,7 @@
                         
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                             <label style="margin:0; color:#155724; font-weight:bold;">📈 Margen de Utilidad:</label>
-                            <select id="select-utilidad" onchange="calcularTotalesGlobales()" style="width: 120px; padding: 5px; border: 1px solid #28a745; font-weight:bold; color:#155724;">
+                            <select id="select-utilidad" onchange="calcularTotalesGlobales(),actualizarTablaCarrito()"  style="width: 120px; padding: 5px; border: 1px solid #28a745; font-weight:bold; color:#155724;">
                                 </select>
                         </div>
 
@@ -507,18 +507,32 @@
         actualizarTablaCarrito();
     }
 
-    // --- 2. ACTUALIZAR TABLA (Muestra Costos Base) ---
+    // --- FUNCIÓN ACTUALIZAR TABLA (CON CÁLCULO EN TIEMPO REAL) ---
     function actualizarTablaCarrito() {
         const tbody = document.querySelector('#tabla-items tbody');
         tbody.innerHTML = '';
 
+        // 1. Obtenemos la utilidad actual para aplicarla a las filas
+        const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
+        let factor = 1;
+        if (pctUtilidad < 100) {
+            factor = 1 - (pctUtilidad / 100);
+        }
+
         if(carritoItems.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Vacío</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Tu carrito está vacío.</td></tr>';
             calcularTotalesGlobales();
             return;
         }
 
         carritoItems.forEach((item, index) => {
+            // CALCULAMOS EL PRECIO DE VENTA PARA ESTA FILA
+            // item.financiero.costoBase = Costo de 1 pieza
+            // item.total = Costo Total (Base * Cantidad)
+            
+            const precioUnitarioVenta = item.financiero.costoBase / factor;
+            const precioTotalVenta = item.total / factor; // item.total guarda el costo total base
+
             const fila = `
                 <tr>
                     <td>
@@ -527,15 +541,21 @@
                         <small style="color: #666;">${item.motor !== "Manual" ? "⚙️ "+item.motor : ""} | Acc: ${item.accesorios.color}</small>
                     </td>
                     <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
-                    <td>${item.cantidad}</td>
-                    <td style="color: #666;">$${item.precioUnitario.toFixed(2)}</td>
-                    <td style="font-weight:bold; color: #333;">$${item.total.toFixed(2)}</td>
+                    <td style="text-align: center;">${item.cantidad}</td>
+                    
+                    <td style="color: #999; font-size: 0.85em;">$${item.financiero.costoBase.toFixed(2)}</td>
+                    
+                    <td style="font-weight:bold; color: #001f3f; font-size: 1.1em;">
+                        $${precioTotalVenta.toFixed(2)}
+                    </td>
+                    
                     <td><button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer; font-size: 1.2em;">&times;</button></td>
                 </tr>
             `;
             tbody.innerHTML += fila;
         });
 
+        // Al final, actualizamos los números grandes de abajo
         calcularTotalesGlobales();
     }
 
