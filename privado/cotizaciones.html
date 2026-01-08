@@ -837,13 +837,50 @@ function agregarAlCarrito() {
             </div>
             <div style="margin-top: 25px; text-align: center; font-size: 9px; color: #888; border-top: 1px solid #eee; padding-top: 5px;">
                 <p>Gracias por su preferencia - Persianas Delta</p>
-            </div>`;
+            </div>
+            
+                <div style="margin-top: 10px; border-top: 2px solid #6CDAE7; border-bottom: 2px solid #6CDAE7; padding: 10px 0; font-size: 6px; color: #444; text-align: justify;">
+            <div style="column-count: 2; column-gap: 20px;">
+                <ul style="margin: 0; padding-left: 10px; list-style-type: disc;">
+                    <li style="margin-bottom: 3px;">Cualquier modificación en la cotización después del anticipo se le aplicará un cargo mínimo de $600 pesos dentro de la Ciudad de México.</li>
+                    <li style="margin-bottom: 3px;">Ancho máximo sugerido (2.20), mayor a esta medida se sugiere dividir la persiana.</li>
+                    <li style="margin-bottom: 3px;">Por ser productos hechos a la medida, al momento de levantar el pedido no hay cambios, cancelaciones ni devoluciones.</li>
+                    <li style="margin-bottom: 3px;">Se requiere el 50% de anticipo al confirmar el pedido, el resto al concluir la instalación.</li>
+                    <li style="margin-bottom: 3px;">No se aceptan cambios, cancelaciones ni devoluciones después de recibir su pedido por ser productos hechos a la medida. (En caso de cancelación será con un cargo al cliente del 30 % del total y solamente si dicha cancelación se hace dentro de las 24 horas posteriores al levantamiento del pedido).</li>
+                    <li style="margin-bottom: 3px;">La empresa no se hace responsable por techos, pisos, paredes irregulares, deformes, con humedad o en mal estado, plafones mal colocados, tuberías, cableado o vicios ocultos, así como decoloraciones en las telas por el sol y/o químicos.</li>
+                    <li style="margin-bottom: 3px;">Todos nuestros productos se pueden motorizar y/o automatizar, por lo que de requerir las persianas así, el cliente debe contar en cada área con salidas o tomas de corriente eléctricas aterrizadas.</li>
+                    <li style="margin-bottom: 3px;">Los motores cuentan con garantía, misma que será en fábrica, (están excluidas las descargas eléctricas) la que determine el fabricante con un diagnóstico; por lo que si se solicita, este se llevará hasta 5 días hábiles. (Si el cliente requiere el servicio de recolección, retiro y reinstalación de su persiana será con cargo adicional).</li>
+                    
+                    <li style="margin-bottom: 3px;">Para respetar la promoción de instalación gratis, es posible reprogramar la instalación solicitándolo con 48 hrs de anticipación, en caso contrario la reprogramación de instalación tendrá un costo de $800 pesos. La nula respuesta de confirmación se toma en cuenta como cancelación.</li>
+                    <li style="margin-bottom: 3px;">En el caso de que el cliente modifique las medidas ya autorizadas, será responsable de los efectos que de esto resulte.</li>
+                    <li style="margin-bottom: 3px;">Después de la instalación o recepción de los productos, cualquier reclamación será válida solo 24 horas después de la recepción del mismo.</li>
+                    <li style="margin-bottom: 3px;">Nuestra empresa cuenta con garantía en todos nuestros productos y son válidas en planta (después de ser revisadas y autorizadas por control de calidad el cual dará el diagnóstico), en caso de que aplique alguna, para que esta proceda, se tomará en cuenta, el diagnóstico, el uso, maltrato, mantenimiento, tiempo, desgaste, si el cliente requiere recolección, retiro y reinstalación será con cargo adicional.</li>
+                    <li style="margin-bottom: 3px;">En caso de que el cliente no esté presente en la toma de medidas, la persona que nos atienda será la responsable de proporcionar los datos, mismos que se reconocerán en el pedido como válidos en la rectificación de medidas.</li>
+                    <li style="margin-bottom: 3px;">El área a instalar deberá estar libre; nuestro personal no se hace responsable por desmontar cortineros, cortinas, drapeadas o cualquier otro artículo decorativo; en caso de así requerirse deberá ser notificado a su vendedor el día del levantamiento.</li>
+                    <li style="margin-bottom: 3px;">La empresa no se hace responsable por daños ocasionados (si el cliente le solicita al personal el movimiento de mobiliario u otros objetos, por lo que será bajo su responsabilidad).</li>
+                    <li style="margin-bottom: 3px;">El personal de la empresa no está autorizado para hacer trabajos no especificados en la orden.</li>
+                </ul>
+            </div>
+            <div style="text-align: center; font-weight: bold; font-size: 9px; margin-top: 8px; color: #000;">
+                ***Se mejora cualquier cotización***
+            </div>
+        </div>
+                
+            
+            
+            
+            
+            
+            
+            
+            
+            `;
 
         const opt = { 
             margin: [0.2, 0.25, 0.2, 0.25], 
             filename: `Cotizacion_${folio}.pdf`, 
-            image: { type: 'jpeg', quality: 0.98 }, 
-            html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 }, 
+            image: { type: 'png', quality: 1 }, 
+            html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 }, 
             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
         };
 
