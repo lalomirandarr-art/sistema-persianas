@@ -602,12 +602,12 @@ async function generarPDFDesdeHistorial(id) {
 
             filasHTML += `
                 <tr style="border-bottom: 1px solid #cccccc;">
-                    <td style="padding: 6px; border-right: 1px solid white; word-wrap: break-word;">${item.producto}</td>
-                    <td style="padding: 6px; border-right: 1px solid white;">${item.tela || '-'}</td>
-                    <td style="padding: 6px; border-right: 1px solid white;">${item.color || '-'}</td>
-                    <td style="padding: 6px; text-align: center; border-right: 1px solid white;">${item.cantidad}</td>
-                    <td style="padding: 6px; border-right: 1px solid white;">${item.medidas ? item.medidas.ancho + 'm x ' + item.medidas.alto + 'm' : '-'}</td>
-                    <td style="padding: 6px; text-align: center; border-right: 1px solid white;">${m2} m²</td>
+                    <td style="padding: 6px; border-right: 1px solid #6CDAE7; word-wrap: break-word;">${item.producto}</td>
+                    <td style="padding: 6px; border-right: 1px solid #6CDAE7;">${item.tela || '-'}</td>
+                    <td style="padding: 6px; border-right: 1px solid #6CDAE7;">${item.color || '-'}</td>
+                    <td style="padding: 6px; text-align: center; border-right: 1px solid #6CDAE7;">${item.cantidad}</td>
+                    <td style="padding: 6px; border-right: 1px solid #6CDAE7;">${item.medidas ? item.medidas.ancho + 'm x ' + item.medidas.alto + 'm' : '-'}</td>
+                    <td style="padding: 6px; text-align: center; border-right: 1px solid #6CDAE7;">${m2} m²</td>
                     <td style="padding: 6px; text-align: right;">$${precioVentaItem.toFixed(2)}</td>
                 </tr>
                 <tr style="border-bottom: 2px solid #6CDAE7; color: #000000; font-size: 0.9em; background-color: #f9f9f9;">
@@ -658,13 +658,13 @@ async function generarPDFDesdeHistorial(id) {
         <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8; border-radius: 0; overflow: visible;">
            <thead>
                 <tr style="text-align: center;">
-                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">TIPO</th>
-                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">TELA</th>
-                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">COLOR</th>
-                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">CANT.</th>
-                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">MEDIDAS</th>
-                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">TOTAL M²</th>
-                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">TOTAL</th>
+                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: white;">TIPO</th>
+                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: white;">TELA</th>
+                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: white;">COLOR</th>
+                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: white;">CANT.</th>
+                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: white;">MEDIDAS</th>
+                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: white;">TOTAL M²</th>
+                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: white;">TOTAL</th>
                 </tr>
             </thead>
             <tbody>
