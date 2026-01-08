@@ -618,7 +618,7 @@ async function generarPDFDesdeHistorial(id) {
             </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 5px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; background: #f9f9f9; padding: 10px;">
             <div style="width: 60%;">
                 <div style="margin-bottom: 3px;"><strong style="color: #001f3f;">COTIZACIÓN:</strong> <span style="font-size: 1.1em;">${c.folioInteligente}</span></div>
                 <div><strong style="color: #001f3f;">CLIENTE:</strong> <span style="font-size: 1.1em;">${c.cliente}</span></div>
@@ -708,8 +708,8 @@ async function generarPDFDesdeHistorial(id) {
         console.error("Error generando PDF", error);
         alert("Hubo un problema generando el PDF.");
     }
-    document.body.style.cursor = 'default';
-}
+        document.body.style.cursor = 'default';
+    }
 
 
     function abrirModalDetalles(id) { const c = todasLasCotizaciones.find(item => item._id === id); if(!c) return; document.getElementById('edit-id').value = c._id; document.getElementById('modal-titulo').innerText = `Detalles: ${c.folioInteligente}`; document.getElementById('edit-folio').value = c.folioInteligente; document.getElementById('edit-cliente').value = c.cliente; document.getElementById('edit-cotizador').value = c.quienCotiza || 'N/A'; document.getElementById('edit-fecha').value = new Date(c.fecha).toLocaleString(); document.getElementById('edit-estatus').value = c.estatus || 'Emitida'; let total = c.total || 0; let gastos = c.totalGastosAdicionales || 0; let iva = c.iva || 0; let subtotal = total - iva - gastos; if(subtotal < 0) subtotal = total; document.getElementById('edit-subtotal').value = subtotal.toFixed(2); document.getElementById('edit-gastos').value = gastos.toFixed(2); let costoTotal = 0; const listaItems = document.getElementById('lista-items'); listaItems.innerHTML = ''; if(c.items && c.items.length > 0) { c.items.forEach(item => { let costoItem = 0; if(item.financiero && item.financiero.costoBase) { costoItem = item.financiero.costoBase; costoTotal += (costoItem * item.cantidad); } listaItems.innerHTML += `<div class="item-row"><span>${item.cantidad}x ${item.producto}</span><strong>$${(item.total || 0).toFixed(2)}</strong></div>`; }); } document.getElementById('val-costo').innerText = `$${costoTotal.toFixed(2)}`; recalcularTotal(); document.getElementById('modal-detalles').style.display = 'flex'; }
