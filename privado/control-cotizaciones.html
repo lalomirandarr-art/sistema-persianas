@@ -541,13 +541,52 @@
 
 
 
-// --- FUNCIÓN PDF UNIFICADA (CORREGIDA PARA MÓVIL) ---
+// --- FUNCIÓN PDF UNIFICADA (CORREGIDA: PRECIOS CON UTILIDAD) ---
 async function generarPDFDesdeHistorial(id) {
     // 1. Buscar datos
     const c = todasLasCotizaciones.find(item => item._id === id);
     if (!c) return alert("Error: No se encontraron datos.");
 
-    // 2. Construir filas de la tabla
+    // --- PASO A: CALCULAR FACTOR DE UTILIDAD (INGENIERÍA INVERSA) ---
+    // Necesitamos saber cuánto margen se aplicó para poder calcular el precio unitario de cada item
+    
+    // A.1 Totales Globales guardados
+    const granTotal = c.total || 0;
+    const iva = c.iva || 0;
+    const totalGastos = c.totalGastosAdicionales || 0;
+    const pctDescuento = c.descuentoGlobalPct || 0;
+
+    // A.2 Obtener el Subtotal de Venta Real (Sin IVA, ni gastos, ni descuentos)
+    let subtotalConDescuento = granTotal - iva - totalGastos;
+    if (subtotalConDescuento < 0) subtotalConDescuento = 0;
+
+    let subtotalVentaReal = subtotalConDescuento;
+    let montoDescuento = 0;
+
+    // Reversar el descuento si existe
+    if (pctDescuento > 0) {
+        const factorDescuento = 1 - (pctDescuento / 100);
+        subtotalVentaReal = subtotalConDescuento / factorDescuento;
+        montoDescuento = subtotalVentaReal - subtotalConDescuento;
+    }
+
+    // A.3 Obtener el Costo Total de Producción (Suma de los items.total que son costo base)
+    let totalCostoProduccion = 0;
+    if (c.items) {
+        totalCostoProduccion = c.items.reduce((sum, item) => sum + (item.total || 0), 0);
+    }
+
+    // A.4 Calcular el Factor (Relación Costo vs Venta)
+    // Si vendí en 200 y me costó 100, el factor es 0.5
+    let factorUtilidad = 1;
+    if (subtotalVentaReal > 0 && totalCostoProduccion > 0) {
+        factorUtilidad = totalCostoProduccion / subtotalVentaReal;
+    }
+    
+    // Protección por si algo sale raro con los números
+    if (factorUtilidad > 1 || factorUtilidad <= 0) factorUtilidad = 1; 
+
+    // --- PASO B: CONSTRUIR FILAS (APLICANDO EL FACTOR) ---
     let filasHTML = '';
     if (c.items && c.items.length > 0) {
         c.items.forEach(item => {
@@ -557,15 +596,19 @@ async function generarPDFDesdeHistorial(id) {
                 m2 = (item.medidas.ancho * item.medidas.alto).toFixed(2);
             }
 
+            // --- AQUÍ ESTÁ LA CORRECCIÓN DEL PRECIO ---
+            // Dividimos el costo base entre el factor para obtener el precio de venta
+            const precioVentaItem = (item.total || 0) / factorUtilidad;
+
             filasHTML += `
-                <tr style="border-bottom: 1px solid #6CDAE7;">
-                    <td style="padding: 6px; border-right: 1px solid #6CDAE7; word-wrap: break-word;">${item.producto}</td>
-                    <td style="padding: 6px; border-right: 1px solid #6CDAE7;">${item.tela || '-'}</td>
-                    <td style="padding: 6px; border-right: 1px solid #6CDAE7;">${item.color || '-'}</td>
-                    <td style="padding: 6px; text-align: center; border-right: 1px solid #6CDAE7;">${item.cantidad}</td>
-                    <td style="padding: 6px; border-right: 1px solid #6CDAE7;">${item.medidas ? item.medidas.ancho + 'm x ' + item.medidas.alto + 'm' : '-'}</td>
-                    <td style="padding: 6px; text-align: center; border-right: 1px solid #6CDAE7;">${m2} m²</td>
-                    <td style="padding: 6px; text-align: right;">$${(item.total || 0).toFixed(2)}</td>
+                <tr style="border-bottom: 1px solid #cccccc;">
+                    <td style="padding: 6px; border-right: 1px solid white; word-wrap: break-word;">${item.producto}</td>
+                    <td style="padding: 6px; border-right: 1px solid white;">${item.tela || '-'}</td>
+                    <td style="padding: 6px; border-right: 1px solid white;">${item.color || '-'}</td>
+                    <td style="padding: 6px; text-align: center; border-right: 1px solid white;">${item.cantidad}</td>
+                    <td style="padding: 6px; border-right: 1px solid white;">${item.medidas ? item.medidas.ancho + 'm x ' + item.medidas.alto + 'm' : '-'}</td>
+                    <td style="padding: 6px; text-align: center; border-right: 1px solid white;">${m2} m²</td>
+                    <td style="padding: 6px; text-align: right;">$${precioVentaItem.toFixed(2)}</td>
                 </tr>
                 <tr style="border-bottom: 2px solid #6CDAE7; color: #000000; font-size: 0.9em; background-color: #f9f9f9;">
                     <td colspan="7" style="padding: 4px 8px;">
@@ -576,27 +619,9 @@ async function generarPDFDesdeHistorial(id) {
         });
     }
 
-    // 3. Ingeniería Inversa de Totales
-    const granTotal = c.total || 0;
-    const iva = c.iva || 0;
-    const totalGastos = c.totalGastosAdicionales || 0;
-    const pctDescuento = c.descuentoGlobalPct || 0;
-
-    let subtotalConDescuento = granTotal - iva - totalGastos;
-    if (subtotalConDescuento < 0) subtotalConDescuento = 0;
-
-    let subtotalOriginal = subtotalConDescuento;
-    let montoDescuento = 0;
-
-    if (pctDescuento > 0) {
-        const factor = 1 - (pctDescuento / 100);
-        subtotalOriginal = subtotalConDescuento / factor;
-        montoDescuento = subtotalOriginal - subtotalConDescuento;
-    }
-
     // 4. Construir el Documento
     const element = document.createElement('div');
-    element.style.width = '740px'; // Tu ancho fijo definido
+    element.style.width = '740px'; 
     element.style.padding = '20px';
     element.style.background = 'white';
     element.style.fontFamily = 'Arial, sans-serif';
@@ -633,13 +658,13 @@ async function generarPDFDesdeHistorial(id) {
         <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8; border-radius: 0; overflow: visible;">
            <thead>
                 <tr style="text-align: center;">
-                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: black;">TIPO</th>
-                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: black;">TELA</th>
-                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: black;">COLOR</th>
-                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: black;">CANT.</th>
-                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: black;">MEDIDAS</th>
-                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL M²</th>
-                    <th style="border: 1px solid black; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL</th>
+                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">TIPO</th>
+                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">TELA</th>
+                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">COLOR</th>
+                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">CANT.</th>
+                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">MEDIDAS</th>
+                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">TOTAL M²</th>
+                    <th style="border: 1px solid white; padding: 6px; background-color: #6CDAE7; color: white;">TOTAL</th>
                 </tr>
             </thead>
             <tbody>
@@ -663,7 +688,7 @@ async function generarPDFDesdeHistorial(id) {
                 <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
                     <tr>
                         <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
-                        <td style="text-align: right; padding: 4px; color: #333;">$${subtotalOriginal.toFixed(2)}</td>
+                        <td style="text-align: right; padding: 4px; color: #333;">$${subtotalVentaReal.toFixed(2)}</td>
                     </tr>
                     ${montoDescuento > 0 ? `
                     <tr>
@@ -692,11 +717,10 @@ async function generarPDFDesdeHistorial(id) {
         </div>
     `;
 
-    // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
-    const opt = {
-         margin: [0.2, 0.25, 0.2, 0.25], 
-        filename:     `Cotizacion_${c.folioInteligente}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 }, // Cambié 'pdf' a 'jpeg' para mejor compatibilidad, aunque 'pdf' funciona en algunas versiones
+    const opt = { 
+        margin: [0.2, 0.25, 0.2, 0.25], 
+        filename: `Cotizacion_${c.folioInteligente}.pdf`, 
+        image: { type: 'jpeg', quality: 0.98 }, 
         html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 }, 
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
     };
@@ -708,8 +732,8 @@ async function generarPDFDesdeHistorial(id) {
         console.error("Error generando PDF", error);
         alert("Hubo un problema generando el PDF.");
     }
-        document.body.style.cursor = 'default';
-    }
+    document.body.style.cursor = 'default';
+}
 
 
     function abrirModalDetalles(id) { const c = todasLasCotizaciones.find(item => item._id === id); if(!c) return; document.getElementById('edit-id').value = c._id; document.getElementById('modal-titulo').innerText = `Detalles: ${c.folioInteligente}`; document.getElementById('edit-folio').value = c.folioInteligente; document.getElementById('edit-cliente').value = c.cliente; document.getElementById('edit-cotizador').value = c.quienCotiza || 'N/A'; document.getElementById('edit-fecha').value = new Date(c.fecha).toLocaleString(); document.getElementById('edit-estatus').value = c.estatus || 'Emitida'; let total = c.total || 0; let gastos = c.totalGastosAdicionales || 0; let iva = c.iva || 0; let subtotal = total - iva - gastos; if(subtotal < 0) subtotal = total; document.getElementById('edit-subtotal').value = subtotal.toFixed(2); document.getElementById('edit-gastos').value = gastos.toFixed(2); let costoTotal = 0; const listaItems = document.getElementById('lista-items'); listaItems.innerHTML = ''; if(c.items && c.items.length > 0) { c.items.forEach(item => { let costoItem = 0; if(item.financiero && item.financiero.costoBase) { costoItem = item.financiero.costoBase; costoTotal += (costoItem * item.cantidad); } listaItems.innerHTML += `<div class="item-row"><span>${item.cantidad}x ${item.producto}</span><strong>$${(item.total || 0).toFixed(2)}</strong></div>`; }); } document.getElementById('val-costo').innerText = `$${costoTotal.toFixed(2)}`; recalcularTotal(); document.getElementById('modal-detalles').style.display = 'flex'; }
