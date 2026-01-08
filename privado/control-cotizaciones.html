@@ -567,7 +567,7 @@ async function generarPDFDesdeHistorial(id) {
                     <td style="padding: 6px; text-align: center; border-right: 1px solid #17a2b8;">${m2} m²</td>
                     <td style="padding: 6px; text-align: right;">$${(item.total || 0).toFixed(2)}</td>
                 </tr>
-                <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.9em; background-color: #f9f9f9;">
+                <tr style="border-bottom: 2px solid #17a2b8; color: ##000000; font-size: 0.9em; background-color: #f9f9f9;">
                     <td colspan="7" style="padding: 4px 8px;">
                         <em>▸ Accesorios: ${item.accesorios ? item.accesorios.color : '-'}, Mando ${item.accesorios ? item.accesorios.mando : '-'}
                         ${item.motor && item.motor !== 'Manual' ? ' | ⚙️ ' + item.motor : ''}</em>
