@@ -713,7 +713,7 @@ function agregarAlCarrito() {
         }
 
         let filasHTML = '';
-        const cellStyle = "padding: 4px; border-right: 1px solid #17a2b8; font-size: 9px;";
+        const cellStyle = "padding: 6px; border-right: 1px solid #17a2b8; font-size: 9px;";
         
         carritoItems.forEach(item => {
             const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
@@ -733,7 +733,7 @@ function agregarAlCarrito() {
                     <td style="padding: 4px; text-align: right; font-size: 9px;">$${totalVenta.toFixed(2)}</td>
                 </tr>
                 <tr style="border-bottom: 2px solid #17a2b8; color: #666; font-size: 0.8em; background-color: #f9f9f9;">
-                    <td colspan="7" style="padding: 2px 4px;">
+                    <td colspan="7" style="padding: 4px 8px;">
                         <em>▸ Accesorios: ${item.accesorios.color}, Mando ${item.accesorios.mando} 
                         ${item.motor !== 'Manual' ? ' | ⚙️ ' + item.motor : ''}</em>
                     </td>
