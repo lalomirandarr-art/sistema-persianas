@@ -479,7 +479,7 @@
 
     // Ruta del archivo (asumiendo que los pegaste en public/respaldos)
     const urlRespaldo = `/respaldos/${c._id}.pdf`;
-
+    const nombreDescarga = `Cotizacion_${c.folioInteligente}.pdf`;
     const fila = `<tr>
         <td class="text-center" style="color:#666;">${indiceReal}</td>
         <td class="text-center"><span class="id-row">${c.folioInteligente || 'N/A'}</span></td>
@@ -496,7 +496,7 @@
             <button class="btn-icon btn-pdf" onclick="generarPDFDesdeHistorial('${c._id}')" title="Re-generar PDF Nuevo">📄</button>
 
             ${ esImportada ? 
-                `<a href="${urlRespaldo}" target="_blank" class="btn-icon" style="text-decoration:none; font-size: 1.2em;" title="Ver Original Escaneado">🗄️</a>` 
+                `<a href="${urlRespaldo}" download="${nombreDescarga}"xt-decoration:none; font-size: 1.2em;" title="Ver Original Escaneado">🗄️</a>` 
                 : 
                 `<span style="display:inline-block; width: 28px;"></span>` /* Espacio vacío para alinear */
             }
