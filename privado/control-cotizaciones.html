@@ -283,6 +283,61 @@
     }
 
 }
+/* --- ESTILOS RESPONSIVOS PARA CONTABILIDAD --- */
+
+/* 1. La cuadrícula de arriba (Total, Pagado, Restante) */
+.conta-resumen-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr; /* 3 columnas en PC */
+    gap: 15px;
+    margin-bottom: 25px;
+    background: #e3f2fd;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+/* 2. El formulario de nuevo pago */
+.conta-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr; /* 3 columnas en PC */
+    gap: 15px;
+    align-items: end;
+}
+
+/* 3. Contenedor del input monto + botón */
+.conta-monto-group {
+    display: flex;
+    gap: 10px;
+}
+
+/* --- VERSIÓN MÓVIL (Aquí ocurre la magia) --- */
+@media (max-width: 768px) {
+    /* Hacemos que los cuadros de resumen se pongan uno debajo de otro */
+    .conta-resumen-grid {
+        grid-template-columns: 1fr; 
+        gap: 10px;
+    }
+
+    /* El formulario de pago también se pone vertical */
+    .conta-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* El select de tipo de pago que ocupe todo el ancho */
+    #pago-tipo {
+        width: 100%;
+    }
+
+    /* El botón de registrar se hace grande y fácil de tocar */
+    .conta-monto-group {
+        flex-direction: column; /* Botón debajo del input */
+    }
+    .conta-monto-group button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 5px;
+    }
+}
 
     </style>
 
@@ -343,60 +398,65 @@
         </div>
 
         <div id="tab-contabilidad" class="tab-content" style="display: none;">
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 25px; background: #e3f2fd; padding: 15px; border-radius: 8px;">
-                <div class="form-group" style="margin-bottom:0;">
-                    <label style="color:#0d47a1;">Total Cotización:</label>
-                    <input type="text" id="conta-total" readonly style="font-weight:bold; background:#fff; color:#000;">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label style="color:#155724;">A Cuenta (Pagado):</label>
-                    <input type="text" id="conta-pagado" readonly style="font-weight:bold; background:#d4edda; color:#155724;">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label style="color:#721c24;">Restante:</label>
-                    <input type="text" id="conta-restante" readonly style="font-weight:bold; background:#f8d7da; color:#721c24;">
-                </div>
-            </div>
-
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #ddd;">
-                <h3 style="margin-top:0; color: #001f3f; border-bottom: 2px solid #eee; padding-bottom: 10px;">➕ Registrar Nuevo Pago</h3>
-                <div class="grid-3" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; align-items: end;">
-                    <div class="form-group">
-                        <label>Fecha Pago:</label>
-                        <input type="date" id="pago-fecha">
-                    </div>
-                    <div class="form-group">
-                        <label>Tipo de Pago:</label>
-                        <select id="pago-tipo" style="height: 42px;"> <option value="Transferencia">Transferencia</option>
-                            <option value="Efectivo">Efectivo</option>
-                            <option value="Tarjeta">Tarjeta</option>
-                            <option value="Cheque">Cheque</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Monto ($):</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="number" id="pago-monto" step="0.01" placeholder="0.00" style="flex:1;">
-                            <button onclick="registrarPago()" style="background: #28a745; color: white; border: none; padding: 0 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">REGISTRAR</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <h4 style="margin-bottom: 10px; margin-top: 25px; color: #666;">Historial de Pagos de este folio:</h4>
-            <table style="width: 100%; font-size: 0.9em; border: 1px solid #eee;">
-                <thead>
-                    <tr style="background: #f1f1f1;">
-                        <th>Fecha</th> <th>Tipo</th> <th>Monto</th>
-                    </tr>
-                </thead>
-                <tbody id="tabla-pagos-historial">
-                    <tr><td colspan="3" style="text-align: center; color: #999;">Sin pagos registrados.</td></tr>
-                </tbody>
-            </table>
-
+    
+    <div class="conta-resumen-grid">
+        <div class="form-group" style="margin-bottom:0;">
+            <label style="color:#0d47a1;">Total Cotización:</label>
+            <input type="text" id="conta-total" readonly style="font-weight:bold; background:#fff; color:#000;">
         </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label style="color:#155724;">A Cuenta (Pagado):</label>
+            <input type="text" id="conta-pagado" readonly style="font-weight:bold; background:#d4edda; color:#155724;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label style="color:#721c24;">Restante:</label>
+            <input type="text" id="conta-restante" readonly style="font-weight:bold; background:#f8d7da; color:#721c24;">
+        </div>
+    </div>
+
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #ddd;">
+        <h3 style="margin-top:0; color: #001f3f; border-bottom: 2px solid #eee; padding-bottom: 10px;">➕ Registrar Nuevo Pago</h3>
+        
+        <div class="conta-form-grid">
+            <div class="form-group">
+                <label>Fecha Pago:</label>
+                <input type="date" id="pago-fecha" style="width:100%; box-sizing:border-box;">
+            </div>
+            <div class="form-group">
+                <label>Tipo de Pago:</label>
+                <select id="pago-tipo" style="height: 42px; width:100%; box-sizing:border-box;">
+                    <option value="Transferencia">Transferencia</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="Cheque">Cheque</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Monto ($):</label>
+                <div class="conta-monto-group">
+                    <input type="number" id="pago-monto" step="0.01" placeholder="0.00" style="flex:1; padding:10px;">
+                    <button onclick="registrarPago()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">REGISTRAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 style="margin-bottom: 10px; margin-top: 25px; color: #666;">Historial de Pagos de este folio:</h4>
+    
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; font-size: 0.9em; border: 1px solid #eee; min-width: 300px;">
+            <thead>
+                <tr style="background: #f1f1f1;">
+                    <th>Fecha</th> <th>Tipo</th> <th>Monto</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-pagos-historial">
+                <tr><td colspan="3" style="text-align: center; color: #999;">Sin pagos registrados.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
 
     </div> 
 </div>
