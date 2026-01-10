@@ -1022,7 +1022,9 @@ function abrirModalDetalles(id) {
     document.getElementById('conta-restante').value = f.format(restante);
 
     // D) Resetear formulario de nuevo pago
-    document.getElementById('pago-fecha').valueAsDate = new Date(); // Poner fecha de hoy
+    const hoy = new Date();
+    const localDate = new Date(hoy.getTime() - (hoy.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
+document.getElementById('pago-fecha').value = localDate;
     document.getElementById('pago-monto').value = '';
     // Sugerir el restante si es mayor a 0
     if(restante > 0) {
