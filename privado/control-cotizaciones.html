@@ -38,7 +38,44 @@
 
         tr:hover { background-color: #f1f5f9; }
 
-       
+       /* --- ESTILOS PARA PESTAÑAS DEL MODAL --- */
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 1em;
+    color: #666;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+    font-weight: bold;
+}
+
+.tab-btn:hover {
+    color: #001f3f;
+    background-color: #e9ecef;
+    border-radius: 5px 5px 0 0;
+}
+
+.tab-btn.active {
+    color: #001f3f;
+    border-bottom: 3px solid #001f3f;
+}
+
+.tab-content {
+    /* Por defecto ocultos, JS los activa */
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
 
         .total { font-weight: bold; font-size: 1.1em; color: #28a745; }
 
@@ -259,8 +296,110 @@
 
    
 
-    <div id="modal-detalles" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h2 id="modal-titulo">Detalles</h2><button class="close-modal" onclick="cerrarModal()">×</button></div><input type="hidden" id="edit-id"><div class="modal-grid"><div><div class="form-group"><label>Folio:</label><input type="text" id="edit-folio" readonly></div><div class="form-group"><label>Cliente:</label><input type="text" id="edit-cliente"></div><div class="form-group"><label>Cotizador:</label><input type="text" id="edit-cotizador" readonly></div><div class="form-group"><label>Fecha:</label><input type="text" id="edit-fecha" readonly></div><div class="form-group"><label>Estatus:</label><select id="edit-estatus"><option value="Emitida">Emitida</option><option value="Aprobada">Aprobada</option><option value="Pagada">Pagada</option><option value="Cancelada">Cancelada</option><option value="Pendiente">Pendiente</option></select></div></div><div><div class="form-group"><label>Productos:</label><div id="lista-items" class="items-list"></div></div><div class="financial-box"><div class="financial-row"><span>Costo:</span> <span id="val-costo">$0.00</span></div><div class="financial-row"><span>Utilidad:</span> <span id="val-utilidad" style="color:green;">$0.00</span></div><hr><div class="financial-row"><span>Subtotal:</span> <input type="number" id="edit-subtotal" onchange="recalcularTotal()" style="width:100px; text-align:right;"></div><div class="financial-row"><span>Gastos:</span> <input type="number" id="edit-gastos" onchange="recalcularTotal()" style="width:100px; text-align:right;"></div><div class="financial-row"><span>IVA:</span> <span id="val-iva">$0.00</span></div><div class="financial-row" style="font-weight:bold;"><span>Total:</span> <span id="val-total">$0.00</span></div></div></div></div><button class="btn-save" onclick="guardarCambios()">💾 Guardar</button></div></div>
+    <div class="modal-content" style="padding: 0;"> <div class="modal-tabs-header" style="display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; border-bottom: 1px solid #ddd; padding: 10px 20px;">
+        <div style="display: flex; gap: 10px;">
+            <button class="tab-btn active" onclick="cambiarPestana('detalles')">📋 Detalles</button>
+            <button class="tab-btn" onclick="cambiarPestana('contabilidad')">💰 Contabilidad</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+             <h2 id="modal-titulo" style="margin: 0; font-size: 1.2em; color: #001f3f;">Detalles</h2>
+             <button class="close-modal" onclick="cerrarModal()" style="font-size: 1.8em; line-height: 1;">×</button>
+        </div>
+    </div>
 
+    <input type="hidden" id="edit-id">
+
+    <div style="padding: 20px;">
+        
+        <div id="tab-detalles" class="tab-content active">
+            <div class="modal-grid">
+                <div>
+                    <div class="form-group"><label>Folio:</label><input type="text" id="edit-folio" readonly></div>
+                    <div class="form-group"><label>Cliente:</label><input type="text" id="edit-cliente"></div>
+                    <div class="form-group"><label>Cotizador:</label><input type="text" id="edit-cotizador" readonly></div>
+                    <div class="form-group"><label>Fecha:</label><input type="text" id="edit-fecha" readonly></div>
+                    <div class="form-group"><label>Estatus:</label>
+                        <select id="edit-estatus">
+                            <option value="Emitida">Emitida</option><option value="Aprobada">Aprobada</option>
+                            <option value="Pagada">Pagada</option><option value="Cancelada">Cancelada</option>
+                            <option value="Pendiente">Pendiente</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group"><label>Productos:</label><div id="lista-items" class="items-list"></div></div>
+                    <div class="financial-box">
+                        <div class="financial-row"><span>Costo Base:</span> <span id="val-costo">$0.00</span></div>
+                        <div class="financial-row"><span>Utilidad Aprox:</span> <span id="val-utilidad" style="color:green;">$0.00</span></div>
+                        <hr>
+                        <div class="financial-row"><span>Subtotal Venta:</span> <input type="number" id="edit-subtotal" onchange="recalcularTotal()" style="width:100px; text-align:right;"></div>
+                        <div class="financial-row"><span>Gastos Extra:</span> <input type="number" id="edit-gastos" onchange="recalcularTotal()" style="width:100px; text-align:right;"></div>
+                        <div class="financial-row"><span>IVA:</span> <span id="val-iva">$0.00</span></div>
+                        <div class="financial-row" style="font-weight:bold; font-size: 1.3em; border-top: 1px solid #ccc; padding-top: 5px;"><span>GRAN TOTAL:</span> <span id="val-total">$0.00</span></div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-save" onclick="guardarCambios()">💾 Guardar Cambios de Estatus/Montos</button>
+        </div>
+
+        <div id="tab-contabilidad" class="tab-content" style="display: none;">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 25px; background: #e3f2fd; padding: 15px; border-radius: 8px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="color:#0d47a1;">Total Cotización:</label>
+                    <input type="text" id="conta-total" readonly style="font-weight:bold; background:#fff; color:#000;">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="color:#155724;">A Cuenta (Pagado):</label>
+                    <input type="text" id="conta-pagado" readonly style="font-weight:bold; background:#d4edda; color:#155724;">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="color:#721c24;">Restante:</label>
+                    <input type="text" id="conta-restante" readonly style="font-weight:bold; background:#f8d7da; color:#721c24;">
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #ddd;">
+                <h3 style="margin-top:0; color: #001f3f; border-bottom: 2px solid #eee; padding-bottom: 10px;">➕ Registrar Nuevo Pago</h3>
+                <div class="grid-3" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; align-items: end;">
+                    <div class="form-group">
+                        <label>Fecha Pago:</label>
+                        <input type="date" id="pago-fecha">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de Pago:</label>
+                        <select id="pago-tipo" style="height: 42px;"> <option value="Transferencia">Transferencia</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Tarjeta">Tarjeta</option>
+                            <option value="Cheque">Cheque</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Monto ($):</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="pago-monto" step="0.01" placeholder="0.00" style="flex:1;">
+                            <button onclick="registrarPago()" style="background: #28a745; color: white; border: none; padding: 0 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">REGISTRAR</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h4 style="margin-bottom: 10px; margin-top: 25px; color: #666;">Historial de Pagos de este folio:</h4>
+            <table style="width: 100%; font-size: 0.9em; border: 1px solid #eee;">
+                <thead>
+                    <tr style="background: #f1f1f1;">
+                        <th>Fecha</th> <th>Tipo</th> <th>Monto</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-pagos-historial">
+                    <tr><td colspan="3" style="text-align: center; color: #999;">Sin pagos registrados.</td></tr>
+                </tbody>
+            </table>
+
+        </div>
+
+    </div> 
+</div>
 
 
     <header class="header">
@@ -791,10 +930,176 @@ async function generarPDFDesdeHistorial(id) {
     }
     document.body.style.cursor = 'default';
 }
+            // --- FUNCIÓN PARA CAMBIAR PESTAÑAS ---
+function cambiarPestana(tabName) {
+    // 1. Ocultar todos los contenidos
+    document.querySelectorAll('.tab-content').forEach(tc => tc.style.display = 'none');
+    // 2. Desactivar todos los botones
+    document.querySelectorAll('.tab-btn').forEach(tb => tb.classList.remove('active'));
+    
+    // 3. Mostrar el contenido seleccionado
+    document.getElementById(`tab-${tabName}`).style.display = 'block';
+    // 4. Activar el botón seleccionado (buscamos el botón que tiene el onclick correspondiente)
+    document.querySelector(`button[onclick="cambiarPestana('${tabName}')"]`).classList.add('active');
+}
+
+    // --- FUNCIÓN ABRIR MODAL (ACTUALIZADA CON CONTABILIDAD) ---
+function abrirModalDetalles(id) {
+    const c = todasLasCotizaciones.find(item => item._id === id);
+    if (!c) return;
+
+    // --- 1. RESETEAR PESTAÑAS AL ABRIR ---
+    cambiarPestana('detalles'); // Siempre empezar en la pestaña 1
+    document.getElementById('edit-id').value = c._id;
+    document.getElementById('modal-titulo').innerText = `Detalles: ${c.folioInteligente}`;
+
+    // --- 2. LLENAR PESTAÑA DETALLES (Tu código existente) ---
+    document.getElementById('edit-folio').value = c.folioInteligente;
+    document.getElementById('edit-cliente').value = c.cliente;
+    document.getElementById('edit-cotizador').value = c.quienCotiza || 'N/A';
+    document.getElementById('edit-fecha').value = new Date(c.fecha).toLocaleString();
+    document.getElementById('edit-estatus').value = c.estatus || 'Emitida';
+
+    // Valores financieros existentes
+    let granTotal = c.total || 0;
+    let gastos = c.totalGastosAdicionales || 0;
+    let iva = c.iva || 0;
+    // Intentamos ingeniería inversa para obtener el subtotal sin iva ni gastos para los inputs
+    let subtotalBase = granTotal - iva - gastos; 
+    if(subtotalBase < 0) subtotalBase = granTotal; // Protección
+
+    document.getElementById('edit-subtotal').value = subtotalBase.toFixed(2);
+    document.getElementById('edit-gastos').value = gastos.toFixed(2);
+
+    // Recalcular costos base de items para mostrar utilidad aprox
+    let costoTotalProduccion = 0;
+    const listaItems = document.getElementById('lista-items');
+    listaItems.innerHTML = '';
+    if (c.items && c.items.length > 0) {
+        c.items.forEach(item => {
+            if (item.financiero && item.financiero.costoBase) {
+                costoTotalProduccion += (item.financiero.costoBase * item.cantidad);
+            }
+            listaItems.innerHTML += `<div class="item-row"><span>${item.cantidad}x ${item.producto}</span><strong>$${(item.total || 0).toFixed(2)}</strong></div>`;
+        });
+    }
+    document.getElementById('val-costo').innerText = `$${costoTotalProduccion.toFixed(2)}`;
+    // Ejecutamos recalcular para que se llenen el IVA, Total y Utilidad en la vista
+    recalcularTotal();
 
 
-    function abrirModalDetalles(id) { const c = todasLasCotizaciones.find(item => item._id === id); if(!c) return; document.getElementById('edit-id').value = c._id; document.getElementById('modal-titulo').innerText = `Detalles: ${c.folioInteligente}`; document.getElementById('edit-folio').value = c.folioInteligente; document.getElementById('edit-cliente').value = c.cliente; document.getElementById('edit-cotizador').value = c.quienCotiza || 'N/A'; document.getElementById('edit-fecha').value = new Date(c.fecha).toLocaleString(); document.getElementById('edit-estatus').value = c.estatus || 'Emitida'; let total = c.total || 0; let gastos = c.totalGastosAdicionales || 0; let iva = c.iva || 0; let subtotal = total - iva - gastos; if(subtotal < 0) subtotal = total; document.getElementById('edit-subtotal').value = subtotal.toFixed(2); document.getElementById('edit-gastos').value = gastos.toFixed(2); let costoTotal = 0; const listaItems = document.getElementById('lista-items'); listaItems.innerHTML = ''; if(c.items && c.items.length > 0) { c.items.forEach(item => { let costoItem = 0; if(item.financiero && item.financiero.costoBase) { costoItem = item.financiero.costoBase; costoTotal += (costoItem * item.cantidad); } listaItems.innerHTML += `<div class="item-row"><span>${item.cantidad}x ${item.producto}</span><strong>$${(item.total || 0).toFixed(2)}</strong></div>`; }); } document.getElementById('val-costo').innerText = `$${costoTotal.toFixed(2)}`; recalcularTotal(); document.getElementById('modal-detalles').style.display = 'flex'; }
+    // --- 3. LLENAR PESTAÑA CONTABILIDAD (NUEVO) ---
+    
+    // A) Calcular lo pagado hasta ahora
+    let totalPagado = 0;
+    const tbodyHistorial = document.getElementById('tabla-pagos-historial');
+    tbodyHistorial.innerHTML = '';
 
+    if(c.pagos && Array.isArray(c.pagos) && c.pagos.length > 0) {
+        // Sumamos los pagos y llenamos la tablita
+        c.pagos.forEach(p => {
+            totalPagado += (p.monto || 0);
+            const fechaP = new Date(p.fechaPago).toLocaleDateString('es-MX');
+             tbodyHistorial.innerHTML += `
+                <tr>
+                    <td>${fechaP}</td>
+                    <td>${p.tipoPago}</td>
+                    <td style="font-weight:bold;">$${(p.monto || 0).toFixed(2)}</td>
+                </tr>`;
+        });
+    } else {
+        tbodyHistorial.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #999;">Sin pagos registrados.</td></tr>';
+    }
+
+    const restante = granTotal - totalPagado;
+
+    // B) Formateador de moneda
+    const f = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+
+    // C) Llenar los inputs de resumen
+    document.getElementById('conta-total').value = f.format(granTotal);
+    document.getElementById('conta-pagado').value = f.format(totalPagado);
+    document.getElementById('conta-restante').value = f.format(restante);
+
+    // D) Resetear formulario de nuevo pago
+    document.getElementById('pago-fecha').valueAsDate = new Date(); // Poner fecha de hoy
+    document.getElementById('pago-monto').value = '';
+    // Sugerir el restante si es mayor a 0
+    if(restante > 0) {
+         document.getElementById('pago-monto').placeholder = restante.toFixed(2);
+    }
+
+    document.getElementById('modal-detalles').style.display = 'flex';
+}
+
+
+    // --- NUEVA FUNCIÓN: REGISTRAR PAGO ---
+async function registrarPago() {
+    const id = document.getElementById('edit-id').value;
+    const fecha = document.getElementById('pago-fecha').value;
+    const tipo = document.getElementById('pago-tipo').value;
+    const montoTxt = document.getElementById('pago-monto').value;
+    const monto = parseFloat(montoTxt);
+
+    // Validaciones básicas
+    if(!fecha) return alert("Selecciona una fecha de pago.");
+    if(isNaN(monto) || monto <= 0) return alert("Ingresa un monto válido mayor a 0.");
+
+    // Validación opcional: No pagar más de lo que se debe
+    const restanteTxt = document.getElementById('conta-restante').value.replace(/[$,]/g,''); // Quitar $ y comas
+    const restante = parseFloat(restanteTxt);
+    if(monto > restante + 1) { // +1 de margen por decimales
+        if(!confirm(`⚠️ Estás registrando un pago ($${monto.toFixed(2)}) mayor al restante ($${restante.toFixed(2)}). ¿Deseas continuar?`)) {
+            return;
+        }
+    }
+
+    try {
+        const res = await fetch(`/cotizaciones/${id}/pagos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fechaPago: fecha, monto: monto, tipoPago: tipo })
+        });
+
+        const data = await res.json();
+
+        if(data.exito) {
+            alert("✅ Pago registrado con éxito.");
+            
+            // OJO: Truco para actualizar la vista sin recargar toda la página
+            // 1. Buscamos la cotización en nuestro arreglo local
+            const index = todasLasCotizaciones.findIndex(c => c._id === id);
+            if(index !== -1) {
+                // 2. Le actualizamos sus pagos con lo que devolvió el servidor
+                todasLasCotizaciones[index].pagos = data.pagos;
+                
+                // 3. Si el restante ahora es 0 o menos, sugerimos cambiar estatus a Pagada
+                const totalCot = todasLasCotizaciones[index].total || 0;
+                const totalPagado = data.pagos.reduce((sum, p) => sum + p.monto, 0);
+                if(totalPagado >= totalCot - 1) { // Margen de $1 por redondeo
+                     const confirmar = confirm("El total ha sido cubierto. ¿Deseas cambiar el estatus a 'Pagada' ahora?");
+                     if(confirmar) {
+                         document.getElementById('edit-estatus').value = 'Pagada';
+                         // Llamamos a guardarCambios para que se guarde el nuevo estatus
+                         await guardarCambios(); 
+                         return; // guardarCambios ya cierra el modal y recarga
+                     }
+                }
+            }
+            
+            // Si no se cambió el estatus, solo recargamos el historial para ver los cambios
+            cargarHistorial();
+            cerrarModal();
+
+        } else {
+            alert("Error: " + data.mensaje);
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión al registrar el pago.");
+    }
+}
     function recalcularTotal() { const sub = parseFloat(document.getElementById('edit-subtotal').value) || 0; const gas = parseFloat(document.getElementById('edit-gastos').value) || 0; const iva = (sub + gas) * 0.16; const total = sub + gas + iva; const txtCosto = document.getElementById('val-costo').innerText.replace('$',''); const costo = parseFloat(txtCosto) || 0; const utilidad = (sub + gas) - costo; document.getElementById('val-iva').innerText = `$${iva.toFixed(2)}`; document.getElementById('val-total').innerText = `$${total.toFixed(2)}`; const lblUtil = document.getElementById('val-utilidad'); lblUtil.innerText = `$${utilidad.toFixed(2)}`; lblUtil.style.color = utilidad >= 0 ? 'green' : 'red'; }
 
     async function guardarCambios() { const id = document.getElementById('edit-id').value; const cliente = document.getElementById('edit-cliente').value; const estatus = document.getElementById('edit-estatus').value; const sub = parseFloat(document.getElementById('edit-subtotal').value) || 0; const gas = parseFloat(document.getElementById('edit-gastos').value) || 0; const iva = (sub + gas) * 0.16; const total = sub + gas + iva; const datosUpdate = { id: id, cliente: cliente, estatus: estatus, total: total, iva: iva, totalGastosAdicionales: gas }; try { const res = await fetch('/cotizaciones', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(datosUpdate) }); const r = await res.json(); if(r.exito) { alert("✅ Cambios guardados."); cerrarModal(); cargarHistorial(); } else { alert("Error al guardar."); } } catch(e) { console.error(e); alert("Error de conexión"); } }

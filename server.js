@@ -138,6 +138,7 @@ const cotizacionSchema = new mongoose.Schema({
     quienCotiza: String,
     fecha: { type: Date, default: Date.now },
     estatus: { type: String, default: 'Emitida' },
+    
 
     // LISTA DE PRODUCTOS (Array de objetos)
     items: [{
@@ -164,6 +165,13 @@ const cotizacionSchema = new mongoose.Schema({
         precioUnitario: Number,
         total: Number
         
+    }],
+
+    pagos: [{
+        fechaPago: Date,
+        monto: Number,
+        tipoPago: String, // 'Efectivo' o 'Transferencia'
+        fechaRegistro: { type: Date, default: Date.now } // Para saber cuándo se capturó
     }],
 
     // Datos Financieros Globales
@@ -195,6 +203,47 @@ app.post('/cotizaciones', async (req, res) => {
     }
 });
 
+
+// --- RUTA PARA REGISTRAR UN PAGO ---
+app.post('/cotizaciones/:id/pagos', async (req, res) => {
+    const { id } = req.params;
+    // Datos que vienen del formulario del modal
+    const { fechaPago, monto, tipoPago } = req.body;
+
+    if (!monto || isNaN(monto) || monto <= 0) {
+        return res.status(400).json({ exito: false, mensaje: "Monto inválido" });
+    }
+    if (!fechaPago || !tipoPago) {
+        return res.status(400).json({ exito: false, mensaje: "Faltan datos del pago" });
+    }
+
+    try {
+        // 1. Buscamos la cotización
+        const cotizacion = await Cotizacion.findById(id);
+        if (!cotizacion) {
+            return res.status(404).json({ exito: false, mensaje: "Cotización no encontrada" });
+        }
+
+        // 2. Creamos el objeto de pago
+        const nuevoPago = {
+            fechaPago: new Date(fechaPago),
+            monto: parseFloat(monto),
+            tipoPago: tipoPago
+        };
+
+        // 3. Agregamos el pago al array 'pagos'
+        cotizacion.pagos.push(nuevoPago);
+
+        // 4. Guardamos la cotización actualizada
+        await cotizacion.save();
+
+        res.json({ exito: true, mensaje: "Pago registrado correctamente", pagos: cotizacion.pagos });
+
+    } catch (error) {
+        console.error("Error registrando pago:", error);
+        res.status(500).json({ exito: false, mensaje: "Error en el servidor al guardar el pago" });
+    }
+});
 
                 // Ruta para EDITAR (ACTUALIZAR)
 app.put('/cotizaciones', async (req, res) => {
