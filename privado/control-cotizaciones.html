@@ -999,7 +999,7 @@ function abrirModalDetalles(id) {
         // Sumamos los pagos y llenamos la tablita
         c.pagos.forEach(p => {
             totalPagado += (p.monto || 0);
-            const fechaP = new Date(p.fechaPago).toLocaleDateString('es-MX');
+            const fechaP = new Date(p.fechaPago).toLocaleDateString('es-MX', { timeZone: 'UTC' });
              tbodyHistorial.innerHTML += `
                 <tr>
                     <td>${fechaP}</td>
