@@ -178,9 +178,30 @@
                         <input type="checkbox" id="check-motor" onchange="toggleMotor()" style="width: 20px; height: 20px;">
                         <label for="check-motor" style="margin:0; color: #0d47a1; cursor:pointer;">⚙️ ¿Motorizado?</label>
                     </div>
-                    <div id="panel-motor" style="display: none; margin-top: 8px;">
-                        <select id="select-motor"><option value="">-- Seleccionar Motor --</option></select>
-                    </div>
+                    <div id="panel-motor" style="display: none; margin-top: 8px; background-color: #e8eaf6; padding: 10px; border-radius: 5px;">
+    <div class="grid-3">
+        <div>
+            <label style="font-size: 0.8rem; color: #3f51b5;">Tipo de Motor:</label>
+            <select id="select-motor">
+                <option value="">-- Sin Motor --</option>
+            </select>
+        </div>
+        
+        <div>
+            <label style="font-size: 0.8rem; color: #3f51b5;">Control / Mando:</label>
+            <select id="select-control">
+                <option value="">-- Ninguno --</option>
+            </select>
+        </div>
+
+        <div>
+            <label style="font-size: 0.8rem; color: #3f51b5;">Componente Extra:</label>
+            <select id="select-componente">
+                <option value="">-- Ninguno --</option>
+            </select>
+        </div>
+    </div>
+</div>
                 </div>
 
                 <div class="campo" style="background: #e0f7fa; padding: 10px; border-radius: 6px; margin-top: 10px;">
@@ -332,7 +353,9 @@
     let productosDB = [], motoresDB = [], telasDB = [], coloresDB = [];
     let clientesDB = []; 
     let carritoItems = []; 
-
+    let controlesDB = [];
+    let componentesDB = [];
+l
     // Inicialización
     async function inicializar() {
         // Llenar select de utilidad
@@ -355,7 +378,9 @@
                 fetch('/telas'), 
                 fetch('/motores'), 
                 fetch('/colores'),
-                fetch('/clientes?limit=5000&n=5000') // Probamos dos formas comunes de pedir "todos"
+                fetch('/clientes?limit=5000&n=5000'), // Probamos dos formas comunes de pedir "todos"
+                fetch('/controles'),
+                fetch('/componentes')
             ]);
             
             // Convertimos a JSON
@@ -363,6 +388,8 @@
             telasDB = await resT.json();
             motoresDB = await resM.json();
             coloresDB = await resC.json();
+            controlesDB = await resCtrl.json();
+            componentesDB = await resComp.json();
             
             // --- LÓGICA DE CLIENTES INTELIGENTE ---
             const respuestaClientes = await resCl.json();
@@ -397,6 +424,18 @@
             if(Array.isArray(motoresDB)) {
                 motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
             }
+            const selControl = document.getElementById('select-control');
+            selControl.innerHTML = '<option value="">-- Ninguno --</option>';
+            if(Array.isArray(controlesDB)) {
+                controlesDB.forEach(c => selControl.add(new Option(`${c.nombre} (+$${c.precio})`, c._id)));
+}
+
+    // 5. LLENAR SELECT COMPONENTES
+            const selComp = document.getElementById('select-componente');
+            selComp.innerHTML = '<option value="">-- Ninguno --</option>';
+            if(Array.isArray(componentesDB)) {
+               componentesDB.forEach(c => selComp.add(new Option(`${c.nombre} (+$${c.precio})`, c._id)));
+}
 
             // 3. LLENAR SELECT DE CLIENTES
             const selCliente = document.getElementById('cliente');
@@ -449,7 +488,6 @@
     inicializar();
 
 // --- 1. AGREGAR AL CARRITO (SOLO COSTO BASE) ---
-    // --- MODIFICACIÓN 2: USAR PRECIO ESPECÍFICO EN EL CÁLCULO ---
 function agregarAlCarrito() {
     const idProd = document.getElementById('select-producto').value;
     const idTela = document.getElementById('select-tela').value;
@@ -466,50 +504,69 @@ function agregarAlCarrito() {
     const telaObj = telasDB.find(t => t._id === idTela);
     const color = document.getElementById('select-color').value;
     
-    // --- NUEVA LÓGICA DE PRECIO DE TELA ---
+    // Precio Tela Específico
     let precioTela = 0;
     if (telaObj && telaObj.configuraciones) {
-        // Buscamos el precio que corresponde a ESTE producto
         const config = telaObj.configuraciones.find(c => c.producto === prodObj.nombre);
-        if (config) {
-            precioTela = config.precio;
-        }
+        if (config) precioTela = config.precio;
     }
-    // --------------------------------------
 
-    // Motorización
+    // --- LOGICA MOTORIZACIÓN (ACTUALIZADA) ---
     const usaMotor = document.getElementById('check-motor').checked;
-    const idMotor = document.getElementById('select-motor').value;
-    let motorObj = null;
-    let precioMotor = 0;
-    if(usaMotor && idMotor) {
-        motorObj = motoresDB.find(m => m._id === idMotor);
-        precioMotor = motorObj.precio;
+    
+    let motorObj = null, precioMotor = 0;
+    let controlObj = null, precioControl = 0;
+    let compObj = null, precioComponente = 0;
+
+    if(usaMotor) {
+        // 1. Motor
+        const idMotor = document.getElementById('select-motor').value;
+        if(idMotor) {
+            motorObj = motoresDB.find(m => m._id === idMotor);
+            precioMotor = motorObj ? motorObj.precio : 0;
+        }
+        // 2. Control (Nuevo)
+        const idControl = document.getElementById('select-control').value;
+        if(idControl) {
+            controlObj = controlesDB.find(c => c._id === idControl);
+            precioControl = controlObj ? controlObj.precio : 0;
+        }
+        // 3. Componente (Nuevo)
+        const idComp = document.getElementById('select-componente').value;
+        if(idComp) {
+            compObj = componentesDB.find(c => c._id === idComp);
+            precioComponente = compObj ? compObj.precio : 0;
+        }
     }
 
     const accColor = document.getElementById('accesorio-color').value;
     const accMando = document.getElementById('accesorio-mando').value;
     
-    // CÁLCULO DE COSTO BASE (Usando la nueva variable precioTela)
+    // --- CÁLCULO DE COSTO BASE ---
     let area = ancho * alto;
     if(area < 1) area = 1; 
     
-    // AQUÍ USAMOS precioTela EN LUGAR DE telaObj.precioExtra
-    const costoBaseUnitario = ((prodObj.precio + precioTela) * area) + precioMotor;
+    // FÓRMULA: (Producto + Tela)*m2 + Motor + Control + Componente
+    // Nota: Motor, Control y Componentes se cobran por PIEZA (no por metro), 
+    // por eso se suman después de multiplicar el área.
+    const costoBaseUnitario = ((prodObj.precio + precioTela) * area) + precioMotor + precioControl + precioComponente;
+    
     const totalCostoBase = costoBaseUnitario * cant;
 
-    // Creamos el item
+    // Creamos el item con los nuevos datos
     const item = {
         producto: prodObj.nombre,
         tela: telaObj.nombre,
         color: color,
         medidas: { ancho, alto, areaCobrada: area },
         cantidad: cant,
+        // Guardamos info extra para mostrarla luego
         motor: motorObj ? motorObj.nombre : "Manual",
+        control: controlObj ? controlObj.nombre : "",
+        componente: compObj ? compObj.nombre : "",
+        
         accesorios: { color: accColor, mando: accMando },
-        
         financiero: { costoBase: costoBaseUnitario }, 
-        
         precioUnitario: costoBaseUnitario, 
         total: totalCostoBase
     };
@@ -550,7 +607,10 @@ function agregarAlCarrito() {
                         <strong>${item.producto}</strong><br>
                         <small>${item.tela} - ${item.color}</small><br>
                         <small style="color: #666;">
-    ${item.motor !== "Manual" ? "⚙️ "+item.motor + " | " : ""} Acc: ${item.accesorios.color} | Mando: ${item.accesorios.mando}
+                        ${item.motor !== "Manual" ? "⚙️ "+item.motor + " | " : ""} 
+                        ${item.control ? " | 🎮 "+item.control : ""}
+                        ${item.componente ? " | 🔌 "+item.componente : ""}
+                        Acc: ${item.accesorios.color} | Mando: ${item.accesorios.mando}
 </small>
                     </td>
                     <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>

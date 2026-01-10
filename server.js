@@ -340,7 +340,21 @@ app.delete('/cotizaciones', async (req, res) => {
         res.status(500).json({ exito: false, mensaje: "Error al borrar." });
     }
 });
+// --- NUEVOS ESQUEMAS PARA MONGOOSE ---
 
+// Esquema para Controles (Mandos)
+const ControlSchema = new mongoose.Schema({
+    nombre: String,
+    precio: Number
+});
+const Control = mongoose.model('Control', ControlSchema);
+
+// Esquema para Componentes Extra (Hubs, Soportes, etc.)
+const ComponenteSchema = new mongoose.Schema({
+    nombre: String,
+    precio: Number
+});
+const Componente = mongoose.model('Componente', ComponenteSchema);
 
 // ==========================================
 //              ZONA DE MOTORES
@@ -473,6 +487,22 @@ app.get('/migrar-datos-ahora', async (req, res) => {
         console.error("❌ Error en migración:", error);
         res.status(500).send(`<h1>Error</h1><p>${error.message}</p>`);
     }
+});
+
+// --- NUEVAS RUTAS GET ---
+
+app.get('/controles', async (req, res) => {
+    try {
+        const items = await Control.find();
+        res.json(items);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/componentes', async (req, res) => {
+    try {
+        const items = await Componente.find();
+        res.json(items);
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/telas', async (req, res) => {
