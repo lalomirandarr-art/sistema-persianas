@@ -649,7 +649,7 @@ function agregarAlCarrito() {
                         ${item.control ? " | 🎮 "+item.control : ""}
                         ${item.componente ? " | 🔌 "+item.componente : ""}
                         Acc: ${item.accesorios.color} | Mando: ${item.accesorios.mando}
-</small>
+                        </small>
                     </td>
                     <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
                     <td style="text-align: center;">${item.cantidad}</td>
@@ -660,7 +660,9 @@ function agregarAlCarrito() {
                         $${precioTotalVenta.toFixed(2)}
                     </td>
                     
-                    <td><button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer; font-size: 1.2em;">&times;</button></td>
+                    <td style="white-space: nowrap;"> <button onclick="editarItem(${index})" style="color:#007bff; border:none; background:none; cursor:pointer; font-size: 1.2em; margin-right: 5px;" title="Editar">✏️</button>
+                        <button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer; font-size: 1.2em;" title="Eliminar">&times;</button>
+                    </td>
                 </tr>
             `;
             tbody.innerHTML += fila;
@@ -673,6 +675,77 @@ function agregarAlCarrito() {
     function eliminarItem(index) {
         carritoItems.splice(index, 1);
         actualizarTablaCarrito();
+    }
+    // --- FUNCIÓN PARA EDITAR UN ITEM DEL CARRITO ---
+    function editarItem(index) {
+        const item = carritoItems[index];
+
+        // 1. Llenar Producto
+        // Buscamos el ID del producto basado en su nombre
+        const prodObj = productosDB.find(p => p.nombre === item.producto);
+        if (prodObj) {
+            document.getElementById('select-producto').value = prodObj._id;
+            // Forzamos la actualización de telas para este producto
+            actualizarListaTelas(); 
+        }
+
+        // 2. Llenar Tela
+        // Buscamos el ID de la tela basado en su nombre
+        const telaObj = telasDB.find(t => t.nombre === item.tela);
+        if (telaObj) {
+            document.getElementById('select-tela').value = telaObj._id;
+            actualizarListaColores(); // Forzamos actualización de colores
+        }
+
+        // 3. Llenar Color
+        // Damos un pequeño respiro (timeout) para asegurar que la lista de colores se llenó
+        setTimeout(() => {
+            document.getElementById('select-color').value = item.color;
+        }, 50);
+
+        // 4. Llenar Medidas y Cantidad
+        document.getElementById('ancho').value = item.medidas.ancho;
+        document.getElementById('alto').value = item.medidas.alto;
+        document.getElementById('cantidad').value = item.cantidad;
+
+        // 5. Llenar Motorización
+        if (item.motor && item.motor !== "Manual") {
+            document.getElementById('check-motor').checked = true;
+            toggleMotor(); // Mostramos el panel
+            
+            // Buscar IDs de motor, control y componente por nombre
+            const motorObj = motoresDB.find(m => m.nombre === item.motor);
+            if (motorObj) document.getElementById('select-motor').value = motorObj._id;
+
+            if (item.control) {
+                const ctrlObj = controlesDB.find(c => c.nombre === item.control);
+                if (ctrlObj) document.getElementById('select-control').value = ctrlObj._id;
+            }
+            if (item.componente) {
+                const compObj = componentesDB.find(c => c.nombre === item.componente);
+                if (compObj) document.getElementById('select-componente').value = compObj._id;
+            }
+
+        } else {
+            document.getElementById('check-motor').checked = false;
+            toggleMotor(); // Ocultamos el panel
+            document.getElementById('select-motor').value = "";
+        }
+
+        // 6. Llenar Accesorios
+        document.getElementById('accesorio-color').value = item.accesorios.color;
+        document.getElementById('accesorio-mando').value = item.accesorios.mando;
+
+        // 7. ELIMINAR EL ITEM DEL CARRITO
+        // Lo quitamos de la lista para que el usuario guarde la versión editada como nueva
+        carritoItems.splice(index, 1);
+        actualizarTablaCarrito();
+
+        // 8. Scroll hacia arriba para que el usuario vea el formulario
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // Mensaje visual opcional
+        alert(`✏️ Editando: ${item.producto}. \nModifica los datos y pulsa "AGREGAR PERSIANA" para guardar los cambios.`);
     }
 
     // --- 3. CÁLCULO GLOBAL DINÁMICO (LA MAGIA) ---
