@@ -357,7 +357,7 @@
     let componentesDB = [];
     // Inicialización
     // --- FUNCIÓN INICIALIZAR (CORREGIDA Y FINAL) ---
-    async function inicializar() {
+   async function inicializar() {
         // 1. Configurar selects de utilidad y descuento
         const selUtil = document.getElementById('select-utilidad');
         selUtil.innerHTML = ''; 
@@ -387,15 +387,14 @@
             };
 
             // 2. CARGAMOS TODO AL MISMO TIEMPO
-            // Aquí arreglamos tu error: asignamos nombres a TODAS las respuestas
             const [prod, tel, mot, col, cli, ctrl, comp] = await Promise.all([
                 cargarSeguro('/productos'),
                 cargarSeguro('/telas'),
                 cargarSeguro('/motores'),
                 cargarSeguro('/colores'),
                 cargarSeguro('/clientes?limit=5000'),
-                cargarSeguro('/controles'),   // Nuevos
-                cargarSeguro('/componentes')  // Nuevos
+                cargarSeguro('/controles'),   
+                cargarSeguro('/componentes')  
             ]);
 
             // 3. GUARDAMOS EN VARIABLES GLOBALES
@@ -437,11 +436,8 @@
                  selCliente.add(new Option(nombre, nombre));
             });
 
-            // --- AQUÍ ESTÁN TUS NUEVOS MENÚS ---
-
             // Controles
             const selControl = document.getElementById('select-control');
-            // Verificamos si existe el elemento antes de llenarlo (por seguridad)
             if(selControl) {
                 selControl.innerHTML = '<option value="">-- Ninguno --</option>';
                 controlesDB.forEach(c => selControl.add(new Option(`${c.nombre} (+$${c.precio})`, c._id)));
@@ -459,12 +455,74 @@
             alert("Hubo un problema cargando los datos. Revisa la consola (F12)."); 
         }
 
-        // Recuperar datos de localStorage si existen (para editar)
-        const datosEditar = localStorage.getItem('datosCotizacionEditar');
-        if (datosEditar) {
-            // ... (Tu código de recuperación existente puede ir aquí si lo necesitas)
+        // ==========================================================
+        // 5. AQUÍ ESTÁ LA MAGIA QUE FALTABA (RECUPERAR DATOS)
+        // ==========================================================
+        const datosEditarJSON = localStorage.getItem('datosCotizacionEditar');
+        
+        if (datosEditarJSON) {
+            console.log("📂 Encontrados datos para editar, restaurando...");
+            try {
+                const d = JSON.parse(datosEditarJSON);
+
+                // A) Rellenar Cliente y Cotizador
+                if (d.cliente) {
+                    const selCliente = document.getElementById('cliente');
+                    selCliente.value = d.cliente; // Selecciona el cliente automáticamente
+                }
+                if (d.quienCotiza) {
+                    document.getElementById('quienCotiza').value = d.quienCotiza;
+                }
+
+                // B) Restaurar el Carrito de Compras
+                // Aquí tomamos los items que venían del historial y los ponemos en la variable global
+                if (d.items && Array.isArray(d.items) && d.items.length > 0) {
+                    carritoItems = d.items; 
+                    actualizarTablaCarrito(); // ¡Esta función es la que dibuja la tabla!
+                }
+
+                // C) Restaurar Descuentos
+                if (d.descuentoGlobalPct) {
+                    document.getElementById('select-descuento').value = d.descuentoGlobalPct;
+                }
+
+                // D) Restaurar Gastos Extra (Si existen)
+                if (d.gastosAdicionales && d.gastosAdicionales.length > 0) {
+                    document.getElementById('check-gastos').checked = true;
+                    document.getElementById('panel-gastos').style.display = 'block';
+                    
+                    // Ajustamos el selector de cantidad de gastos
+                    const cantGastos = d.gastosAdicionales.length;
+                    document.getElementById('cantidad-gastos').value = cantGastos > 3 ? 3 : cantGastos;
+                    
+                    generarCamposGastos(); // Generamos los inputs vacíos
+
+                    // Llenamos los inputs con un pequeño retraso para asegurar que existan
+                    setTimeout(() => {
+                        d.gastosAdicionales.forEach((gasto, i) => {
+                            const inputDesc = document.getElementById(`gasto-desc-${i+1}`);
+                            const inputMonto = document.getElementById(`gasto-monto-${i+1}`);
+                            if(inputDesc) inputDesc.value = gasto.descripcion;
+                            if(inputMonto) inputMonto.value = gasto.monto;
+                        });
+                        calcularTotalesGlobales();
+                    }, 50);
+                }
+
+                // E) Recalcular los totales finales
+                calcularTotalesGlobales();
+
+                // F) IMPORTANTE: Borrar los datos del "buzón" para que no se carguen siempre
+                localStorage.removeItem('datosCotizacionEditar');
+                
+            } catch (e) {
+                console.error("Error al restaurar cotización:", e);
+                localStorage.removeItem('datosCotizacionEditar'); // Borrar si hay error para no trabar
+            }
         }
     }
+
+    
     inicializar();
 
 // --- 1. AGREGAR AL CARRITO (SOLO COSTO BASE) ---
