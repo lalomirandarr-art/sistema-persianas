@@ -195,10 +195,16 @@
         </div>
 
         <div>
-            <label style="font-size: 0.8rem; color: #3f51b5;">Componente:</label>
-            <select id="select-componente">
-                <option value="">-- Ninguno --</option>
-            </select>
+            <label style="font-size: 0.8rem; color: #3f51b5;">Componentes Extra:</label>
+            <div id="container-componentes" style="
+                border: 1px solid #ccc; 
+                background: white; 
+                height: 80px; 
+                overflow-y: auto; 
+                padding: 5px; 
+                border-radius: 4px;">
+                <small style="color:#999;">Cargando...</small>
+            </div>
         </div>
     </div>
 </div>
@@ -444,10 +450,27 @@
             }
 
             // Componentes
-            const selComp = document.getElementById('select-componente');
-            if(selComp) {
-                selComp.innerHTML = '<option value="">-- Ninguno --</option>';
-                componentesDB.forEach(c => selComp.add(new Option(`${c.nombre} (+$${c.precio})`, c._id)));
+            // Componentes (CHECKBOXES)
+            const divComp = document.getElementById('container-componentes');
+            if(divComp) {
+                divComp.innerHTML = ''; // Limpiar
+                if(componentesDB.length === 0) {
+                    divComp.innerHTML = '<small>No hay componentes</small>';
+                } else {
+                    componentesDB.forEach(c => {
+                        // Creamos un checkbox por cada componente
+                        const label = document.createElement('label');
+                        label.style.display = 'block';
+                        label.style.fontSize = '0.85rem';
+                        label.style.cursor = 'pointer';
+                        
+                        label.innerHTML = `
+                            <input type="checkbox" class="check-componente" value="${c._id}" data-precio="${c.precio}" data-nombre="${c.nombre}">
+                            ${c.nombre} (+$${c.precio})
+                        `;
+                        divComp.appendChild(label);
+                    });
+                }
             }
 
         } catch (error) { 
@@ -570,11 +593,47 @@ function agregarAlCarrito() {
             precioControl = controlObj ? controlObj.precio : 0;
         }
         // 3. Componente (Nuevo)
-        const idComp = document.getElementById('select-componente').value;
-        if(idComp) {
-            compObj = componentesDB.find(c => c._id === idComp);
-            precioComponente = compObj ? compObj.precio : 0;
-        }
+       // ... (El código de Motor y Control se queda igual) ...
+
+    // 3. Componentes (MÚLTIPLES)
+    let listaComponentes = []; // Array para guardar los nombres
+    let precioComponentesTotal = 0; // Suma de precios
+
+    // Buscamos todos los checkboxes marcados dentro del contenedor
+    const checkboxesMarcados = document.querySelectorAll('#container-componentes .check-componente:checked');
+    
+    checkboxesMarcados.forEach(chk => {
+        // Obtenemos precio y nombre directo de los atributos del HTML (dataset)
+        const precio = parseFloat(chk.dataset.precio) || 0;
+        const nombre = chk.dataset.nombre;
+        
+        listaComponentes.push(nombre);
+        precioComponentesTotal += precio;
+    });
+
+    // ...
+
+    // --- CÁLCULO DE COSTO BASE ---
+    let area = ancho * alto;
+    if(area < 1) area = 1; 
+    
+    // FÓRMULA ACTUALIZADA: Sumamos precioComponentesTotal en vez de precioComponente individual
+    const costoBaseUnitario = ((prodObj.precio + precioTela) * area) + precioMotor + precioControl + precioComponentesTotal;
+    
+    const totalCostoBase = costoBaseUnitario * cant;
+
+    // Convertimos la lista de nombres en un texto (Ej: "Hub, Cargador")
+    const textoComponentes = listaComponentes.length > 0 ? listaComponentes.join(", ") : "";
+
+    // Creamos el item
+    const item = {
+        // ... (resto de campos igual) ...
+        motor: motorObj ? motorObj.nombre : "Manual",
+        control: controlObj ? controlObj.nombre : "",
+        componente: textoComponentes,
+         } // Guardamos el texto con todos los seleccionados
+        
+        // ...
     }
 
     const accColor = document.getElementById('accesorio-color').value;
