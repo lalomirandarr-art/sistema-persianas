@@ -61,7 +61,7 @@
         }
         
         @media(min-width: 900px) {
-            .charts-grid { grid-template-columns: 2fr 1fr; } /* PC: Izquierda ancha, derecha angosta */
+            .charts-grid { grid-template-columns: repeat(3,1fr); } /* PC: Izquierda ancha, derecha angosta */
         }
 
         .chart-card {
@@ -145,6 +145,11 @@
                 <div class="chart-card">
                     <div class="chart-title">📊 Estatus de Cotizaciones</div>
                     <canvas id="chartEstatus"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-title">💳 Métodos de Pago</div>
+                    <canvas id="chartPagos"></canvas>
                 </div>
             </div>
 
@@ -305,6 +310,45 @@
                     }]
                 },
                 options: { responsive: true }
+            });
+            // ... (Después del código de la gráfica Mensual) ...
+
+            // --- E. NUEVO: PREPARAR DATOS PARA MÉTODOS DE PAGO ---
+            const pagosCount = {};
+            
+            datos.forEach(c => {
+                // Verificamos si la cotización tiene pagos registrados
+                if (c.pagos && Array.isArray(c.pagos)) {
+                    c.pagos.forEach(p => {
+                        // Tomamos el tipo (ej. "Efectivo") o "Desconocido" si fallara
+                        const tipo = p.tipoPago || "Otros";
+                        // Sumamos +1 al contador de ese tipo
+                        pagosCount[tipo] = (pagosCount[tipo] || 0) + 1;
+                    });
+                }
+            });
+
+            const labelsPagos = Object.keys(pagosCount);
+            const dataPagos = Object.values(pagosCount);
+
+    
+            new Chart(document.getElementById('chartPagos'), {
+                type: 'pie', // Tipo Pastel
+                data: {
+                    labels: labelsPagos,
+                    datasets: [{
+                        data: dataPagos,
+                        // Colores variados para diferenciar (Azul, Morado, Verde, Naranja, Rojo)
+                        backgroundColor: ['#17a2b8', '#6f42c1', '#28a745', '#fd7e14', '#dc3545'],
+                        borderWidth: 1
+                    }]
+                },
+                options: { 
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' } // Leyenda abajo para ahorrar espacio
+                    }
+                }
             });
         }
 
