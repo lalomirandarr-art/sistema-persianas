@@ -727,13 +727,13 @@ function agregarAlCarrito() {
                         
                         ${item.motor !== "Manual" ? 
                             `<div style="font-size:0.85em; color:#0056b3; margin-top:2px;">
-                                ⚙️ ${item.motor} ${item.control ? " + 🎮 " + item.control : ""}
+                                 ${item.motor} ${item.control ? " +  " + item.control : ""}
                              </div>` 
                         : ""}
                         
                         ${item.componente ? 
                             `<div style="font-size:0.85em; color:#e65100; font-weight:bold; margin-top:2px;">
-                                🔌 Incluye: ${item.componente}
+                                 Incluye: ${item.componente}
                              </div>` 
                         : ""}
                         
@@ -916,12 +916,14 @@ function agregarAlCarrito() {
 
            // ... dentro del bucle c.items.forEach en generarPDF ...
 
+            // ... dentro del bucle c.items.forEach en generarPDF ...
+
             filasHTML += `
                 <tr style="border-bottom: 1px solid #6CDAE7;">
                     <td style="${cellStyle} word-wrap: break-word;">
                         <b>${item.producto}</b>
-                        ${item.componente ? `<br><span style="color:#e65100; font-size:8px;">🔌 ${item.componente}</span>` : ""}
                     </td>
+                    
                     <td style="${cellStyle}">${item.tela}</td>
                     <td style="${cellStyle}">${item.color}</td>
                     <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
@@ -932,11 +934,19 @@ function agregarAlCarrito() {
                 
                 <tr style="border-bottom: 2px solid #6CDAE7; color: #444; font-size: 8px; background-color: #f9f9f9;">
                     <td colspan="7" style="padding: 4px 8px;">
-                        <em>
-                            ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
-                            ${item.motor !== 'Manual' ? ` |  Motor: ${item.motor}` : ''}
-                            ${item.control ? ` +  ${item.control}` : ''}
-                        </em>
+                        <div style="margin-bottom: 2px;">
+                            <em>
+                                ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
+                                ${item.motor !== 'Manual' ? ` | ⚙️ Motor: ${item.motor}` : ''}
+                                ${item.control ? ` + 🎮 ${item.control}` : ''}
+                            </em>
+                        </div>
+
+                        ${item.componente ? 
+                            `<div style="color:#e65100; font-style:italic;">
+                                🔌 Componentes Extra: ${item.componente}
+                             </div>` 
+                        : ""}
                     </td>
                 </tr>`;
         });
