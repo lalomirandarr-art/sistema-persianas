@@ -589,6 +589,7 @@
     inicializar();
 
 // --- 1. AGREGAR AL CARRITO (SOLO COSTO BASE) ---
+// --- 1. AGREGAR AL CARRITO (CORREGIDA PARA MÚLTIPLES COMPONENTES) ---
 function agregarAlCarrito() {
     const idProd = document.getElementById('select-producto').value;
     const idTela = document.getElementById('select-tela').value;
@@ -612,68 +613,42 @@ function agregarAlCarrito() {
         if (config) precioTela = config.precio;
     }
 
-    // --- LOGICA MOTORIZACIÓN (ACTUALIZADA) ---
+    // --- LOGICA MOTORIZACIÓN ---
     const usaMotor = document.getElementById('check-motor').checked;
     
     let motorObj = null, precioMotor = 0;
     let controlObj = null, precioControl = 0;
-    let compObj = null, precioComponente = 0;
+    
+    // Variables para componentes múltiples
+    let listaComponentesNombres = []; 
+    let precioComponentesTotal = 0;
 
     if(usaMotor) {
-        // 1. Motor
+        // A. Motor
         const idMotor = document.getElementById('select-motor').value;
         if(idMotor) {
             motorObj = motoresDB.find(m => m._id === idMotor);
             precioMotor = motorObj ? motorObj.precio : 0;
         }
-        // 2. Control (Nuevo)
+        // B. Control
         const idControl = document.getElementById('select-control').value;
         if(idControl) {
             controlObj = controlesDB.find(c => c._id === idControl);
             precioControl = controlObj ? controlObj.precio : 0;
         }
-        // 3. Componente (Nuevo)
-       // ... (El código de Motor y Control se queda igual) ...
-
-    // 3. Componentes (MÚLTIPLES)
-    let listaComponentes = []; // Array para guardar los nombres
-    let precioComponentesTotal = 0; // Suma de precios
-
-    // Buscamos todos los checkboxes marcados dentro del contenedor
-    const checkboxesMarcados = document.querySelectorAll('#container-componentes .check-componente:checked');
-    
-    checkboxesMarcados.forEach(chk => {
-        // Obtenemos precio y nombre directo de los atributos del HTML (dataset)
-        const precio = parseFloat(chk.dataset.precio) || 0;
-        const nombre = chk.dataset.nombre;
         
-        listaComponentes.push(nombre);
-        precioComponentesTotal += precio;
-    });
-
-    // ...
-
-    // --- CÁLCULO DE COSTO BASE ---
-    let area = ancho * alto;
-    if(area < 1) area = 1; 
-    
-    // FÓRMULA ACTUALIZADA: Sumamos precioComponentesTotal en vez de precioComponente individual
-    const costoBaseUnitario = ((prodObj.precio + precioTela) * area) + precioMotor + precioControl + precioComponentesTotal;
-    
-    const totalCostoBase = costoBaseUnitario * cant;
-
-    // Convertimos la lista de nombres en un texto (Ej: "Hub, Cargador")
-    const textoComponentes = listaComponentes.length > 0 ? listaComponentes.join(", ") : "";
-
-    // Creamos el item
-    const item = {
-        // ... (resto de campos igual) ...
-        motor: motorObj ? motorObj.nombre : "Manual",
-        control: controlObj ? controlObj.nombre : "",
-        componente: textoComponentes,
-         } // Guardamos el texto con todos los seleccionados
+        // C. Componentes (MÚLTIPLES CHECKBOXES)
+        // Buscamos solo los que estén marcados (:checked)
+        const checkboxes = document.querySelectorAll('#container-componentes .check-componente:checked');
         
-        // ...
+        checkboxes.forEach(chk => {
+            // Leemos el precio y nombre que guardamos en los atributos data- del HTML
+            const precio = parseFloat(chk.dataset.precio) || 0;
+            const nombre = chk.dataset.nombre;
+            
+            listaComponentesNombres.push(nombre); // Guardamos nombre
+            precioComponentesTotal += precio;     // Sumamos precio
+        });
     }
 
     const accColor = document.getElementById('accesorio-color').value;
@@ -683,27 +658,31 @@ function agregarAlCarrito() {
     let area = ancho * alto;
     if(area < 1) area = 1; 
     
-    // FÓRMULA: (Producto + Tela)*m2 + Motor + Control + Componente
-    // Nota: Motor, Control y Componentes se cobran por PIEZA (no por metro), 
-    // por eso se suman después de multiplicar el área.
-    const costoBaseUnitario = ((prodObj.precio + precioTela) * area) + precioMotor + precioControl + precioComponente;
-    
+    // FÓRMULA FINAL: (Prod + Tela)*m2 + Motor + Control + SUMA DE COMPONENTES
+    const costoBaseUnitario = ((prodObj.precio + precioTela) * area) + precioMotor + precioControl + precioComponentesTotal;
     const totalCostoBase = costoBaseUnitario * cant;
 
-    // Creamos el item con los nuevos datos
+    // Convertimos la lista de nombres (Array) a Texto separado por comas
+    // Ej: "Hub Wifi, Cargador 5v"
+    const textoComponentes = listaComponentesNombres.length > 0 ? listaComponentesNombres.join(", ") : "";
+
+    // Creamos el item FINAL
     const item = {
         producto: prodObj.nombre,
         tela: telaObj.nombre,
         color: color,
         medidas: { ancho, alto, areaCobrada: area },
         cantidad: cant,
-        // Guardamos info extra para mostrarla luego
+        
+        // Guardamos los datos de motorización
         motor: motorObj ? motorObj.nombre : "Manual",
         control: controlObj ? controlObj.nombre : "",
-        componente: compObj ? compObj.nombre : "",
+        componente: textoComponentes, // <--- AQUÍ VA LA LISTA DE NOMBRES
         
         accesorios: { color: accColor, mando: accMando },
+        
         financiero: { costoBase: costoBaseUnitario }, 
+        
         precioUnitario: costoBaseUnitario, 
         total: totalCostoBase
     };
@@ -955,8 +934,8 @@ function agregarAlCarrito() {
                     <td colspan="7" style="padding: 4px 8px;">
                         <em>
                             ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
-                            ${item.motor !== 'Manual' ? ` | ⚙️ Motor: ${item.motor}` : ''}
-                            ${item.control ? ` + 🎮 ${item.control}` : ''}
+                            ${item.motor !== 'Manual' ? ` |  Motor: ${item.motor}` : ''}
+                            ${item.control ? ` +  ${item.control}` : ''}
                         </em>
                     </td>
                 </tr>`;
