@@ -102,6 +102,52 @@
             .layout-principal { grid-template-columns: 1fr; } /* Vuelve a apilarse en tablets/celulares */
             .cotizador-container { padding: 10px; width: 100%; }
         }
+
+        /* --- ESTILOS PARA LA LISTA DE COMPONENTES --- */
+.componentes-box {
+    border: 1px solid #ced4da;
+    background: #ffffff;
+    height: 140px; /* Más alto para ver mejor */
+    overflow-y: auto; /* Scroll si hay muchos */
+    border-radius: 6px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); /* Sombrita interna elegante */
+    padding: 0; /* Quitamos padding general para controlar por item */
+}
+
+/* Diseño elegante de la barra de scroll */
+.componentes-box::-webkit-scrollbar { width: 6px; }
+.componentes-box::-webkit-scrollbar-thumb { background-color: #adb5bd; border-radius: 10px; }
+.componentes-box::-webkit-scrollbar-track { background-color: #f1f3f5; }
+
+/* Estilo de cada renglón (opción) */
+.componente-item {
+    display: flex; /* Para alinear checkbox y texto horizontalmente */
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f1f3f5;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    font-size: 0.9rem;
+    color: #495057;
+    margin: 0; /* Quitar margenes por defecto */
+}
+
+.componente-item:last-child { border-bottom: none; }
+
+/* Efecto al pasar el mouse */
+.componente-item:hover {
+    background-color: #e7f5ff;
+    color: #0056b3;
+}
+
+/* El checkbox en sí */
+.componente-item input[type="checkbox"] {
+    width: 18px; 
+    height: 18px;
+    margin-right: 12px; /* Espacio entre cuadrito y texto */
+    cursor: pointer;
+    accent-color: #007bff; /* Color azul moderno al marcarse */
+}
     </style>
 </head>
 <body>
@@ -196,14 +242,8 @@
 
         <div>
             <label style="font-size: 0.8rem; color: #3f51b5;">Componentes Extra:</label>
-            <div id="container-componentes" style="
-                border: 1px solid #ccc; 
-                background: white; 
-                height: 80px; 
-                overflow-y: auto; 
-                padding: 5px; 
-                border-radius: 4px;">
-                <small style="color:#999;">Cargando...</small>
+            <div id="container-componentes" class="componentes-box">
+           <div style="padding:10px; color:#aaa; text-align:center;">Cargando...</div>
             </div>
         </div>
     </div>
@@ -449,24 +489,24 @@
                 controlesDB.forEach(c => selControl.add(new Option(`${c.nombre} (+$${c.precio})`, c._id)));
             }
 
-            // Componentes
-            // Componentes (CHECKBOXES)
+          
+            // Componentes (CHECKBOXES MEJORADOS)
             const divComp = document.getElementById('container-componentes');
             if(divComp) {
                 divComp.innerHTML = ''; // Limpiar
                 if(componentesDB.length === 0) {
-                    divComp.innerHTML = '<small>No hay componentes</small>';
+                    divComp.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">No hay componentes disponibles</div>';
                 } else {
                     componentesDB.forEach(c => {
-                        // Creamos un checkbox por cada componente
+                        // Creamos la etiqueta label
                         const label = document.createElement('label');
-                        label.style.display = 'block';
-                        label.style.fontSize = '0.85rem';
-                        label.style.cursor = 'pointer';
+                        label.className = 'componente-item'; // <--- AQUÍ APLICAMOS EL ESTILO NUEVO
                         
+                        // Insertamos el HTML del checkbox y el texto
+                        // Usamos toFixed(2) para que el precio se vea profesional (ej: $350.00)
                         label.innerHTML = `
                             <input type="checkbox" class="check-componente" value="${c._id}" data-precio="${c.precio}" data-nombre="${c.nombre}">
-                            ${c.nombre} (+$${c.precio})
+                            <span>${c.nombre} <strong style="color:#28a745;">(+$${c.precio.toFixed(2)})</strong></span>
                         `;
                         divComp.appendChild(label);
                     });
