@@ -738,18 +738,31 @@ function agregarAlCarrito() {
             const precioUnitarioVenta = item.financiero.costoBase / factor;
             const precioTotalVenta = item.total / factor; // item.total guarda el costo total base
 
+           // ... dentro de actualizarTablaCarrito ...
+
             const fila = `
                 <tr>
                     <td>
-                        <strong>${item.producto}</strong><br>
-                        <small>${item.tela} - ${item.color}</small><br>
-                        <small style="color: #666;">
-                        ${item.motor !== "Manual" ? "⚙️ "+item.motor + " | " : ""} 
-                        ${item.control ? " | 🎮 "+item.control : ""}
-                        ${item.componente ? " | 🔌 "+item.componente : ""}
-                        Acc: ${item.accesorios.color} | Mando: ${item.accesorios.mando}
-</small>
+                        <strong style="font-size:1.1em;">${item.producto}</strong><br>
+                        <span style="color:#555;">${item.tela} - ${item.color}</span><br>
+                        
+                        ${item.motor !== "Manual" ? 
+                            `<div style="font-size:0.85em; color:#0056b3; margin-top:2px;">
+                                ⚙️ ${item.motor} ${item.control ? " + 🎮 " + item.control : ""}
+                             </div>` 
+                        : ""}
+                        
+                        ${item.componente ? 
+                            `<div style="font-size:0.85em; color:#e65100; font-weight:bold; margin-top:2px;">
+                                🔌 Incluye: ${item.componente}
+                             </div>` 
+                        : ""}
+                        
+                        <div style="font-size:0.8em; color:#666; margin-top:2px;">
+                            Accesorios: ${item.accesorios.color} | Mando: ${item.accesorios.mando}
+                        </div>
                     </td>
+
                     <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
                     <td style="text-align: center;">${item.cantidad}</td>
                     
@@ -759,7 +772,10 @@ function agregarAlCarrito() {
                         $${precioTotalVenta.toFixed(2)}
                     </td>
                     
-                    <td><button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer; font-size: 1.2em;">&times;</button></td>
+                    <td style="white-space: nowrap;">
+                        <button onclick="editarItem(${index})" style="color:#007bff; border:none; background:none; cursor:pointer; font-size: 1.2em; margin-right: 5px;" title="Editar">✏️</button>
+                        <button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer; font-size: 1.2em;" title="Eliminar">&times;</button>
+                    </td>
                 </tr>
             `;
             tbody.innerHTML += fila;
@@ -919,9 +935,14 @@ function agregarAlCarrito() {
             const precioUnitarioVenta = item.precioUnitario / factorUtilidad;
             const totalVenta = item.total / factorUtilidad;
 
+           // ... dentro del bucle c.items.forEach en generarPDF ...
+
             filasHTML += `
-                <tr style="border-bottom: 1px solid #17a2b8;">
-                    <td style="${cellStyle} word-wrap: break-word;">${item.producto}</td>
+                <tr style="border-bottom: 1px solid #6CDAE7;">
+                    <td style="${cellStyle} word-wrap: break-word;">
+                        <b>${item.producto}</b>
+                        ${item.componente ? `<br><span style="color:#e65100; font-size:8px;">🔌 ${item.componente}</span>` : ""}
+                    </td>
                     <td style="${cellStyle}">${item.tela}</td>
                     <td style="${cellStyle}">${item.color}</td>
                     <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
@@ -929,10 +950,14 @@ function agregarAlCarrito() {
                     <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
                     <td style="padding: 4px; text-align: right; font-size: 9px;">$${totalVenta.toFixed(2)}</td>
                 </tr>
-                <tr style="border-bottom: 2px solid #6CDAE7; color: ##000000; font-size: 0.9em; background-color: #f9f9f9;">
+                
+                <tr style="border-bottom: 2px solid #6CDAE7; color: #444; font-size: 8px; background-color: #f9f9f9;">
                     <td colspan="7" style="padding: 4px 8px;">
-                        <em>▸ Accesorios: ${item.accesorios.color}, Mando ${item.accesorios.mando} 
-                        ${item.motor !== 'Manual' ? ' | ⚙️ ' + item.motor : ''}</em>
+                        <em>
+                            ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
+                            ${item.motor !== 'Manual' ? ` | ⚙️ Motor: ${item.motor}` : ''}
+                            ${item.control ? ` + 🎮 ${item.control}` : ''}
+                        </em>
                     </td>
                 </tr>`;
         });
