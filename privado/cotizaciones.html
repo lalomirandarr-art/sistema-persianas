@@ -148,6 +148,64 @@
     cursor: pointer;
     accent-color: #007bff; /* Color azul moderno al marcarse */
 }
+
+/* --- ESTILO SWITCH INTERRUPTOR --- */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #28a745; /* Verde cuando está activo */
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #28a745;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(18px);
+  -ms-transform: translateX(18px);
+  transform: translateX(18px);
+}
+
+/* Redondear el slider */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
     </style>
 </head>
 <body>
@@ -297,17 +355,24 @@
                 <div class="panel-totales">
                     
                     <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-                        <div style="display: flex; align-items: center; gap: 5px;">
-                            <input type="checkbox" id="check-gastos" onchange="toggleGastos()" style="width: auto;">
-                            <label for="check-gastos" style="margin:0; font-weight:normal;">Gastos Extra</label>
-                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+    <label class="switch">
+        <input type="checkbox" id="check-gastos" onchange="toggleGastos()">
+        <span class="slider round"></span>
+    </label>
+    <label for="check-gastos" style="margin:0; font-weight:bold; cursor:pointer; color:#555;">Gastos Extra</label>
+</div>
                     </div>
 
                     <div id="panel-gastos" style="display: none; background: #f1f1f1; padding: 10px; margin-bottom: 15px; border-radius: 5px; text-align: left;">
                         <label>Nº Gastos:</label>
-                        <select id="cantidad-gastos" onchange="generarCamposGastos()" style="width: 60px; margin-bottom: 5px;">
-                            <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
-                        </select>
+                        <select id="cantidad-gastos" onchange="generarCamposGastos()" style="width: 60px; margin-bottom: 5px; padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
+    <option value="0">0</option>
+    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+    <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+    <option value="10">10</option>
+</select>
                         <div id="contenedor-inputs-gastos"></div>
                     </div>
 
@@ -1114,7 +1179,7 @@ function agregarAlCarrito() {
         if(carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
         const cliente = document.getElementById('cliente').value;
         const quienCotiza = document.getElementById('quienCotiza').value;
-        if(!cliente || !quienCotiza) { alert("Faltan datos del cliente o cotizador."); return; }
+        if(!cliente || !quienCotiza) { alert("Completa el campo de quien cotiza o del cliente."); return; }
 
         const globales = calcularTotalesGlobales();
         
