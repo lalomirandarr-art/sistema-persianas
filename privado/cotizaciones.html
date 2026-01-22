@@ -934,16 +934,17 @@ function agregarAlCarrito() {
 
     // --- 3. CÁLCULO GLOBAL DINÁMICO (LA MAGIA) ---
     // --- 3. CÁLCULO GLOBAL DINÁMICO (LÓGICA INVERSA IVA) ---
+ // --- 3. CÁLCULO GLOBAL DINÁMICO (CORREGIDO) ---
     function calcularTotalesGlobales() {
         // 1. Sumamos todos los Costos Base de la tabla
-        let costoTotalProduccion = carritoItems.reduce((sum, item) => sum + item.total, 0);
+        // CORRECCIÓN: Cambié el nombre de la variable para que coincida con el final
+        let costoProduccion = carritoItems.reduce((sum, item) => sum + item.total, 0);
         
         // 2. Obtenemos la Utilidad Global seleccionada (Markup)
         const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
         
         // 3. Calculamos el Precio de Venta Base (Costo * Markup)
-        // NOTA: Como tus costos ya incluyen IVA, este subtotal también lo incluye implícitamente
-        const subtotalVenta = costoTotalProduccion * (1 + (pctUtilidad / 100));
+        const subtotalVenta = costoProduccion * (1 + (pctUtilidad / 100));
 
         // 4. Descuento Global
         const pctDescuento = parseInt(document.getElementById('select-descuento').value) || 0;
@@ -965,47 +966,34 @@ function agregarAlCarrito() {
             }
         }
 
-        // 6. PRECIO PRELIMINAR (Antes de decidir qué hacer con el IVA)
-        // Este monto teóricamente YA incluye IVA según tu lógica de costos
+        // 6. PRECIO PRELIMINAR
         const totalPreliminar = ventaConDescuento + totalGastos;
 
-        // 7. LÓGICA DE IVA (EL CAMBIO CLAVE)
+        // 7. LÓGICA DE IVA
         const aplicarIva = document.getElementById('check-iva').checked;
         
         let granTotal = 0;
         let montoIva = 0;
-        let subtotalParaMostrar = 0; // El valor "neto" antes de impuestos para la visualización
+        let subtotalParaMostrar = 0;
 
         if (aplicarIva) {
-            // OPCIÓN A: IVA ACTIVO
-            // El precio ya trae IVA, así que el Gran Total es el Preliminar tal cual.
+            // IVA ACTIVO: El total se mantiene, desglosamos hacia atrás
             granTotal = totalPreliminar;
-            
-            // Para mostrar el desglose, extraemos el IVA matemáticamente (dividiendo entre 1.16)
-            // Ejemplo: Si Total es 116, la base es 100 y el IVA es 16.
             const baseSinImpuestos = granTotal / 1.16; 
             montoIva = granTotal - baseSinImpuestos;
             subtotalParaMostrar = baseSinImpuestos;
-            
         } else {
-            // OPCIÓN B: IVA DESACTIVADO
-            // Quieres descontar el 16% aprox usando tu factor 0.84
+            // IVA DESACTIVADO: Descontamos el factor
             granTotal = totalPreliminar * 0.84;
-            
-            // En este caso no hay IVA desglosado
             montoIva = 0;
-            // El subtotal es el mismo gran total porque es una venta "neta"
             subtotalParaMostrar = granTotal;
         }
 
         // 8. Utilidad Neta Real
-        // (Lo que cobras finalmente) - (Lo que te costó producir originalmente)
-        const utilidadNeta = granTotal - costoTotalProduccion;
+        const utilidadNeta = granTotal - costoProduccion;
 
         // --- ACTUALIZAR PANTALLA ---
-        document.getElementById('lbl-costo-produccion').innerText = `$${costoTotalProduccion.toFixed(2)}`;
-        
-        // Aquí mostramos el total preliminar antes de impuestos/descuentos de IVA para referencia
+        document.getElementById('lbl-costo-produccion').innerText = `$${costoProduccion.toFixed(2)}`;
         document.getElementById('lbl-subtotal-venta').innerText = `$${subtotalVenta.toFixed(2)}`;
         
         const lblDesc = document.getElementById('lbl-descuento-monto');
@@ -1035,9 +1023,8 @@ function agregarAlCarrito() {
         // Mostrar IVA
         const lblIva = document.getElementById('lbl-iva');
         if(aplicarIva) {
-            // Mostramos cuanto representa ese 16% que ya viene incluido
             lblIva.innerHTML = `<span>(IVA 16% Incluido):</span> <span>$${montoIva.toFixed(2)}</span>`;
-            lblIva.style.color = "#666"; // Color gris porque es informativo
+            lblIva.style.color = "#666"; 
         } else {
             lblIva.innerHTML = `<span>IVA (Descontado):</span> <span>No incluido</span>`;
             lblIva.style.color = "#856404";
@@ -1050,17 +1037,17 @@ function agregarAlCarrito() {
         lblUtilidad.parentElement.style.backgroundColor = utilidadNeta >= 0 ? '#d4edda' : '#f8d7da';
         
         return { 
-            costoProduccion,
+            costoProduccion, // <--- AQUÍ ESTABA EL ERROR (Ahora coincide)
             subtotalVenta,
             montoDescuento, 
             pctDescuento, 
             pctUtilidad, 
             totalGastos, 
             listaGastos, 
-            iva: montoIva, // Guardamos el monto calculado
+            iva: montoIva, 
             granTotal,
-            subtotalParaMostrar, // Nuevo valor para el PDF (Base imponible)
-            aplicarIva // Booleano para saber si se aplicó
+            subtotalParaMostrar, 
+            aplicarIva 
         };
     }
 
