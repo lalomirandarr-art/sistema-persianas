@@ -315,6 +315,7 @@ input:checked + .slider:before {
                             <select id="accesorio-color">
                                 <option value="Blanco">Blanco</option><option value="Chocolate">Chocolate</option>
                                 <option value="Ivory">Ivory</option><option value="Plata">Plata</option>
+                                <option value="Negro">Negro</option><option value="Oxford">Oxford</option>
                             </select>
                         </div>
                         <div>
@@ -478,7 +479,7 @@ input:checked + .slider:before {
         // 1. Configurar selects de utilidad y descuento
         const selUtil = document.getElementById('select-utilidad');
         selUtil.innerHTML = ''; 
-        for(let i=0; i<=99; i+=5) {
+        for(let i=0; i<=99; i++) {
             let opt = new Option(`${i}% Utilidad`, i);
             if(i === 50) opt.selected = true; 
             selUtil.add(opt);
