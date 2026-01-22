@@ -327,6 +327,12 @@ input:checked + .slider:before {
                     </div>
                 </div>
 
+                <div class="campo" style="margin-top: 10px;">
+                    <label>📝 Notas:</label>
+                    <textarea id="item-notas" rows="2" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-family: inherit; font-size: 0.9rem;" placeholder="Ej. Tela invertida, instalación a techo, dividir riel..."></textarea>
+                </div>
+
+
                 <div style="margin-top: 15px;">
                    
                     <button class="btn-add" onclick="agregarAlCarrito()">➕ AGREGAR PERSIANA</button>
@@ -660,6 +666,8 @@ function agregarAlCarrito() {
     const ancho = parseFloat(document.getElementById('ancho').value);
     const alto = parseFloat(document.getElementById('alto').value);
     const cant = parseInt(document.getElementById('cantidad').value);
+    const notas = document.getElementById('item-notas').value.trim();
+
 
     if(!idProd || !idTela || !ancho || !alto || !cant) {
         alert("Por favor completa los campos del producto.");
@@ -744,13 +752,13 @@ function agregarAlCarrito() {
         componente: textoComponentes, // <--- AQUÍ VA LA LISTA DE NOMBRES
         
         accesorios: { color: accColor, mando: accMando },
-        
+        notas: notas,
         financiero: { costoBase: costoBaseUnitario }, 
         
         precioUnitario: costoBaseUnitario, 
         total: totalCostoBase
     };
-
+    document.getElementById('item-notas').value = '';
     carritoItems.push(item);
     actualizarTablaCarrito();
 }
@@ -804,6 +812,11 @@ function agregarAlCarrito() {
                         <div style="font-size:0.8em; color:#666; margin-top:2px;">
                             Accesorios: ${item.accesorios.color} | Mando: ${item.accesorios.mando}
                         </div>
+                        ${item.notas ? 
+                            `<div style="font-size:0.85em; color:#d63384; background-color:#fff0f6; padding:3px 5px; border-radius:4px; margin-top:4px; font-style:italic; border:1px solid #ffadd2;">
+                                 Nota: ${item.notas}
+                             </div>` 
+                        : ""}
                     </td>
 
                     <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
