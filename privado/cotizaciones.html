@@ -413,9 +413,8 @@ input:checked + .slider:before {
                             <span>- Descuento:</span> <span>$0.00</span>
                         </div>
                         
-                        <div style="display:flex; justify-content:space-between; color:#6610f2; display:none;" id="lbl-gastos">
-                            <span>+ Gastos Extra:</span> <span>$0.00</span>
-                        </div>
+                        <div id="contenedor-desglose-gastos" style="display:none; margin-bottom: 5px;">
+                         </div>
                         
                         <div style="display:flex; justify-content:space-between; color:#856404;" id="lbl-iva">
                             <span>+ IVA:</span> <span>$0.00</span>
@@ -894,12 +893,28 @@ function agregarAlCarrito() {
             lblDesc.style.display = 'none';
         }
 
-        const lblGastos = document.getElementById('lbl-gastos');
+        // --- ACTUALIZACIÓN DESGLOSADA DE GASTOS ---
+        const containerGastos = document.getElementById('contenedor-desglose-gastos');
+        containerGastos.innerHTML = ''; // Limpiamos contenido anterior
+
         if(totalGastos > 0) {
-            lblGastos.style.display = 'flex';
-            lblGastos.querySelector('span:last-child').innerText = `$${totalGastos.toFixed(2)}`;
+            containerGastos.style.display = 'block';
+            
+            // Recorremos la lista de gastos y creamos una fila por cada uno
+            listaGastos.forEach(g => {
+                // Si el usuario no puso descripción, ponemos "Gasto Extra" por defecto
+                const descripcion = g.descripcion || "Gasto Extra";
+                
+                const filaGasto = `
+                    <div style="display:flex; justify-content:space-between; color:#6610f2; font-size: 0.95em; margin-bottom: 2px;">
+                        <span>+ ${descripcion}:</span> 
+                        <span>$${g.monto.toFixed(2)}</span>
+                    </div>
+                `;
+                containerGastos.innerHTML += filaGasto;
+            });
         } else {
-            lblGastos.style.display = 'none';
+            containerGastos.style.display = 'none';
         }
 
         const lblIva = document.getElementById('lbl-iva');
