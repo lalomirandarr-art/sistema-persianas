@@ -1044,15 +1044,15 @@ function agregarAlCarrito() {
 
     // --- FUNCIÓN GENERAR PDF CORREGIDA Y ADAPTADA A UTILIDAD GLOBAL ---
     // --- FUNCIÓN GENERAR PDF (MODIFICADA PARA ABRIR EN PESTAÑA) ---
+   // --- FUNCIÓN GENERAR PDF (VUELVE A MODO DESCARGA PARA RESPETAR NOMBRE) ---
     async function generarPDF(modo = 'descargar') {
-        if (carritoItems.length === 0) return; // Validación simple
+        if (carritoItems.length === 0) return; 
 
         const fechaObj = new Date();
         const mesActual = fechaObj.getMonth();
         const anioActual = fechaObj.getFullYear();
         
         // --- 1. CÁLCULO DEL FOLIO ---
-        // (Tu lógica de folio se mantiene igual)
         let consecutivo = 1; 
         try {
             const respuesta = await fetch('/cotizaciones?limit=5000'); 
@@ -1063,8 +1063,6 @@ function agregarAlCarrito() {
                     if (isNaN(fechaCoti)) return false;
                     return fechaCoti.getMonth() === mesActual && fechaCoti.getFullYear() === anioActual;
                 });
-                // Si estamos GUARDANDO, el sistema ya habrá creado uno nuevo, 
-                // así que para el PDF calculamos el que sigue.
                 consecutivo = cotizacionesEsteMes.length + 1;
             }
         } catch (error) { console.error("Error calculando consecutivo:", error); }
@@ -1073,10 +1071,10 @@ function agregarAlCarrito() {
         const mesStr = (mesActual + 1).toString().padStart(2, '0');
         const folio = `${consStr}-${mesStr}-${anioActual}`;
         
+        // --- 2. PREPARAR DATOS (Tu lógica normal) ---
         const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
         const totales = calcularTotalesGlobales(); 
 
-        // Calculamos el factor de utilidad (Tu lógica original)
         let factorUtilidad = 1;
         if(totales.pctUtilidad < 100) {
             factorUtilidad = 1 - (totales.pctUtilidad / 100);
@@ -1127,7 +1125,6 @@ function agregarAlCarrito() {
             });
         }
 
-        // --- CREACIÓN DEL ELEMENTO (Tu HTML original del PDF) ---
         const element = document.createElement('div');
         element.style.width = '740px'; 
         element.style.padding = '20px';
@@ -1137,7 +1134,7 @@ function agregarAlCarrito() {
         element.style.fontSize = '10px'; 
         element.style.lineHeight = '1.3';
         
-        // (Aquí va todo tu HTML del PDF igualito, lo abrevio para no ocupar espacio, PEGA TU HTML DE SIEMPRE AQUÍ)
+        // --- PEGA AQUÍ TU HTML DEL PDF (LOGO, TABLAS, ETC) IGUAL QUE SIEMPRE ---
         element.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
                 <div style="width: 45%;">
@@ -1216,7 +1213,7 @@ function agregarAlCarrito() {
             </div>
             
             <div style="margin-top: 15px; border-top: 2px solid #6CDAE7; border-bottom: 2px solid #6CDAE7; padding: 12px 0; font-size: 7px; color: #444; text-align: justify; page-break-inside: avoid;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
                      <div style="width: 48%;">
                         <ul style="margin: 0; padding-left: 10px; list-style-type: disc; line-height: 1.4;">
                             <li style="margin-bottom: 4px;">Cualquier modificación en la cotización después del anticipo se le aplicará un cargo mínimo de $600 pesos dentro de la Ciudad de México.</li>
@@ -1243,7 +1240,7 @@ function agregarAlCarrito() {
                     </div>
                 </div>
             </div>
-
+            
             <div style="text-align: center; font-weight: bold; font-size: 10px; margin-top: 10px; color: #000;">
                 ***Se mejora cualquier cotización***
             </div>
@@ -1257,16 +1254,10 @@ function agregarAlCarrito() {
             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
         };
 
-        // --- AQUI ESTÁ EL CAMBIO CLAVE ---
-        if (modo === 'ver') {
-            // Generar un "Blob" (archivo en memoria) y abrirlo
-            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function(pdf) {
-                window.open(pdf.output('bloburl'), '_blank');
-            });
-        } else {
-            // Modo normal (descargar)
-            await html2pdf().set(opt).from(element).save();
-        }
+        // --- AQUI ESTÁ EL CAMBIO: USAMOS .save() PARA DESCARGAR CON EL NOMBRE CORRECTO ---
+        document.body.style.cursor = 'wait';
+        await html2pdf().set(opt).from(element).save();
+        document.body.style.cursor = 'default';
     }
 
 
