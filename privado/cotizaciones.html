@@ -1063,7 +1063,7 @@ function agregarAlCarrito() {
                     if (isNaN(fechaCoti)) return false;
                     return fechaCoti.getMonth() === mesActual && fechaCoti.getFullYear() === anioActual;
                 });
-                consecutivo = cotizacionesEsteMes.length + 1;
+                consecutivo = cotizacionesEsteMes.length;
             }
         } catch (error) { console.error("Error calculando consecutivo:", error); }
 
