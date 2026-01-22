@@ -846,6 +846,90 @@ function agregarAlCarrito() {
         actualizarTablaCarrito();
     }
 
+    // --- FUNCIÓN RECUPERAR/EDITAR ITEM ---
+    function editarItem(index) {
+        const item = carritoItems[index];
+
+        // 1. Llenar Producto
+        // Buscamos el objeto en la base de datos local usando el nombre que guardamos
+        const prodObj = productosDB.find(p => p.nombre === item.producto);
+        if (prodObj) {
+            document.getElementById('select-producto').value = prodObj._id;
+            actualizarListaTelas(); // Importante: cargar las telas de ese producto
+        }
+
+        // 2. Llenar Tela
+        const telaObj = telasDB.find(t => t.nombre === item.tela);
+        if (telaObj) {
+            document.getElementById('select-tela').value = telaObj._id;
+            actualizarListaColores(); // Importante: cargar colores de esa tela
+        }
+
+        // 3. Llenar Color (Con un pequeño retraso para asegurar que la lista cargó)
+        setTimeout(() => {
+            document.getElementById('select-color').value = item.color;
+        }, 50);
+
+        // 4. Llenar Medidas y Cantidad
+        document.getElementById('ancho').value = item.medidas.ancho;
+        document.getElementById('alto').value = item.medidas.alto;
+        document.getElementById('cantidad').value = item.cantidad;
+
+        // 5. Llenar Motorización y Componentes
+        if (item.motor && item.motor !== "Manual") {
+            document.getElementById('check-motor').checked = true;
+            toggleMotor(); // Mostrar el panel
+            
+            // Motor
+            const motorObj = motoresDB.find(m => m.nombre === item.motor);
+            if (motorObj) document.getElementById('select-motor').value = motorObj._id;
+
+            // Control
+            if (item.control) {
+                const ctrlObj = controlesDB.find(c => c.nombre === item.control);
+                if (ctrlObj) document.getElementById('select-control').value = ctrlObj._id;
+            }
+
+            // Componentes (Checkboxes)
+            // Primero desmarcamos todos
+            document.querySelectorAll('.check-componente').forEach(c => c.checked = false);
+            
+            if (item.componente) {
+                // El item guarda algo como "Hub, Cargador"
+                // Lo separamos por la coma para tener una lista
+                const listaNombres = item.componente.split(', ');
+                
+                listaNombres.forEach(nombre => {
+                    // Buscamos el checkbox que tenga ese nombre exacto
+                    const chk = document.querySelector(`.check-componente[data-nombre="${nombre}"]`);
+                    if(chk) chk.checked = true;
+                });
+            }
+
+        } else {
+            document.getElementById('check-motor').checked = false;
+            toggleMotor();
+            document.getElementById('select-motor').value = "";
+        }
+
+        // 6. Accesorios y Notas
+        document.getElementById('accesorio-color').value = item.accesorios.color;
+        document.getElementById('accesorio-mando').value = item.accesorios.mando;
+        document.getElementById('item-notas').value = item.notas || '';
+
+        // 7. ELIMINAR DEL CARRITO
+        // Lo sacamos de la tabla para que el usuario guarde la versión corregida
+        carritoItems.splice(index, 1);
+        actualizarTablaCarrito();
+
+        // 8. Scroll arriba para ver el formulario
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // Mensaje de confirmación
+        // alert(`Editando: ${item.producto}`); 
+    }
+
+
     // --- 3. CÁLCULO GLOBAL DINÁMICO (LA MAGIA) ---
     function calcularTotalesGlobales() {
         // 1. Sumamos todos los Costos Base de la tabla
