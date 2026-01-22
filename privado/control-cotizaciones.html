@@ -752,244 +752,265 @@
 
 
 
-// --- FUNCIÓN PDF UNIFICADA (CORREGIDA: PRECIOS CON UTILIDAD) ---
-async function generarPDFDesdeHistorial(id) {
-    // 1. Buscar datos
-    const c = todasLasCotizaciones.find(item => item._id === id);
-    if (!c) return alert("Error: No se encontraron datos.");
+// --- FUNCIÓN PDF UNIFICADA (DISEÑO FINAL: STICKY FOOTER Y DESGLOSE) ---
+    async function generarPDFDesdeHistorial(id) {
+        // 1. Buscar datos
+        const c = todasLasCotizaciones.find(item => item._id === id);
+        if (!c) return alert("Error: No se encontraron datos.");
 
-    // --- PASO A: CALCULAR FACTOR DE UTILIDAD (INGENIERÍA INVERSA) ---
-    // Necesitamos saber cuánto margen se aplicó para poder calcular el precio unitario de cada item
-    
-    // A.1 Totales Globales guardados
-    const granTotal = c.total || 0;
-    const iva = c.iva || 0;
-    const totalGastos = c.totalGastosAdicionales || 0;
-    const pctDescuento = c.descuentoGlobalPct || 0;
-
-    // A.2 Obtener el Subtotal de Venta Real (Sin IVA, ni gastos, ni descuentos)
-    let subtotalConDescuento = granTotal - iva - totalGastos;
-    if (subtotalConDescuento < 0) subtotalConDescuento = 0;
-
-    let subtotalVentaReal = subtotalConDescuento;
-    let montoDescuento = 0;
-
-    // Reversar el descuento si existe
-    if (pctDescuento > 0) {
-        const factorDescuento = 1 - (pctDescuento / 100);
-        subtotalVentaReal = subtotalConDescuento / factorDescuento;
-        montoDescuento = subtotalVentaReal - subtotalConDescuento;
-    }
-
-    // A.3 Obtener el Costo Total de Producción (Suma de los items.total que son costo base)
-    let totalCostoProduccion = 0;
-    if (c.items) {
-        totalCostoProduccion = c.items.reduce((sum, item) => sum + (item.total || 0), 0);
-    }
-
-    // A.4 Calcular el Factor (Relación Costo vs Venta)
-    // Si vendí en 200 y me costó 100, el factor es 0.5
-    let factorUtilidad = 1;
-    if (subtotalVentaReal > 0 && totalCostoProduccion > 0) {
-        factorUtilidad = totalCostoProduccion / subtotalVentaReal;
-    }
-    
-    // Protección por si algo sale raro con los números
-    if (factorUtilidad > 1 || factorUtilidad <= 0) factorUtilidad = 1; 
-
-    // --- PASO B: CONSTRUIR FILAS (APLICANDO EL FACTOR) ---
-    let filasHTML = '';
-    if (c.items && c.items.length > 0) {
-        c.items.forEach(item => {
-            // CALCULAR M2
-            let m2 = "0.00";
-            if (item.medidas && item.medidas.ancho && item.medidas.alto) {
-                m2 = (item.medidas.ancho * item.medidas.alto).toFixed(2);
-            }
-
-            // --- AQUÍ ESTÁ LA CORRECCIÓN DEL PRECIO ---
-            // Dividimos el costo base entre el factor para obtener el precio de venta
-            const precioVentaItem = (item.total || 0) / factorUtilidad;
-
-            filasHTML += `
-                <tr style="border-bottom: 1px solid #6CDAE7;">
-                    <td style="padding: 6px; border-right: 1px solid #6CDAE7; word-wrap: break-word;">${item.producto}</td>
-                    <td style="padding: 6px; border-right: 1px solid #6CDAE7;">${item.tela || '-'}</td>
-                    <td style="padding: 6px; border-right: 1px solid #6CDAE7;">${item.color || '-'}</td>
-                    <td style="padding: 6px; text-align: center; border-right: 1px solid #6CDAE7;">${item.cantidad}</td>
-                    <td style="padding: 6px; border-right: 1px solid #6CDAE7;">${item.medidas ? item.medidas.ancho + 'm x ' + item.medidas.alto + 'm' : '-'}</td>
-                    <td style="padding: 6px; text-align: center; border-right: 1px solid #6CDAE7;">${m2} m²</td>
-                    <td style="padding: 6px; text-align: right;">$${precioVentaItem.toFixed(2)}</td>
-                </tr>
-                <tr style="border-bottom: 2px solid #6CDAE7; color: #000000; font-size: 0.9em; background-color: #f9f9f9;">
-                    <td colspan="7" style="padding: 4px 8px;">
-                        <em>▸ Accesorios: ${item.accesorios ? item.accesorios.color : '-'}, Mando ${item.accesorios ? item.accesorios.mando : '-'}
-                        ${item.motor && item.motor !== 'Manual' ? ' | ⚙️ ' + item.motor : ''}</em>
-                    </td>
-                </tr>`;
-        });
-    }
-
-    // 4. Construir el Documento
-    const element = document.createElement('div');
-    element.style.width = '740px'; 
-    element.style.padding = '20px';
-    element.style.background = 'white';
-    element.style.fontFamily = 'Arial, sans-serif';
-    element.style.color = '#333';
-    element.style.fontSize = '10px';
-    element.style.lineHeight = '1.3';
-
-    element.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
-            <div style="width: 45%;">
-                <img src="/IMG/logopd.png" alt="Persianas Delta" style="max-width: 200px;">
-                <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 2px; font-size: 9px;">PRIVACIDAD CON ESTILO</div>
-            </div>
-            <div style="width: 55%; text-align: right; font-size: 10px;">
-                <h1 style="margin: 0; font-weight: normal; font-size: 20px; letter-spacing: 2px; color: #333;">PERSIANAS DELTA</h1>
-                <p style="margin: 3px 0;">CDMX 5519337007 / CDMX 5581973360</p>
-                <p style="margin: 1px 0;">https://persianasdelta.com/</p>
-                <p style="margin: 0; font-weight: bold;">ventas@persianasdelta.com</p>
-            </div>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; background: #f9f9f9; padding: 10px;">
-            <div style="width: 60%;">
-                <div style="margin-bottom: 3px;"><strong style="color: #001f3f;">COTIZACIÓN:</strong> <span style="font-size: 1.1em;">${c.folioInteligente}</span></div>
-                <div><strong style="color: #001f3f;">CLIENTE:</strong> <span style="font-size: 1.1em;">${c.cliente}</span></div>
-            </div>
-            <div style="text-align: right;">
-                <strong style="color: #001f3f;">FECHA DE EMISIÓN:</strong><br>
-                ${new Date(c.fecha).toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                <br><strong>ATENDIÓ:</strong> ${c.quienCotiza || '---'}
-            </div>
-        </div>
-
-        <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8; border-radius: 0; overflow: visible;">
-           <thead>
-                <tr style="text-align: center;">
-                    <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: white;">TIPO</th>
-                    <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: white;">TELA</th>
-                    <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: white;">COLOR</th>
-                    <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: white;">CANT.</th>
-                    <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: white;">MEDIDAS</th>
-                    <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: white;">TOTAL M²</th>
-                    <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: white;">TOTAL</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${filasHTML}
-            </tbody>
-        </table>
-
-        <div style="margin-top: 15px; display: flex; justify-content: space-between;">
-            <div style="width: 55%; font-size: 9px; color: #555; text-align: justify;">
-                <p style="margin-bottom: 3px; font-weight: bold; color: #000;">TÉRMINOS Y CONDICIONES:</p>
-                <ul style="padding-left: 15px; margin: 0;">
-                    <li>Se requiere el 50% de anticipo para iniciar producción y el 50% restante contra entrega.</li>
-                    <li>Una vez realizado el anticipo <strong>no hay cambios ni devoluciones</strong>.</li>
-                    <li>Los precios están expresados en Moneda Nacional (MXN).</li>
-                    <li>Tiempo estimado de entrega: 7 a 10 días hábiles.</li>
-                    <li>Vigencia de cotización: 15 días naturales.</li>
-                </ul>
-            </div>
-
-            <div style="width: 40%;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-                    <tr>
-                        <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
-                        <td style="text-align: right; padding: 4px; color: #333;">$${subtotalVentaReal.toFixed(2)}</td>
-                    </tr>
-                    ${montoDescuento > 0 ? `
-                    <tr>
-                        <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${pctDescuento}%):</td>
-                        <td style="text-align: right; padding: 4px; color: #dc3545;">-$${montoDescuento.toFixed(2)}</td>
-                    </tr>` : ''}
-                    ${totalGastos > 0 ? `
-                    <tr>
-                        <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">GASTOS EXTRA:</td>
-                        <td style="text-align: right; padding: 4px; color: #333;">$${totalGastos.toFixed(2)}</td>
-                    </tr>` : ''}
-                    <tr>
-                        <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
-                        <td style="text-align: right; padding: 4px; color: #333;">$${iva.toFixed(2)}</td>
-                    </tr>
-                    <tr style="border-top: 2px solid #17a2b8;">
-                        <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td>
-                        <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${granTotal.toFixed(2)}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
+        // --- PASO A: CALCULAR FACTOR DE UTILIDAD (INGENIERÍA INVERSA) ---
+        // Necesitamos saber cuánto margen se aplicó para poder calcular el precio unitario de venta
         
-        <div style="margin-top: 25px; text-align: center; font-size: 9px; color: #888; border-top: 1px solid #eee; padding-top: 5px;">
-            <p>Gracias por su preferencia - Persianas Delta</p>
-        </div>
+        const granTotal = c.total || 0;
+        const iva = c.iva || 0;
+        
+        // Manejo seguro de gastos (puede venir como número antiguo o array nuevo)
+        let totalGastos = 0;
+        let listaGastos = [];
+        
+        if (c.gastosAdicionales && Array.isArray(c.gastosAdicionales) && c.gastosAdicionales.length > 0) {
+            // Estructura nueva (Array)
+            listaGastos = c.gastosAdicionales;
+            totalGastos = listaGastos.reduce((sum, g) => sum + (g.monto || 0), 0);
+        } else {
+            // Estructura vieja (Solo total numérico)
+            totalGastos = c.totalGastosAdicionales || 0;
+            if(totalGastos > 0) listaGastos.push({ descripcion: "Gastos Extra", monto: totalGastos });
+        }
 
+        const pctDescuento = c.descuentoGlobalPct || 0;
 
-                   <div style="margin-top: 15px; border-top: 2px solid #6CDAE7; border-bottom: 2px solid #6CDAE7; padding: 12px 0; font-size: 7px; color: #444; text-align: justify; page-break-inside: avoid;">
-            
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
-                
-                <div style="width: 48%;">
-                    <ul style="margin: 0; padding-left: 10px; list-style-type: disc; line-height: 1.4;">
-                        <li style="margin-bottom: 4px;">Cualquier modificación en la cotización después del anticipo se le aplicará un cargo mínimo de $600 pesos dentro de la Ciudad de México.</li>
-                        <li style="margin-bottom: 4px;">Ancho máximo sugerido (2.20), mayor a esta medida se sugiere dividir la persiana.</li>
-                        <li style="margin-bottom: 4px;">Por ser productos hechos a la medida, al momento de levantar el pedido no hay cambios, cancelaciones ni devoluciones.</li>
-                        <li style="margin-bottom: 4px;">Se requiere el 50% de anticipo al confirmar el pedido, el resto al concluir la instalación.</li>
-                        <li style="margin-bottom: 4px;">No se aceptan cambios, cancelaciones ni devoluciones después de recibir su pedido por ser productos hechos a la medida. (En caso de cancelación será con un cargo al cliente del 30 % del total y solamente si dicha cancelación se hace dentro de las 24 horas posteriores al levantamiento del pedido).</li>
-                        <li style="margin-bottom: 4px;">La empresa no se hace responsable por techos, pisos, paredes irregulares, deformes, con humedad o en mal estado, plafones mal colocados, tuberías, cableado o vicios ocultos, así como decoloraciones en las telas por el sol y/o químicos.</li>
-                        <li style="margin-bottom: 4px;">Todos nuestros productos se pueden motorizar y/o automatizar, por lo que de requerir las persianas así, el cliente debe contar en cada área con salidas o tomas de corriente eléctricas aterrizadas.</li>
-                        <li style="margin-bottom: 4px;">Los motores cuentan con garantía, misma que será en fábrica, (están excluidas las descargas eléctricas) la que determine el fabricante con un diagnóstico; por lo que si se solicita, este se llevará hasta 5 días hábiles. (Si el cliente requiere el servicio de recolección, retiro y reinstalación de su persiana será con cargo adicional).</li>
-                    </ul>
+        // A.2 Obtener el Subtotal de Venta Real (Sin IVA, ni gastos, ni descuentos)
+        let subtotalConDescuento = granTotal - iva - totalGastos;
+        if (subtotalConDescuento < 0) subtotalConDescuento = 0;
+
+        let subtotalVentaReal = subtotalConDescuento;
+        let montoDescuento = 0;
+
+        // Reversar el descuento si existe
+        if (pctDescuento > 0) {
+            const factorDescuento = 1 - (pctDescuento / 100);
+            subtotalVentaReal = subtotalConDescuento / factorDescuento;
+            montoDescuento = subtotalVentaReal - subtotalConDescuento;
+        }
+
+        // A.3 Obtener el Costo Total de Producción (Suma de los items.total que son costo base)
+        let totalCostoProduccion = 0;
+        if (c.items) {
+            totalCostoProduccion = c.items.reduce((sum, item) => sum + (item.total || 0), 0);
+        }
+
+        // A.4 Calcular el Factor (Relación Costo vs Venta)
+        let factorUtilidad = 1;
+        if (subtotalVentaReal > 0 && totalCostoProduccion > 0) {
+            factorUtilidad = totalCostoProduccion / subtotalVentaReal;
+        }
+        // Protección
+        if (factorUtilidad > 1 || factorUtilidad <= 0) factorUtilidad = 1; 
+
+        // --- PASO B: CONSTRUIR FILAS ---
+        let filasHTML = '';
+        const cellStyle = "padding: 6px; border-right: 1px solid #6CDAE7; font-size: 9px;";
+
+        if (c.items && c.items.length > 0) {
+            c.items.forEach(item => {
+                let m2 = "0.00";
+                if (item.medidas && item.medidas.ancho && item.medidas.alto) {
+                    m2 = (item.medidas.ancho * item.medidas.alto).toFixed(2);
+                }
+
+                // Convertimos el costo base a precio de venta
+                const precioVentaItem = (item.total || 0) / factorUtilidad;
+
+                filasHTML += `
+                    <tr style="border-bottom: 1px solid #6CDAE7;">
+                        <td style="${cellStyle} word-wrap: break-word;">
+                            <b>${item.producto}</b>
+                        </td>
+                        <td style="${cellStyle}">${item.tela || '-'}</td>
+                        <td style="${cellStyle}">${item.color || '-'}</td>
+                        <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
+                        <td style="${cellStyle}">${item.medidas ? item.medidas.ancho + 'm x ' + item.medidas.alto + 'm' : '-'}</td>
+                        <td style="${cellStyle} text-align: center;">${m2} m²</td>
+                        <td style="padding: 4px; text-align: right; font-size: 9px;">$${precioVentaItem.toFixed(2)}</td>
+                    </tr>
+                    <tr style="border-bottom: 2px solid #6CDAE7; color: #444; font-size: 8px; background-color: #f9f9f9;">
+                        <td colspan="7" style="padding: 4px 8px;">
+                            <div style="margin-bottom: 2px;">
+                                <em>
+                                    ▸ Accesorios: ${item.accesorios ? item.accesorios.color : '-'} (${item.accesorios ? item.accesorios.mando : '-'})
+                                    ${item.motor && item.motor !== 'Manual' ? ` | ⚙️ Motor: ${item.motor}` : ''}
+                                    ${item.control ? ` + 🎮 ${item.control}` : ''}
+                                </em>
+                            </div>
+                            
+                            ${item.componente ? 
+                                `<div style="color:#e65100; font-style:italic;">🔌 Componentes Extra: ${item.componente}</div>` 
+                            : ""}
+                            
+                            ${item.notas ? 
+                                `<div style="color:#d63384; font-style:italic; margin-top:2px;">📝 Nota: ${item.notas}</div>` 
+                            : ""}
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        // 4. Construir el Documento (FLEXBOX STICKY FOOTER)
+        const element = document.createElement('div');
+        element.style.width = '740px'; 
+        element.style.minHeight = '950px'; // Altura fija carta
+        element.style.padding = '20px';
+        element.style.background = 'white';
+        element.style.fontFamily = 'Arial, sans-serif';
+        element.style.color = '#333';
+        element.style.fontSize = '10px';
+        element.style.lineHeight = '1.3';
+        element.style.display = 'flex';
+        element.style.flexDirection = 'column';
+        element.style.justifyContent = 'space-between';
+
+        element.innerHTML = `
+            <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
+                    <div style="width: 45%;">
+                        <img src="/IMG/logopd.png" alt="Persianas Delta" style="max-width: 200px;">
+                        <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 2px; font-size: 9px;">PRIVACIDAD CON ESTILO</div>
+                    </div>
+                    <div style="width: 55%; text-align: right; font-size: 10px;">
+                        <h1 style="margin: 0; font-weight: normal; font-size: 20px; letter-spacing: 2px; color: #333;">PERSIANAS DELTA</h1>
+                        <p style="margin: 3px 0;">CDMX 5519337007 / CDMX 5581973360</p>
+                        <p style="margin: 1px 0;">https://persianasdelta.com/</p>
+                        <p style="margin: 0; font-weight: bold;">ventas@persianasdelta.com</p>
+                    </div>
                 </div>
 
-                <div style="width: 48%;">
-                    <ul style="margin: 0; padding-left: 10px; list-style-type: disc; line-height: 1.4;">
-                        <li style="margin-bottom: 4px;">Para respetar la promoción de instalación gratis, es posible reprogramar la instalación solicitándolo con 48 hrs de anticipación, en caso contrario la reprogramación de instalación tendrá un costo de $800 pesos. La nula respuesta de confirmación se toma en cuenta como cancelación.</li>
-                        <li style="margin-bottom: 4px;">En el caso de que el cliente modifique las medidas ya autorizadas, será responsable de los efectos que de esto resulte.</li>
-                        <li style="margin-bottom: 4px;">Después de la instalación o recepción de los productos, cualquier reclamación será válida solo 24 horas después de la recepción del mismo.</li>
-                        <li style="margin-bottom: 4px;">Nuestra empresa cuenta con garantía en todos nuestros productos y son válidas en planta (después de ser revisadas y autorizadas por control de calidad el cual dará el diagnóstico), en caso de que aplique alguna, para que esta proceda, se tomará en cuenta, el diagnóstico, el uso, maltrato, mantenimiento, tiempo, desgaste, si el cliente requiere recolección, retiro y reinstalación será con cargo adicional.</li>
-                        <li style="margin-bottom: 4px;">En caso de que el cliente no esté presente en la toma de medidas, la persona que nos atienda será la responsable de proporcionar los datos, mismos que se reconocerán en el pedido como válidos en la rectificación de medidas.</li>
-                        <li style="margin-bottom: 4px;">El área a instalar deberá estar libre; nuestro personal no se hace responsable por desmontar cortineros, cortinas, drapeadas o cualquier otro artículo decorativo; en caso de así requerirse deberá ser notificado a su vendedor el día del levantamiento.</li>
-                        <li style="margin-bottom: 4px;">La empresa no se hace responsable por daños ocasionados (si el cliente le solicita al personal el movimiento de mobiliario u otros objetos, por lo que será bajo su responsabilidad).</li>
-                        <li style="margin-bottom: 4px;">El personal de la empresa no está autorizado para hacer trabajos no especificados en la orden.</li>
-                    </ul>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 5px;">
+                    <div style="width: 60%;">
+                        <div style="margin-bottom: 3px;"><strong style="color: #001f3f;">COTIZACIÓN:</strong> <span style="font-size: 1.1em;">${c.folioInteligente}</span></div>
+                        <div><strong style="color: #001f3f;">CLIENTE:</strong> <span style="font-size: 1.1em;">${c.cliente}</span></div>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong style="color: #001f3f;">FECHA DE EMISIÓN:</strong><br>
+                        ${new Date(c.fecha).toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        <br><strong>ATENDIÓ:</strong> ${c.quienCotiza || '---'}
+                    </div>
                 </div>
 
+                <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8;">
+                    <thead>
+                        <tr style="text-align: center;">
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TIPO</th>
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TELA</th>
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">COLOR</th>
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">CANT.</th>
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">MEDIDAS</th>
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL M²</th>
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filasHTML}
+                    </tbody>
+                </table>
+
+                <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+                    <div style="width: 55%; font-size: 9px; color: #555; text-align: justify;">
+                        <p style="margin-bottom: 3px; font-weight: bold; color: #000;">TÉRMINOS Y CONDICIONES:</p>
+                        <ul style="padding-left: 15px; margin: 0;">
+                            <li>Se requiere el 50% de anticipo para iniciar producción y el 50% restante contra entrega.</li>
+                            <li>Una vez realizado el anticipo <strong>no hay cambios ni devoluciones</strong>.</li>
+                            <li>Los precios están expresados en Moneda Nacional (MXN).</li>
+                            <li>Tiempo estimado de entrega: 7 a 10 días hábiles.</li>
+                            <li>Vigencia de cotización: 15 días naturales.</li>
+                        </ul>
+                    </div>
+
+                    <div style="width: 40%;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                            <tr>
+                                <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">$${subtotalVentaReal.toFixed(2)}</td>
+                            </tr>
+                            ${montoDescuento > 0 ? `
+                            <tr>
+                                <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${pctDescuento}%):</td>
+                                <td style="text-align: right; padding: 4px; color: #dc3545;">-$${montoDescuento.toFixed(2)}</td>
+                            </tr>` : ''}
+                            
+                            ${totalGastos > 0 ? 
+                                listaGastos.map(g => `
+                                <tr>
+                                    <td style="text-align: right; padding: 4px; font-weight: bold; color: #6610f2;">+ ${g.descripcion || 'Gasto Extra'}:</td>
+                                    <td style="text-align: right; padding: 4px; color: #6610f2;">$${(g.monto || 0).toFixed(2)}</td>
+                                </tr>
+                                `).join('') 
+                            : ''}
+
+                            <tr>
+                                <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">${iva > 0 ? '$'+iva.toFixed(2) : 'No Incluido'}</td>
+                            </tr>
+                            <tr style="border-top: 2px solid #17a2b8;">
+                                <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td>
+                                <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${granTotal.toFixed(2)}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div> <div>
+                <div style="margin-top: 15px; border-top: 2px solid #6CDAE7; border-bottom: 2px solid #6CDAE7; padding: 12px 0; font-size: 7px; color: #444; text-align: justify; page-break-inside: avoid;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                        <div style="width: 48%;">
+                            <ul style="margin: 0; padding-left: 10px; list-style-type: disc; line-height: 1.4;">
+                                <li style="margin-bottom: 4px;">Cualquier modificación en la cotización después del anticipo se le aplicará un cargo mínimo de $600 pesos dentro de la Ciudad de México.</li>
+                                <li style="margin-bottom: 4px;">Ancho máximo sugerido (2.20), mayor a esta medida se sugiere dividir la persiana.</li>
+                                <li style="margin-bottom: 4px;">Por ser productos hechos a la medida, al momento de levantar el pedido no hay cambios, cancelaciones ni devoluciones.</li>
+                                <li style="margin-bottom: 4px;">Se requiere el 50% de anticipo al confirmar el pedido, el resto al concluir la instalación.</li>
+                                <li style="margin-bottom: 4px;">No se aceptan cambios, cancelaciones ni devoluciones después de recibir su pedido por ser productos hechos a la medida. (En caso de cancelación será con un cargo al cliente del 30 % del total y solamente si dicha cancelación se hace dentro de las 24 horas posteriores al levantamiento del pedido).</li>
+                                <li style="margin-bottom: 4px;">La empresa no se hace responsable por techos, pisos, paredes irregulares, deformes, con humedad o en mal estado, plafones mal colocados, tuberías, cableado o vicios ocultos, así como decoloraciones en las telas por el sol y/o químicos.</li>
+                                <li style="margin-bottom: 4px;">Todos nuestros productos se pueden motorizar y/o automatizar, por lo que de requerir las persianas así, el cliente debe contar en cada área con salidas o tomas de corriente eléctricas aterrizadas.</li>
+                                <li style="margin-bottom: 4px;">Los motores cuentan con garantía, misma que será en fábrica, (están excluidas las descargas eléctricas) la que determine el fabricante con un diagnóstico; por lo que si se solicita, este se llevará hasta 5 días hábiles. (Si el cliente requiere el servicio de recolección, retiro y reinstalación de su persiana será con cargo adicional).</li>
+                            </ul>
+                        </div>
+                        <div style="width: 48%;">
+                            <ul style="margin: 0; padding-left: 10px; list-style-type: disc; line-height: 1.4;">
+                                <li style="margin-bottom: 4px;">Para respetar la promoción de instalación gratis, es posible reprogramar la instalación solicitándolo con 48 hrs de anticipación, en caso contrario la reprogramación de instalación tendrá un costo de $800 pesos. La nula respuesta de confirmación se toma en cuenta como cancelación.</li>
+                                <li style="margin-bottom: 4px;">En el caso de que el cliente modifique las medidas ya autorizadas, será responsable de los efectos que de esto resulte.</li>
+                                <li style="margin-bottom: 4px;">Después de la instalación o recepción de los productos, cualquier reclamación será válida solo 24 horas después de la recepción del mismo.</li>
+                                <li style="margin-bottom: 4px;">Nuestra empresa cuenta con garantía en todos nuestros productos y son válidas en planta (después de ser revisadas y autorizadas por control de calidad el cual dará el diagnóstico), en caso de que aplique alguna, para que esta proceda, se tomará en cuenta, el diagnóstico, el uso, maltrato, mantenimiento, tiempo, desgaste, si el cliente requiere recolección, retiro y reinstalación será con cargo adicional.</li>
+                                <li style="margin-bottom: 4px;">En caso de que el cliente no esté presente en la toma de medidas, la persona que nos atienda será la responsable de proporcionar los datos, mismos que se reconocerán en el pedido como válidos en la rectificación de medidas.</li>
+                                <li style="margin-bottom: 4px;">El área a instalar deberá estar libre; nuestro personal no se hace responsable por desmontar cortineros, cortinas, drapeadas o cualquier otro artículo decorativo; en caso de así requerirse deberá ser notificado a su vendedor el día del levantamiento.</li>
+                                <li style="margin-bottom: 4px;">La empresa no se hace responsable por daños ocasionados (si el cliente le solicita al personal el movimiento de mobiliario u otros objetos, por lo que será bajo su responsabilidad).</li>
+                                <li style="margin-bottom: 4px;">El personal de la empresa no está autorizado para hacer trabajos no especificados en la orden.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; font-weight: bold; font-size: 10px; margin-top: 10px; color: #000;">
+                        ***Se mejora cualquier cotización***
+                    </div>
+                </div>
             </div>
-            
-            <div style="text-align: center; font-weight: bold; font-size: 10px; margin-top: 10px; color: #000;">
-                ***Se mejora cualquier cotización***
-            </div>
-        </div>
+        `;
 
+        const opt = { 
+            margin: [0.2, 0.25, 0.2, 0.25], 
+            filename: `Cotizacion_${c.folioInteligente}.pdf`, 
+            image: { type: 'jpeg', quality: 1 }, 
+            html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 }, 
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
+        };
 
-
-
-
-
-
-    `;
-
-    const opt = { 
-        margin: [0.2, 0.25, 0.2, 0.25], 
-        filename: `Cotizacion_${c.folioInteligente}.pdf`, 
-        image: { type: 'jpeg', quality: 1 }, 
-        html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 }, 
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
-    };
-
-    document.body.style.cursor = 'wait';
-    try {
-        await html2pdf().set(opt).from(element).save();
-    } catch (error) {
-        console.error("Error generando PDF", error);
-        alert("Hubo un problema generando el PDF.");
+        document.body.style.cursor = 'wait';
+        try {
+            await html2pdf().set(opt).from(element).save();
+        } catch (error) {
+            console.error("Error generando PDF", error);
+            alert("Hubo un problema generando el PDF.");
+        }
+        document.body.style.cursor = 'default';
     }
-    document.body.style.cursor = 'default';
-}
             // --- FUNCIÓN PARA CAMBIAR PESTAÑAS ---
 function cambiarPestana(tabName) {
     // 1. Ocultar todos los contenidos
