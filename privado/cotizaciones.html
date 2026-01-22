@@ -935,23 +935,21 @@ function agregarAlCarrito() {
     // --- 3. CÁLCULO GLOBAL DINÁMICO (LA MAGIA) ---
     // --- 3. CÁLCULO GLOBAL DINÁMICO (LÓGICA INVERSA IVA) ---
  // --- 3. CÁLCULO GLOBAL DINÁMICO (CORREGIDO) ---
+   // --- 3. CÁLCULO GLOBAL DINÁMICO (LÓGICA 84% / 16%) ---
     function calcularTotalesGlobales() {
-        // 1. Sumamos todos los Costos Base de la tabla
-        // CORRECCIÓN: Cambié el nombre de la variable para que coincida con el final
+        // 1. Costo Base
         let costoProduccion = carritoItems.reduce((sum, item) => sum + item.total, 0);
         
-        // 2. Obtenemos la Utilidad Global seleccionada (Markup)
+        // 2. Utilidad (Markup)
         const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
-        
-        // 3. Calculamos el Precio de Venta Base (Costo * Markup)
         const subtotalVenta = costoProduccion * (1 + (pctUtilidad / 100));
 
-        // 4. Descuento Global
+        // 3. Descuentos
         const pctDescuento = parseInt(document.getElementById('select-descuento').value) || 0;
         const montoDescuento = subtotalVenta * (pctDescuento / 100);
         const ventaConDescuento = subtotalVenta - montoDescuento;
 
-        // 5. Gastos Extra
+        // 4. Gastos Extra
         let totalGastos = 0;
         let listaGastos = [];
         if (document.getElementById('check-gastos').checked) {
@@ -966,35 +964,46 @@ function agregarAlCarrito() {
             }
         }
 
-        // 6. PRECIO PRELIMINAR
+        // 5. TOTAL BRUTO (El 100% del dinero)
         const totalPreliminar = ventaConDescuento + totalGastos;
 
-        // 7. LÓGICA DE IVA
+        // 6. LÓGICA DE IVA Y SUBTOTAL VISUAL (El cambio que pediste)
         const aplicarIva = document.getElementById('check-iva').checked;
         
         let granTotal = 0;
         let montoIva = 0;
-        let subtotalParaMostrar = 0;
+        let subtotalVisual = 0; 
 
         if (aplicarIva) {
-            // IVA ACTIVO: El total se mantiene, desglosamos hacia atrás
+            // CASO A: CON IVA (Factura)
+            // El Gran Total se mantiene al 100%
             granTotal = totalPreliminar;
-            const baseSinImpuestos = granTotal / 1.16; 
-            montoIva = granTotal - baseSinImpuestos;
-            subtotalParaMostrar = baseSinImpuestos;
+            
+            // Desglosamos usando TU lógica de factores:
+            // Subtotal = 84% del total
+            subtotalVisual = totalPreliminar * 0.84;
+            // IVA = 16% del total
+            montoIva = totalPreliminar * 0.16;
+            
+            // Nota: 0.84 + 0.16 = 1.00 (La suma será exacta)
         } else {
-            // IVA DESACTIVADO: Descontamos el factor
+            // CASO B: SIN IVA (Efectivo/Descuento)
+            // Aplicamos el descuento del 16% real (multiplicando por 0.84)
             granTotal = totalPreliminar * 0.84;
+            
+            // El subtotal es todo el monto (porque ya es neto)
+            subtotalVisual = granTotal;
             montoIva = 0;
-            subtotalParaMostrar = granTotal;
         }
 
-        // 8. Utilidad Neta Real
+        // 7. Utilidad Neta Real (Bolsillo)
         const utilidadNeta = granTotal - costoProduccion;
 
         // --- ACTUALIZAR PANTALLA ---
         document.getElementById('lbl-costo-produccion').innerText = `$${costoProduccion.toFixed(2)}`;
-        document.getElementById('lbl-subtotal-venta').innerText = `$${subtotalVenta.toFixed(2)}`;
+        
+        // AQUI MOSTRAMOS EL SUBTOTAL CALCULADO (El 84%) EN VEZ DEL BRUTO
+        document.getElementById('lbl-subtotal-venta').innerText = `$${subtotalVisual.toFixed(2)}`;
         
         const lblDesc = document.getElementById('lbl-descuento-monto');
         if(montoDescuento > 0) {
@@ -1004,7 +1013,7 @@ function agregarAlCarrito() {
             lblDesc.style.display = 'none';
         }
 
-        // Desglose de Gastos
+        // Gastos
         const containerGastos = document.getElementById('contenedor-desglose-gastos');
         containerGastos.innerHTML = '';
         if(totalGastos > 0) {
@@ -1023,7 +1032,8 @@ function agregarAlCarrito() {
         // Mostrar IVA
         const lblIva = document.getElementById('lbl-iva');
         if(aplicarIva) {
-            lblIva.innerHTML = `<span>(IVA 16% Incluido):</span> <span>$${montoIva.toFixed(2)}</span>`;
+            // Mostramos el 16% calculado
+            lblIva.innerHTML = `<span>+ IVA (16%):</span> <span>$${montoIva.toFixed(2)}</span>`;
             lblIva.style.color = "#666"; 
         } else {
             lblIva.innerHTML = `<span>IVA (Descontado):</span> <span>No incluido</span>`;
@@ -1036,9 +1046,10 @@ function agregarAlCarrito() {
         lblUtilidad.innerText = `$${utilidadNeta.toFixed(2)}`;
         lblUtilidad.parentElement.style.backgroundColor = utilidadNeta >= 0 ? '#d4edda' : '#f8d7da';
         
+        // Retornamos los valores listos para el PDF
         return { 
-            costoProduccion, // <--- AQUÍ ESTABA EL ERROR (Ahora coincide)
-            subtotalVenta,
+            costoProduccion,
+            subtotalVenta, // Este es el valor interno bruto
             montoDescuento, 
             pctDescuento, 
             pctUtilidad, 
@@ -1046,7 +1057,7 @@ function agregarAlCarrito() {
             listaGastos, 
             iva: montoIva, 
             granTotal,
-            subtotalParaMostrar, 
+            subtotalParaMostrar: subtotalVisual, // <--- ESTE ES EL QUE USARÁ EL PDF
             aplicarIva 
         };
     }
