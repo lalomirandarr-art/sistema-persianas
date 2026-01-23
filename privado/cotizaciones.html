@@ -399,7 +399,7 @@ input:checked + .slider:before {
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; align-items: center; gap: 5px; margin-bottom: 10px;">
-                        <input type="checkbox" id="check-iva" checked onchange="calcularTotalesGlobales()" style="width: auto;">
+                        <input type="checkbox" id="check-iva" checked onchange="actualizarTablaCarrito()" style="width: auto;">
                         <label for="check-iva" style="margin:0; font-size: 0.9rem;">Aplicar IVA (16%)</label>
                     </div>
 
@@ -766,16 +766,20 @@ function agregarAlCarrito() {
 }
 
     // --- FUNCIÓN ACTUALIZAR TABLA (CON CÁLCULO EN TIEMPO REAL) ---
+    // --- FUNCIÓN ACTUALIZAR TABLA (CON AJUSTE VISUAL DE IVA 0.84) ---
     function actualizarTablaCarrito() {
         const tbody = document.querySelector('#tabla-items tbody');
         tbody.innerHTML = '';
 
-        // 1. Obtenemos la utilidad actual para aplicarla a las filas
+        // 1. Obtenemos la utilidad (Markup)
         const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
-        let factor = 1;
-        if (pctUtilidad < 100) {
-            factor = 1 - (pctUtilidad / 100);
-        }
+        // Factor de Utilidad: (1 + %/100)
+        const factorUtilidad = 1 + (pctUtilidad / 100);
+
+        // 2. DETECTAMOS SI SE APLICA IVA O NO (NUEVO)
+        const aplicaIva = document.getElementById('check-iva').checked;
+        // Si está activo, factor es 1 (precio normal). Si no, es 0.84 (descontamos IVA).
+        const factorIva = aplicaIva ? 1 : 0.84; 
 
         if(carritoItems.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Tu carrito está vacío.</td></tr>';
@@ -784,14 +788,12 @@ function agregarAlCarrito() {
         }
 
         carritoItems.forEach((item, index) => {
-            // CALCULAMOS EL PRECIO DE VENTA PARA ESTA FILA
-            // item.financiero.costoBase = Costo de 1 pieza
-            // item.total = Costo Total (Base * Cantidad)
+            // CÁLCULO DE PRECIOS PARA MOSTRAR
+            // Precio Base = Costo * Utilidad
+            // Precio Final = Precio Base * FactorIVA (1 o 0.84)
             
-            const precioUnitarioVenta = item.financiero.costoBase / factor;
-            const precioTotalVenta = item.total / factor; // item.total guarda el costo total base
-
-           // ... dentro de actualizarTablaCarrito ...
+            const costoUnitarioReal = item.financiero.costoBase * factorIva; // Costo visual
+            const precioTotalVenta = (item.total * factorUtilidad) * factorIva; // Precio Venta visual
 
             const fila = `
                 <tr>
@@ -801,13 +803,13 @@ function agregarAlCarrito() {
                         
                         ${item.motor !== "Manual" ? 
                             `<div style="font-size:0.85em; color:#0056b3; margin-top:2px;">
-                                 ${item.motor} ${item.control ? " +  " + item.control : ""}
+                                ⚙️ ${item.motor} ${item.control ? " + 🎮 " + item.control : ""}
                              </div>` 
                         : ""}
                         
                         ${item.componente ? 
                             `<div style="font-size:0.85em; color:#e65100; font-weight:bold; margin-top:2px;">
-                                 Incluye: ${item.componente}
+                                🔌 Incluye: ${item.componente}
                              </div>` 
                         : ""}
                         
@@ -816,7 +818,7 @@ function agregarAlCarrito() {
                         </div>
                         ${item.notas ? 
                             `<div style="font-size:0.85em; color:#d63384; background-color:#fff0f6; padding:3px 5px; border-radius:4px; margin-top:4px; font-style:italic; border:1px solid #ffadd2;">
-                                 Nota: ${item.notas}
+                                📝 Nota: ${item.notas}
                              </div>` 
                         : ""}
                     </td>
@@ -824,7 +826,7 @@ function agregarAlCarrito() {
                     <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
                     <td style="text-align: center;">${item.cantidad}</td>
                     
-                    <td style="color: #999; font-size: 0.85em;">$${item.financiero.costoBase.toFixed(2)}</td>
+                    <td style="color: #999; font-size: 0.85em;">$${costoUnitarioReal.toFixed(2)}</td>
                     
                     <td style="font-weight:bold; color: #001f3f; font-size: 1.1em;">
                         $${precioTotalVenta.toFixed(2)}
