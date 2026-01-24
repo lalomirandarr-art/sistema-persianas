@@ -1035,10 +1035,7 @@ function agregarAlCarrito() {
         };
     }
 
-    // --- FUNCIÓN GENERAR PDF CORREGIDA Y ADAPTADA A UTILIDAD GLOBAL ---
-    // --- FUNCIÓN GENERAR PDF (MODIFICADA PARA ABRIR EN PESTAÑA) ---
-   // --- FUNCIÓN GENERAR PDF (VUELVE A MODO DESCARGA PARA RESPETAR NOMBRE) ---
-    // --- FUNCIÓN GENERAR PDF (RESTAURADA Y MEJORADA) ---
+    // --- FUNCIÓN GENERAR PDF (CORREGIDA: APLICA FACTOR 0.84 A FILAS) ---
     async function generarPDF() {
         if (carritoItems.length === 0) { alert("No hay productos para generar el PDF."); return; }
 
@@ -1046,7 +1043,7 @@ function agregarAlCarrito() {
         const mesActual = fechaObj.getMonth();
         const anioActual = fechaObj.getFullYear();
         
-        // --- 1. CÁLCULO DEL FOLIO (Consulta rápida para ver cuál sigue) ---
+        // 1. CÁLCULO DEL FOLIO
         let consecutivo = 1; 
         try {
             const respuesta = await fetch('/cotizaciones?limit=5000'); 
@@ -1057,8 +1054,8 @@ function agregarAlCarrito() {
                     if (isNaN(fechaCoti)) return false;
                     return fechaCoti.getMonth() === mesActual && fechaCoti.getFullYear() === anioActual;
                 });
-                // Como es NUEVA y no se ha guardado, sumamos 1 al conteo actual
-                consecutivo = cotizacionesEsteMes.length + 1;
+                consecutivo = cotizacionesEsteMes.length;
+                if(consecutivo === 0) consecutivo = 1; 
             }
         } catch (error) { console.error("Error calculando consecutivo:", error); }
 
@@ -1072,12 +1069,15 @@ function agregarAlCarrito() {
         // --- 2. PREPARAR DATOS FINANCIEROS ---
         const totales = calcularTotalesGlobales(); 
 
-        // Calcular factor para desglosar precio unitario en la tabla del PDF
-        // Tu lógica actual usa Margen: Venta = Costo / (1 - %Utilidad)
+        // Factor para desglosar precio unitario (Ingeniería inversa de tu Utilidad)
         let factorDivisor = 1;
         if(totales.pctUtilidad < 100) {
             factorDivisor = 1 - (totales.pctUtilidad / 100);
         }
+
+        // --- CORRECCIÓN CLAVE AQUÍ ---
+        // Detectamos si debemos bajar los precios de la tabla también
+        const factorIva = totales.aplicarIva ? 1 : 0.84;
 
         // --- 3. CONSTRUIR FILAS DE LA TABLA ---
         let filasHTML = '';
@@ -1085,9 +1085,10 @@ function agregarAlCarrito() {
         
         carritoItems.forEach(item => {
             const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
-            const factorIva = totales.aplicarIva ? 1 : 0.84;
-            // Calculamos precio venta unitario y total para la tabla
-            const precioUnitarioVenta = item.financiero.costoBase / factorDivisor;
+            
+            // APLICAMOS EL FACTOR IVA A CADA FILA TAMBIÉN
+            // Precio = (CostoBase / Margen) * (1 o 0.84)
+            const precioUnitarioVenta = (item.financiero.costoBase / factorDivisor) * factorIva;
             const totalVenta = (item.total / factorDivisor) * factorIva;
 
             filasHTML += `
@@ -1118,21 +1119,24 @@ function agregarAlCarrito() {
                 </tr>`;
         });
 
-        // Filas de Gastos Extra (Si los hay)
+        // Gastos Extra (También ajustamos su visualización si quitamos IVA)
         if(totales.totalGastos > 0) {
             totales.listaGastos.forEach(g => {
+                // Aplicamos factor IVA visual al gasto también para que sume correctamente
+                const gastoVisual = g.monto * factorIva; 
+                
                 filasHTML += `
                 <tr style="border-bottom: 1px solid #17a2b8; background-color: #eef;">
                     <td colspan="6" style="padding: 4px; text-align: right; border-right: 1px solid #6CDAE7;"><strong>+ ${g.descripcion || 'Gasto Extra'}:</strong></td>
-                    <td style="padding: 4px; text-align: right;">$${g.monto.toFixed(2)}</td>
+                    <td style="padding: 4px; text-align: right;">$${gastoVisual.toFixed(2)}</td>
                 </tr>`;
             });
         }
 
-        // --- 4. CONSTRUIR ESTRUCTURA DEL PDF (Sticky Footer) ---
+        // --- 4. ESTRUCTURA PDF ---
         const element = document.createElement('div');
         element.style.width = '740px'; 
-        element.style.minHeight = '950px'; // Forzar altura hoja carta
+        element.style.minHeight = '950px'; 
         element.style.padding = '20px';
         element.style.background = 'white';
         element.style.fontFamily = 'Arial, sans-serif';
@@ -1200,22 +1204,17 @@ function agregarAlCarrito() {
                     <div style="width: 40%;">
                         <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
                             <tr><td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
-                                <td style="text-align: right; padding: 4px; color: #333;">$${totales.subtotalVenta.toFixed(2)}</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">$${totales.subtotalParaMostrar.toFixed(2)}</td>
                             </tr>
                             ${totales.montoDescuento > 0 ? `
                             <tr>
                                 <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${totales.pctDescuento}%):</td>
-                                <td style="text-align: right; padding: 4px; color: #dc3545;">-$${totales.montoDescuento.toFixed(2)}</td>
+                                <td style="text-align: right; padding: 4px; color: #dc3545;">-$${(totales.montoDescuento * factorIva).toFixed(2)}</td>
                                 </tr>` : ''}
                             
-                            ${totales.totalGastos > 0 ? 
-                                `<tr><td style="text-align: right; padding: 4px; font-weight: bold; color: #6610f2;">GASTOS EXTRA:</td>
-                                <td style="text-align: right; padding: 4px; color: #6610f2;">+$${totales.totalGastos.toFixed(2)}</td></tr>` 
-                            : ''}
-
                             <tr>
                                 <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
-                                <td style="text-align: right; padding: 4px; color: #333;">${totales.iva > 0 ? '$'+totales.iva.toFixed(2) : 'No Incluido'}</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">${totales.aplicarIva ? '$'+totales.iva.toFixed(2) : 'No Incluido'}</td>
                             </tr>
                             <tr style="border-top: 2px solid #17a2b8;"><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${totales.granTotal.toFixed(2)}</td></tr>
                         </table>
