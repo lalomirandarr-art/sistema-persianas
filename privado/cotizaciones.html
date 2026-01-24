@@ -1119,9 +1119,10 @@ function agregarAlCarrito() {
 
         // --- 4. ESTRUCTURA PDF ---
         const element = document.createElement('div');
-        element.style.width = '740px'; 
-        element.style.minHeight = '950px'; 
-        element.style.padding = '20px';
+        element.style.width = '790px'; // Aumentamos un poco el ancho para compensar
+        element.style.minHeight = '980px'; 
+        // CAMBIO CLAVE: Aumentamos el padding a 40px (aprox 1cm) para que actúe como margen
+        element.style.padding = '40px'; 
         element.style.background = 'white';
         element.style.fontFamily = 'Arial, sans-serif';
         element.style.color = '#333';
@@ -1254,7 +1255,7 @@ function agregarAlCarrito() {
         `;
 
         const opt = { 
-            margin: [0.2, 0.25, 0.2, 0.25], 
+            margin: 0, 
             filename: `Cotizacion_${folio}.pdf`, 
             image: { type: 'jpeg', quality: 1 }, 
             html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 }, 
