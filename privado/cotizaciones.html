@@ -1119,10 +1119,11 @@ function agregarAlCarrito() {
 
         // --- 4. ESTRUCTURA PDF ---
         const element = document.createElement('div');
-        element.style.width = '790px'; // Aumentamos un poco el ancho para compensar
-        element.style.minHeight = '980px'; 
-        // CAMBIO CLAVE: Aumentamos el padding a 40px (aprox 1cm) para que actúe como margen
-        element.style.padding = '40px'; 
+        element.style.width = '816px';        // 8.5 pulgadas exactas
+        element.style.minHeight = '1056px';   // 11 pulgadas exactas
+        element.style.boxSizing = 'border-box'; // CLAVE: Hace que el padding NO agrande la caja
+        element.style.padding = '40px';       // Margen interno parejo
+        
         element.style.background = 'white';
         element.style.fontFamily = 'Arial, sans-serif';
         element.style.color = '#333';
