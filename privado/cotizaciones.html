@@ -949,7 +949,7 @@ function agregarAlCarrito() {
         // 2. Utilidad (Markup) sobre el costo BASE (sin el ajuste visual aún)
         // Usamos el base para calcular el precio de lista original
         const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
-        const subtotalVentaBase = costoProduccionBase * (1 + (pctUtilidad / 100));
+        const subtotalVentaBase = costoProduccionBase/(1 - (pctUtilidad / 100));
 
         // 3. Descuentos
         const pctDescuento = parseInt(document.getElementById('select-descuento').value) || 0;
