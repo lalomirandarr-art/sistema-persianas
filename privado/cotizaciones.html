@@ -1169,9 +1169,9 @@ async function generarPDF(modo = 'descargar') {
     let textoIVA = "No Incluido";
     if (aplicaIva) {
         // Si el precio ya tiene IVA, desglosamos cuánto es.
-        const subtotalConDescuento = sumaSubtotalPDF - montoDescuentoPDF;
-        ivaInformativoPDF = subtotalConDescuento - (subtotalConDescuento / 1.16);
-        textoIVA = `$${ivaInformativoPDF.toFixed(2)} (Incluido)`;
+        const subtotalConDescuento = sumaSubtotalPDF;
+        ivaInformativoPDF = subtotalConDescuento*0.16;
+        textoIVA = `$${ivaInformativoPDF.toFixed(2)}`;
     }
 
     // D) GRAN TOTAL
