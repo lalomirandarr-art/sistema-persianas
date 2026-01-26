@@ -1048,9 +1048,7 @@ function agregarAlCarrito() {
         };
     }
 
-    // --- FUNCIÓN GENERAR PDF (FINAL: SIEMPRE 0.84 EN TABLA) ---
-    // --- FUNCIÓN GENERAR PDF (CORREGIDA: TABLA Y TOTALES COINCIDENTES) ---
-    // --- FUNCIÓN GENERAR PDF (LÓGICA FINAL: SIEMPRE MUESTRA BASE) ---
+    // --- FUNCIÓN GENERAR PDF (FINAL: SIEMPRE BASE EN TABLA Y SUBTOTAL) ---
     async function generarPDF(modo = 'descargar') {
         if (carritoItems.length === 0) { alert("No hay productos para generar el PDF."); return; }
 
@@ -1081,10 +1079,10 @@ function agregarAlCarrito() {
         const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
         const quienCotiza = document.getElementById('quienCotiza').value || "Vendedor";
         
-        // --- 2. PREPARAR DATOS FINANCIEROS ---
+        // --- 2. PREPARAR DATOS ---
         const totales = calcularTotalesGlobales(); 
 
-        // Factor para desglosar precio unitario en la tabla (Margen)
+        // Factor para desglosar precio unitario en la tabla
         let factorDivisor = 1;
         if(totales.pctUtilidad < 100) {
             factorDivisor = 1 - (totales.pctUtilidad / 100);
@@ -1092,19 +1090,20 @@ function agregarAlCarrito() {
 
         const llevaIva = totales.aplicarIva;
 
-        // --- CORRECCIÓN FINAL (LA CLAVE) ---
-        // Definimos por cuánto multiplicar para obtener SIEMPRE la BASE (sin IVA).
-        let factorParaBase = 1;
-
-        if (llevaIva) {
-            // Caso 1: El sistema tiene precios con IVA (100%).
-            // Acción: Multiplicamos por 0.84 para "limpiarlos" y mostrar la base en la tabla.
-            factorParaBase = 0.84;
-        } else {
-            // Caso 2: El sistema ya tiene precios sin IVA (84%).
-            // Acción: Multiplicamos por 1 (lo dejamos igual) porque YA ES la base que queremos ver.
-            factorParaBase = 1;
+        // --- PASO CLAVE: NORMALIZAR AL 100% ---
+        // Necesitamos saber cuánto cuesta el producto al 100% (Bruto) para poder
+        // calcular el 84% (Base) y el 16% (IVA) por separado de forma limpia.
+        
+        // Si el checkbox estaba apagado, 'totales.subtotalVenta' viene al 84%.
+        // Lo dividimos entre 0.84 para regresarlo al 100%.
+        let granTotalBrutoProductos = totales.subtotalVenta;
+        if (!llevaIva) {
+            granTotalBrutoProductos = totales.subtotalVenta / 0.84;
         }
+
+        // --- FACTOR FIJO PARA TABLA Y SUBTOTAL ---
+        // Tu regla: SIEMPRE mostrar en tabla y subtotal el valor sin IVA (84%)
+        const factorBaseFijo = 0.84;
 
         // --- 3. CONSTRUIR FILAS DE LA TABLA ---
         let filasHTML = '';
@@ -1113,11 +1112,17 @@ function agregarAlCarrito() {
         carritoItems.forEach(item => {
             const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
             
-            // Calculamos el precio total de venta "Bruto" (como lo tiene el sistema ahorita)
-            let totalVentaSistema = item.total / factorDivisor;
+            // 1. Recuperar Costo Total al 100% (Restaurar si estaba castigado)
+            let costoItem100 = item.total;
+            if (!llevaIva) { 
+                costoItem100 = item.total / 0.84; 
+            }
 
-            // Aplicamos el factor para convertirlo visualmente a BASE
-            const totalVentaVisual = totalVentaSistema * factorParaBase;
+            // 2. Calcular Precio Venta al 100% (Aplicando utilidad)
+            let precioVenta100 = costoItem100 / factorDivisor;
+
+            // 3. Aplicar Factor 0.84 SIEMPRE (Para que la tabla sea Base Imponible)
+            const precioVentaVisual = precioVenta100 * factorBaseFijo;
 
             filasHTML += `
                 <tr style="border-bottom: 1px solid #6CDAE7;">
@@ -1129,7 +1134,7 @@ function agregarAlCarrito() {
                     <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
                     <td style="${cellStyle}">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
                     <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
-                    <td style="padding: 4px; text-align: right; font-size: 9px;">$${totalVentaVisual.toFixed(2)}</td>
+                    <td style="padding: 4px; text-align: right; font-size: 9px;">$${precioVentaVisual.toFixed(2)}</td>
                 </tr>
                 <tr style="border-bottom: 2px solid #6CDAE7; color: #444; font-size: 8px; background-color: #f9f9f9;">
                     <td colspan="7" style="padding: 4px 8px;">
@@ -1148,29 +1153,37 @@ function agregarAlCarrito() {
 
         // --- CÁLCULOS VISUALES PARA LOS TOTALES DEL PDF ---
         
-        // 1. SUBTOTAL VISUAL: Siempre debe ser la BASE
-        // Tomamos el subtotal del sistema y le aplicamos el mismo factor que a la tabla
-        let subtotalVisualPDF = totales.subtotalVenta * factorParaBase;
+        // 1. SUBTOTAL VISUAL: Siempre es el 84% del Bruto
+        let pdfSubtotal = granTotalBrutoProductos * factorBaseFijo;
         
-        // 2. DESCUENTO VISUAL: También lo ajustamos a la base
-        let descuentoVisualPDF = 0;
+        // 2. DESCUENTO VISUAL: Siempre es el 84% del Descuento Bruto
+        let pdfDescuento = 0;
         if(totales.montoDescuento > 0) {
-            descuentoVisualPDF = totales.montoDescuento * factorParaBase;
+            let descuentoBruto = totales.montoDescuento;
+            if(!llevaIva) descuentoBruto = descuentoBruto / 0.84;
+            
+            pdfDescuento = descuentoBruto * factorBaseFijo;
         }
 
-        // 3. IVA VISUAL
-        let ivaVisualPDF = 0;
+        // 3. IVA VISUAL: Es el 16% del Bruto (Solo si aplica)
+        let pdfIVA = 0;
         if (llevaIva) {
-            // El IVA es la diferencia para llegar al Gran Total
-            // O calculamos: (Base Real) * (16/84) que es aprox 0.1904...
-            // La forma más segura de que cuadre es restar: TotalBruto - TotalBase
-            let totalProductosBruto = (totales.subtotalVenta - totales.montoDescuento); // Esto es el 100%
-            let totalProductosBase = (subtotalVisualPDF - descuentoVisualPDF); // Esto es el 84%
-            
-            ivaVisualPDF = totalProductosBruto - totalProductosBase;
-        } else {
-            ivaVisualPDF = 0;
+            let baseParaIva = granTotalBrutoProductos; 
+            // Si hay descuento, el IVA se calcula sobre el total menos descuento
+            if(totales.montoDescuento > 0) {
+                let descBruto = totales.montoDescuento;
+                if(!llevaIva) descBruto = descBruto / 0.84;
+                baseParaIva = granTotalBrutoProductos - descBruto;
+            }
+            pdfIVA = baseParaIva * 0.16;
         }
+
+        // 4. GRAN TOTAL NETO
+        // Se calcula sumando lo visual para que cuadre al centavo: 
+        // (SubtotalVisual - DescuentoVisual) + IVAVisual + Gastos
+        let baseNeta = pdfSubtotal - pdfDescuento;
+        let pdfGranTotal = baseNeta + pdfIVA + (totales.totalGastos || 0);
+
 
         // --- 4. ESTRUCTURA PDF ---
         const element = document.createElement('div');
@@ -1244,13 +1257,13 @@ function agregarAlCarrito() {
                     <div style="width: 40%;">
                         <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
                             <tr><td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
-                                <td style="text-align: right; padding: 4px; color: #333;">$${subtotalVisualPDF.toFixed(2)}</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">$${pdfSubtotal.toFixed(2)}</td>
                             </tr>
 
-                            ${descuentoVisualPDF > 0 ? `
+                            ${pdfDescuento > 0 ? `
                             <tr>
                                 <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${totales.pctDescuento}%):</td>
-                                <td style="text-align: right; padding: 4px; color: #dc3545;">-$${descuentoVisualPDF.toFixed(2)}</td>
+                                <td style="text-align: right; padding: 4px; color: #dc3545;">-$${pdfDescuento.toFixed(2)}</td>
                             </tr>` : ''}
                             
                             ${totales.totalGastos > 0 ? 
@@ -1264,9 +1277,9 @@ function agregarAlCarrito() {
 
                             <tr>
                                 <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
-                                <td style="text-align: right; padding: 4px; color: #333;">${llevaIva ? '$'+ivaVisualPDF.toFixed(2) : 'No Incluido'}</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">${llevaIva ? '$'+pdfIVA.toFixed(2) : 'No Incluido'}</td>
                             </tr>
-                            <tr style="border-top: 2px solid #17a2b8;"><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${totales.granTotal.toFixed(2)}</td></tr>
+                            <tr style="border-top: 2px solid #17a2b8;"><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${pdfGranTotal.toFixed(2)}</td></tr>
                         </table>
                     </div>
                 </div>
