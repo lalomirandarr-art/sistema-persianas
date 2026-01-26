@@ -1036,6 +1036,7 @@ function agregarAlCarrito() {
     }
 
     // --- FUNCIÓN GENERAR PDF (FINAL: CON DESGLOSE DE GASTOS VISIBLE) ---
+    // --- FUNCIÓN GENERAR PDF (CORREGIDA: SUMA VISUAL PERFECTA) ---
     async function generarPDF() {
         if (carritoItems.length === 0) { alert("No hay productos para generar el PDF."); return; }
 
@@ -1069,25 +1070,26 @@ function agregarAlCarrito() {
         // --- 2. PREPARAR DATOS FINANCIEROS ---
         const totales = calcularTotalesGlobales(); 
 
-        // Factor para desglosar precio unitario en la tabla principal
+        // Factor para desglosar precio unitario en la tabla (Ingeniería inversa)
         let factorDivisor = 1;
         if(totales.pctUtilidad < 100) {
             factorDivisor = 1 - (totales.pctUtilidad / 100);
         }
 
-        // Detectamos si debemos bajar los precios de la tabla también (Factor IVA)
-        const factorIva = totales.aplicarIva ? 1 : 0.84;
+        // Detectamos si debemos bajar los precios de la tabla también
+        // OJO: Si hay IVA, también bajamos visualmente los unitarios al 84% para que sumen el subtotal neto
+        const factorIva = totales.aplicarIva ? 0.84 : 0.84; // Siempre mostramos precios netos en la tabla para que sumen el subtotal
 
-        // --- 3. CONSTRUIR FILAS DE LA TABLA DE PRODUCTOS ---
+        // --- 3. CONSTRUIR FILAS DE LA TABLA ---
         let filasHTML = '';
         const cellStyle = "padding: 6px; border-right: 1px solid #6CDAE7; font-size: 9px;";
         
         carritoItems.forEach(item => {
             const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
             
-            // Precio Unitario Visual = (CostoBase / Margen) * FactorIVA
-            const precioUnitarioVenta = (item.financiero.costoBase / factorDivisor) * factorIva;
-            const totalVenta = (item.total / factorDivisor) * factorIva;
+            // Precio Unitario Visual (Siempre Neto)
+            const precioUnitarioVenta = (item.financiero.costoBase / factorDivisor) * 0.84;
+            const totalVenta = (item.total / factorDivisor) * 0.84;
 
             filasHTML += `
                 <tr style="border-bottom: 1px solid #6CDAE7;">
@@ -1117,13 +1119,30 @@ function agregarAlCarrito() {
                 </tr>`;
         });
 
+        // --- CÁLCULO DE TOTALES PARA VISUALIZACIÓN PDF ---
+        // Aquí forzamos la congruencia visual: Subtotal siempre es la base (84%)
+        
+        // 1. Obtenemos el total bruto de productos (sin gastos)
+        // totales.subtotalVenta trae el valor bruto (100% o 84% dependiendo del checkbox, lo normalizamos a 100%)
+        let totalProductosBruto = totales.subtotalVenta / (totales.aplicarIva ? 1 : 0.84);
+        
+        // 2. Calculamos Base Imponible (Neto)
+        let subtotalVisualPDF = totalProductosBruto * 0.84;
+        
+        // 3. Descuento Visual (Neto)
+        let descuentoVisualPDF = (totales.montoDescuento / (totales.aplicarIva ? 1 : 0.84)) * 0.84;
+        
+        // 4. IVA Visual (16% de la base)
+        let ivaVisualPDF = 0;
+        if (totales.aplicarIva) {
+            ivaVisualPDF = (subtotalVisualPDF - descuentoVisualPDF) * (0.16 / 0.84); // Regla de tres simple
+        }
+
         // --- 4. ESTRUCTURA PDF ---
         const element = document.createElement('div');
-        element.style.width = '816px';        // 8.5 pulgadas exactas
-        element.style.minHeight = '1056px';   // 11 pulgadas exactas
-        element.style.boxSizing = 'border-box'; // CLAVE: Hace que el padding NO agrande la caja
-        element.style.padding = '40px';       // Margen interno parejo
-        
+        element.style.width = '740px'; 
+        element.style.minHeight = '950px'; 
+        element.style.padding = '20px';
         element.style.background = 'white';
         element.style.fontFamily = 'Arial, sans-serif';
         element.style.color = '#333';
@@ -1190,13 +1209,13 @@ function agregarAlCarrito() {
                     <div style="width: 40%;">
                         <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
                             <tr><td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
-                                <td style="text-align: right; padding: 4px; color: #333;">$${totales.subtotalParaMostrar.toFixed(2)}</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">$${subtotalVisualPDF.toFixed(2)}</td>
                             </tr>
 
                             ${totales.montoDescuento > 0 ? `
                             <tr>
                                 <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${totales.pctDescuento}%):</td>
-                                <td style="text-align: right; padding: 4px; color: #dc3545;">-$${(totales.montoDescuento * factorIva).toFixed(2)}</td>
+                                <td style="text-align: right; padding: 4px; color: #dc3545;">-$${descuentoVisualPDF.toFixed(2)}</td>
                                 </tr>` : ''}
                             
                             ${totales.totalGastos > 0 ? 
@@ -1210,7 +1229,7 @@ function agregarAlCarrito() {
 
                             <tr>
                                 <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
-                                <td style="text-align: right; padding: 4px; color: #333;">${totales.aplicarIva ? '$'+totales.iva.toFixed(2) : 'No Incluido'}</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">${totales.aplicarIva ? '$'+ivaVisualPDF.toFixed(2) : 'No Incluido'}</td>
                             </tr>
 
                             <tr style="border-top: 2px solid #17a2b8;"><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${totales.granTotal.toFixed(2)}</td></tr>
@@ -1256,14 +1275,13 @@ function agregarAlCarrito() {
         `;
 
         const opt = { 
-            margin: 0, 
+            margin: [0.2, 0.25, 0.2, 0.25], 
             filename: `Cotizacion_${folio}.pdf`, 
             image: { type: 'jpeg', quality: 1 }, 
             html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 }, 
             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
         };
 
-        // --- Generar y Descargar ---
         document.body.style.cursor = 'wait';
         await html2pdf().set(opt).from(element).save();
         document.body.style.cursor = 'default';
