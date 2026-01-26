@@ -982,8 +982,13 @@ function agregarAlCarrito() {
 
         // 6. GRAN TOTAL FINAL
         // Sumamos los productos (ya ajustados por el factor) + los gastos (intactos)
-        const granTotal = ventaProductosNeta + totalGastos;
-
+        const granTotal = 0
+        if(factorIva==1){
+    granTotal=  ventaProductosNeta + totalGastos + montoIvaInformativo;
+        }
+        else{
+    granTotal=  ventaProductosNeta + totalGastos + montoIvaInformativo;
+        }
         // 7. Utilidad Neta Real
         // (Lo que cobras de productos) - (Lo que te costó producir esos productos ajustado)
         // Nota: Los gastos se asumen neutros para la utilidad operativa
