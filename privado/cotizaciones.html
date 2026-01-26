@@ -1035,7 +1035,7 @@ function agregarAlCarrito() {
         };
     }
 
-    // --- FUNCIÓN GENERAR PDF (CORREGIDA: CONGRUENCIA VISUAL COMPLETA) ---
+    // --- FUNCIÓN GENERAR PDF (CORREGIDA: LOGICA DE SUMA 84% + 16%) ---
     async function generarPDF(modo = 'descargar') {
         if (carritoItems.length === 0) { alert("No hay productos para generar el PDF."); return; }
 
@@ -1069,14 +1069,16 @@ function agregarAlCarrito() {
         // --- 2. PREPARAR DATOS FINANCIEROS ---
         const totales = calcularTotalesGlobales(); 
 
-        // Factor para desglosar precio unitario en la tabla
+        // Factor para desglosar precio unitario en la tabla (Ingeniería inversa)
         let factorDivisor = 1;
         if(totales.pctUtilidad < 100) {
             factorDivisor = 1 - (totales.pctUtilidad / 100);
         }
 
-        // Detectamos si debemos bajar los precios de la tabla también (Factor IVA)
-        const factorIva = totales.aplicarIva ? 1 : 0.84;
+        // Factor IVA para los precios unitarios en la tabla:
+        // Queremos que las filas sumen la Base Imponible (el 84%), 
+        // así que siempre aplicamos el 0.84 a los renglones individuales.
+        const factorIvaVisual = 0.84;
 
         // --- 3. CONSTRUIR FILAS DE LA TABLA ---
         let filasHTML = '';
@@ -1085,10 +1087,9 @@ function agregarAlCarrito() {
         carritoItems.forEach(item => {
             const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
             
-            // PRECIO VISUAL (Para que coincida con el total, siempre aplicamos factorIva)
-            // Si el IVA está apagado, mostramos precios al 84%
-            const precioUnitarioVenta = (item.financiero.costoBase / factorDivisor) * factorIva;
-            const totalVenta = (item.total / factorDivisor) * factorIva;
+            // Calculamos precio venta unitario y total para la tabla (Base / Neto)
+            const precioUnitarioVenta = (item.financiero.costoBase / factorDivisor) * factorIvaVisual;
+            const totalVenta = (item.total / factorDivisor) * factorIvaVisual;
 
             filasHTML += `
                 <tr style="border-bottom: 1px solid #6CDAE7;">
@@ -1117,24 +1118,30 @@ function agregarAlCarrito() {
                 </tr>`;
         });
 
-        // --- CÁLCULOS VISUALES PARA LA SUMA CORRECTA ---
+        // --- CÁLCULOS VISUALES PARA LOS TOTALES DEL PDF ---
         
-        // 1. Obtenemos el Total Bruto (100%) restaurando el valor si venía con descuento
-        let totalProductosBruto = totales.subtotalVenta / (totales.aplicarIva ? 1 : 0.84);
+        // 1. Total Bruto (100%)
+        // totales.subtotalVenta YA ES EL BRUTO según tu código actual.
+        let totalProductosBruto = totales.subtotalVenta;
         
-        // 2. Definimos el Subtotal Visual (Siempre será el 84% / Base)
-        // Esto hace que la suma siempre sea: 84% (Base) + 16% (IVA) = 100% (Total)
+        // 2. Subtotal Visual (Siempre mostramos la Base Imponible: 84%)
+        // Esto asegura que: 84% (Base) + 16% (IVA) = 100% (Total)
         let subtotalVisualPDF = totalProductosBruto * 0.84;
         
-        // 3. Definimos el Descuento Visual (Proporcional al 84%)
+        // 3. Descuento Visual (También al 84%)
         let descuentoVisualPDF = 0;
         if(totales.montoDescuento > 0) {
-            // Obtenemos el descuento bruto y lo bajamos al 84%
-            let descuentoBruto = totales.montoDescuento / (totales.aplicarIva ? 1 : 0.84);
-            descuentoVisualPDF = descuentoBruto * 0.84;
+            descuentoVisualPDF = totales.montoDescuento * 0.84;
         }
 
-        // 4. ESTRUCTURA PDF
+        // 4. IVA Visual (El 16% restante)
+        // Si el checkbox está activo, calculamos el 16% sobre el bruto original.
+        let ivaVisualPDF = 0;
+        if (totales.aplicarIva) {
+            ivaVisualPDF = totalProductosBruto * 0.16;
+        }
+
+        // --- 4. ESTRUCTURA PDF ---
         const element = document.createElement('div');
         element.style.width = '816px'; 
         element.style.minHeight = '1056px'; 
@@ -1205,8 +1212,7 @@ function agregarAlCarrito() {
 
                     <div style="width: 40%;">
                         <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-                            <tr>
-                                <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
+                            <tr><td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
                                 <td style="text-align: right; padding: 4px; color: #333;">$${subtotalVisualPDF.toFixed(2)}</td>
                             </tr>
 
@@ -1227,12 +1233,9 @@ function agregarAlCarrito() {
 
                             <tr>
                                 <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
-                                <td style="text-align: right; padding: 4px; color: #333;">${totales.aplicarIva ? '$'+totales.iva.toFixed(2) : 'No Incluido'}</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">${totales.aplicarIva ? '$'+ivaVisualPDF.toFixed(2) : 'No Incluido'}</td>
                             </tr>
-                            <tr style="border-top: 2px solid #17a2b8;">
-                                <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td>
-                                <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${totales.granTotal.toFixed(2)}</td>
-                            </tr>
+                            <tr style="border-top: 2px solid #17a2b8;"><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${totales.granTotal.toFixed(2)}</td></tr>
                         </table>
                     </div>
                 </div>
@@ -1282,7 +1285,6 @@ function agregarAlCarrito() {
             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
         };
 
-        // --- Generar y Descargar ---
         document.body.style.cursor = 'wait';
         await html2pdf().set(opt).from(element).save();
         document.body.style.cursor = 'default';
