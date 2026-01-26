@@ -765,20 +765,27 @@ function agregarAlCarrito() {
     actualizarTablaCarrito();
 }
 
-    // --- FUNCIÓN ACTUALIZAR TABLA (Lógica MARGEN + Ajuste IVA) ---
+    // --- FUNCIÓN ACTUALIZAR TABLA (CORREGIDA: MUESTRA PRECIO VENTA REAL) ---
     function actualizarTablaCarrito() {
         const tbody = document.querySelector('#tabla-items tbody');
         tbody.innerHTML = '';
 
-        // 1. FÓRMULA MARGEN (Revertida)
+        // 1. Obtener el porcentaje de utilidad seleccionado
         const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
+        
+        // 2. Calcular el "Factor de Utilidad" (Ingeniería Inversa)
+        // Si quiero ganar el 50% (margen), el precio es Costo / (1 - 0.50)
         let factorUtilidad = 1;
         if (pctUtilidad < 100) {
-            factorUtilidad = 1 - (pctUtilidad / 100); // Ej: 1 - 0.50 = 0.5
+            factorUtilidad = 1 / (1 - (pctUtilidad / 100));
+        } else {
+            // Protección por si seleccionan 100% o más (matemáticamente imposible en margen)
+            factorUtilidad = 1; 
         }
 
-        // 2. Factor IVA Visual
+        // 3. Factor IVA Visual (Solo para mostrar con o sin IVA según el checkbox)
         const aplicaIva = document.getElementById('check-iva').checked;
+        // Si el checkbox está apagado, mostramos el precio neto (x 0.84) para que coincida con el total
         const factorIva = aplicaIva ? 1 : 0.84; 
 
         if(carritoItems.length === 0) {
@@ -788,11 +795,14 @@ function agregarAlCarrito() {
         }
 
         carritoItems.forEach((item, index) => {
-            // CÁLCULO: (Costo / Margen) * FactorIVA
+            // item.total es el COSTO BASE de producción (Suma de motor, tela, componentes, etc.)
+            
+            // A. Costo Unitario Visual (Opcional, si quieres ver el costo real)
             const costoUnitarioReal = item.financiero.costoBase * factorIva; 
             
-            // AQUÍ ESTÁ EL CAMBIO: DIVISIÓN EN LUGAR DE MULTIPLICACIÓN
-            const precioTotalVenta = (item.total / factorUtilidad) * factorIva; 
+            // B. PRECIO DE VENTA TOTAL (El número importante)
+            // Fórmula: (Costo Total * Factor Utilidad) * Factor IVA Visual
+            const precioVentaTotal = (item.total * factorUtilidad) * factorIva; 
 
             const fila = `
                 <tr>
@@ -806,8 +816,11 @@ function agregarAlCarrito() {
                     </td>
                     <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
                     <td style="text-align: center;">${item.cantidad}</td>
+                    
                     <td style="color: #999; font-size: 0.85em;">$${costoUnitarioReal.toFixed(2)}</td>
-                    <td style="font-weight:bold; color: #001f3f; font-size: 1.1em;">$${precioTotalVenta.toFixed(2)}</td>
+                    
+                    <td style="font-weight:bold; color: #001f3f; font-size: 1.1em;">$${precioVentaTotal.toFixed(2)}</td>
+                    
                     <td style="white-space: nowrap;">
                         <button onclick="editarItem(${index})" style="color:#007bff; border:none; background:none; cursor:pointer; font-size: 1.2em; margin-right: 5px;" title="Editar">✏️</button>
                         <button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer; font-size: 1.2em;" title="Eliminar">&times;</button>
