@@ -1048,208 +1048,277 @@ function agregarAlCarrito() {
         };
     }
 
-    // --- FUNCIÓN GENERAR PDF (FINAL: SIEMPRE BASE EN TABLA Y SUBTOTAL) ---
-   // --- FUNCIÓN GENERAR PDF (LÓGICA MATEMÁTICA ESTRICTA) ---
-async function generarPDF(modo = 'descargar') {
-    if (carritoItems.length === 0) { alert("No hay productos para generar el PDF."); return; }
+   // --- FUNCIÓN GENERAR PDF (LÓGICA HÍBRIDA FINAL) ---
+    async function generarPDF(modo = 'descargar') {
+        if (carritoItems.length === 0) { alert("No hay productos para generar el PDF."); return; }
 
-    const fechaObj = new Date();
-    const folio = `COT-${Math.floor(Math.random() * 10000)}`; // O tu lógica de folio original
-    
-    // Recuperamos datos del formulario
-    const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
-    const quienCotiza = document.getElementById('quienCotiza').value || "Vendedor";
-    const aplicaIva = document.getElementById('check-iva').checked;
-
-    // --- 1. PREPARACIÓN DE MATEMÁTICAS ---
-    // Necesitamos el "Factor de Utilidad" para convertir Costo -> Precio Venta 100%
-    const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
-    let factorUtilidad = 1;
-    if(pctUtilidad < 100) {
-        factorUtilidad = 1 - (pctUtilidad / 100);
-    }
-
-    // --- 2. CONSTRUIR TABLA Y SUMAR SUBTOTALES ---
-    let filasHTML = '';
-    const cellStyle = "padding: 6px; border-right: 1px solid #6CDAE7; font-size: 9px;";
-    
-    // Acumuladores para el PDF
-    let sumaSubtotalBase = 0; // Aquí sumaremos todo al 0.84
-
-    carritoItems.forEach(item => {
-        const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
+        const fechaObj = new Date();
+        const mesActual = fechaObj.getMonth();
+        const anioActual = fechaObj.getFullYear();
         
-        // A. RECUPERAR EL COSTO PURO (100%)
-        // item.total a veces viene castigado por el 0.84 si el checkbox estaba off.
-        // Lo restauramos a su valor original de costo.
-        let costoItemPuro = item.total;
-        
-        // Si en el carrito se guardó "sin iva", el item.total vale 84. Lo dividimos entre 0.84 para volver a 100.
-        // Usamos la propiedad item.financiero.costoBase que suele ser más estable, pero validamos con el checkbox actual.
-        // Truco: Usamos item.financiero.costoBase y si el check global estaba off, lo corregimos.
-        // Simplificación: Calcularlo al vuelo con las medidas es más seguro, pero usaremos ingeniería inversa del item.total:
-        
-        // Si el sistema global dice "Sin IVA", el item.total actual es el 84% del costo.
-        if (!aplicaIva) {
-            costoItemPuro = item.total / 0.84;
-        }
-
-        // B. CALCULAR PRECIO DE VENTA BRUTO (100%)
-        let precioVentaBruto = costoItemPuro / factorUtilidad;
-
-        // C. APLICAR LA REGLA DE ORO DEL PDF: SIEMPRE POR 0.84
-        let precioVentaFila = precioVentaBruto * 0.84;
-
-        // Sumamos al acumulador general
-        sumaSubtotalBase += precioVentaFila;
-
-        filasHTML += `
-            <tr style="border-bottom: 1px solid #6CDAE7;">
-                <td style="${cellStyle} word-wrap: break-word;"><b>${item.producto}</b></td>
-                <td style="${cellStyle}">${item.tela}</td>
-                <td style="${cellStyle}">${item.color}</td>
-                <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
-                <td style="${cellStyle}">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
-                <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
-                <td style="padding: 4px; text-align: right; font-size: 9px;">$${precioVentaFila.toFixed(2)}</td>
-            </tr>
-            <tr style="border-bottom: 2px solid #6CDAE7; color: #444; font-size: 8px; background-color: #f9f9f9;">
-                <td colspan="7" style="padding: 4px 8px;">
-                    <em>${item.motor !== 'Manual' ? `⚙️ ${item.motor}` : ''} Accesorios: ${item.accesorios.color}</em>
-                    ${item.notas ? `<br><span style="color:#d63384;">Nota: ${item.notas}</span>` : ''}
-                </td>
-            </tr>`;
-    });
-
-    // --- 3. CÁLCULO DE TOTALES FINALES ---
-    
-    // A. Descuento
-    // El descuento también debe calcularse sobre la base de 0.84
-    let montoDescuentoPDF = 0;
-    const pctDescuento = parseInt(document.getElementById('select-descuento').value) || 0;
-    if(pctDescuento > 0) {
-        // Necesitamos el precio bruto total para sacar el porcentaje, luego bajarlo a 0.84
-        // Matemáticamente es lo mismo que sacar el porcentaje directo a la sumaSubtotalBase
-        montoDescuentoPDF = sumaSubtotalBase * (pctDescuento / 100);
-    }
-
-    // B. Base Imponible Real (Subtotal - Descuento)
-    let baseImponible = sumaSubtotalBase - montoDescuentoPDF;
-
-    // C. Gastos Extra (Se suman directos al final)
-    let totalGastos = 0;
-    let listaGastosHTML = '';
-    if (document.getElementById('check-gastos').checked) {
-        const cant = parseInt(document.getElementById('cantidad-gastos').value);
-        for(let i=1; i<=cant; i++) {
-            const m = parseFloat(document.getElementById(`gasto-monto-${i}`)?.value) || 0;
-            const d = document.getElementById(`gasto-desc-${i}`)?.value || 'Gasto';
-            if(m > 0) {
-                totalGastos += m;
-                listaGastosHTML += `<tr><td style="text-align:right; font-size:9px;">+ ${d}:</td><td style="text-align:right; font-size:9px;">$${m.toFixed(2)}</td></tr>`;
+        // 1. CÁLCULO DEL FOLIO
+        let consecutivo = 1; 
+        try {
+            const respuesta = await fetch('/cotizaciones?limit=5000'); 
+            if(respuesta.ok) {
+                const historial = await respuesta.json();
+                const cotizacionesEsteMes = historial.filter(c => {
+                    const fechaCoti = new Date(c.fecha);
+                    if (isNaN(fechaCoti)) return false;
+                    return fechaCoti.getMonth() === mesActual && fechaCoti.getFullYear() === anioActual;
+                });
+                consecutivo = cotizacionesEsteMes.length;
+                if(consecutivo === 0) consecutivo = 1; 
             }
+        } catch (error) { console.error("Error calculando consecutivo:", error); }
+
+        const consStr = consecutivo.toString().padStart(3, '0');
+        const mesStr = (mesActual + 1).toString().padStart(2, '0');
+        const folio = `${consStr}-${mesStr}-${anioActual}`;
+        
+        const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
+        const quienCotiza = document.getElementById('quienCotiza').value || "Vendedor";
+        
+        // --- 2. PREPARAR DATOS FINANCIEROS ---
+        const totales = calcularTotalesGlobales(); 
+
+        // Factor para desglosar precio unitario en la tabla (Margen de utilidad)
+        let factorDivisor = 1;
+        if(totales.pctUtilidad < 100) {
+            factorDivisor = 1 - (totales.pctUtilidad / 100);
         }
-    }
 
-    // D. IVA (La decisión final)
-    let montoIVAPDF = 0;
-    if (aplicaIva) {
-        // Si aplica IVA: Calculamos el 16% de la Base Real (que representa el 84% del total)
-        // Regla de tres: Si 'baseImponible' es 84, 'x' es 16.
-        // Formula: (baseImponible / 84) * 16
-        montoIVAPDF = (baseImponible / 84) * 16;
-    } else {
-        // Si NO aplica IVA: Es 0.
-        montoIVAPDF = 0;
-    }
+        // --- CORRECCIÓN DE LÓGICA VISUAL ---
+        const llevaIva = totales.aplicarIva;
 
-    // E. GRAN TOTAL NETO (Suma aritmética simple)
-    let granTotalPDF = baseImponible + montoIVAPDF + totalGastos;
+        // Si lleva IVA: Bajamos visualmente al 84% para que la tabla sume la Base Imponible.
+        // Si NO lleva IVA: El precio ya viene neto (item.total ya bajó), así que multiplicamos por 1 (lo dejamos igual).
+        const factorVisualPDF = llevaIva ? 0.84 : 1; 
 
+        // --- 3. CONSTRUIR FILAS DE LA TABLA ---
+        let filasHTML = '';
+        const cellStyle = "padding: 6px; border-right: 1px solid #6CDAE7; font-size: 9px;";
+        
+        carritoItems.forEach(item => {
+            const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
+            
+            // LÓGICA DE FILA:
+            // item.financiero.costoBase e item.total YA vienen afectados por el factor global (1 o 0.84)
+            // Si IVA activo (factorGlobal=1): Costo=100. VisualPDF=0.84. Resultado=84 (Base). Correcto.
+            // Si IVA inactivo (factorGlobal=0.84): Costo=84. VisualPDF=1. Resultado=84 (Neto). Correcto.
+            
+            const precioUnitarioVenta = (item.financiero.costoBase / factorDivisor) * factorVisualPDF;
+            const totalVenta = (item.total / factorDivisor) * factorVisualPDF;
 
-    // --- 4. RENDERIZADO DEL PDF ---
-    const element = document.createElement('div');
-    element.style.width = '816px'; 
-    element.style.minHeight = '1056px'; 
-    element.style.padding = '40px';
-    element.style.background = 'white';
-    element.style.fontFamily = 'Arial, sans-serif';
-    element.style.color = '#333';
-    
-    element.innerHTML = `
-        <div style="display:flex; flex-direction:column; height: 100%; justify-content: space-between;">
-            <div>
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 20px;">
-                    <div><img src="/IMG/logopd.png" style="max-width: 180px;"></div>
-                    <div style="text-align: right; font-size: 10px;">
-                        <h1 style="margin:0; font-size: 20px;">PERSIANAS DELTA</h1>
-                        <p style="margin:2px 0;">ventas@persianasdelta.com</p>
+            filasHTML += `
+                <tr style="border-bottom: 1px solid #6CDAE7;">
+                    <td style="${cellStyle} word-wrap: break-word;">
+                        <b>${item.producto}</b>
+                    </td>
+                    <td style="${cellStyle}">${item.tela}</td>
+                    <td style="${cellStyle}">${item.color}</td>
+                    <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
+                    <td style="${cellStyle}">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
+                    <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
+                    <td style="padding: 4px; text-align: right; font-size: 9px;">$${totalVenta.toFixed(2)}</td>
+                </tr>
+                <tr style="border-bottom: 2px solid #6CDAE7; color: #444; font-size: 8px; background-color: #f9f9f9;">
+                    <td colspan="7" style="padding: 4px 8px;">
+                        <div style="margin-bottom: 2px;">
+                            <em>
+                                ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
+                                ${item.motor !== 'Manual' ? ` | ⚙️ Motor: ${item.motor}` : ''}
+                                ${item.control ? ` + 🎮 ${item.control}` : ''}
+                            </em>
+                        </div>
+                        ${item.componente ? `<div style="color:#e65100; font-style:italic;">🔌 Componentes Extra: ${item.componente}</div>` : ""}
+                        ${item.notas ? `<div style="color:#d63384; font-style:italic; margin-top:2px;">📝 Nota: ${item.notas}</div>` : ""}
+                    </td>
+                </tr>`;
+        });
+
+        // --- CÁLCULOS VISUALES PARA LOS TOTALES DEL PDF ---
+        
+        let pdfSubtotal = 0;
+        let pdfDescuento = 0;
+        let pdfIVA = 0;
+
+        if (llevaIva) {
+            // SI HAY IVA: Desglosamos visualmente
+            // totales.subtotalParaMostrar viene al 100% (según tu función calcularTotalesGlobales actual)
+            pdfSubtotal = totales.subtotalParaMostrar * 0.84; // Base Imponible
+            
+            if (totales.montoDescuento > 0) {
+                pdfDescuento = totales.montoDescuento * 0.84; // Descuento Base
+            }
+            
+            // IVA: 16% de la base neta
+            let baseNeta = pdfSubtotal - pdfDescuento;
+            // Para ser exactos con el total, calculamos el IVA como (TotalBruto - DescuentoBruto) * 0.16 * factorAjuste
+            // O más simple: El IVA calculado globalmente
+            pdfIVA = (totales.subtotalParaMostrar - totales.montoDescuento) * 0.16; 
+
+        } else {
+            // SI NO HAY IVA: Mostramos directo
+            // totales.subtotalParaMostrar ya viene al 84% (Neto)
+            pdfSubtotal = totales.subtotalParaMostrar; 
+            
+            if (totales.montoDescuento > 0) {
+                pdfDescuento = totales.montoDescuento; // Descuento ya viene neto
+            }
+            
+            pdfIVA = 0;
+        }
+
+        // --- 4. ESTRUCTURA PDF ---
+        const element = document.createElement('div');
+        element.style.width = '816px'; 
+        element.style.minHeight = '1056px'; 
+        element.style.boxSizing = 'border-box';
+        element.style.padding = '40px';
+        element.style.background = 'white';
+        element.style.fontFamily = 'Arial, sans-serif';
+        element.style.color = '#333';
+        element.style.fontSize = '10px'; 
+        element.style.lineHeight = '1.3';
+        element.style.display = 'flex';
+        element.style.flexDirection = 'column';
+        element.style.justifyContent = 'space-between';
+        
+        element.innerHTML = `
+            <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
+                    <div style="width: 45%;">
+                        <img src="/IMG/logopd.png" alt="Persianas Delta" style="max-width: 200px;">
+                        <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 2px; font-size: 9px;">PRIVACIDAD CON ESTILO</div>
+                    </div>
+                    <div style="width: 55%; text-align: right; font-size: 10px;">
+                        <h1 style="margin: 0; font-weight: normal; font-size: 20px; letter-spacing: 2px; color: #333;">PERSIANAS DELTA</h1>
+                        <p style="margin: 3px 0;">CDMX 5519337007 / CDMX 5581973360</p>
+                        <p style="margin: 1px 0;">https://persianasdelta.com/</p>
+                        <p style="margin: 0; font-weight: bold;">ventas@persianasdelta.com</p>
                     </div>
                 </div>
 
-                <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-bottom: 20px; font-size: 11px;">
-                    <strong>CLIENTE:</strong> ${nombreCliente} <span style="float:right;"><strong>FECHA:</strong> ${fechaObj.toLocaleDateString()}</span>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 5px;">
+                    <div style="width: 60%;">
+                        <div style="margin-bottom: 3px;"><strong style="color: #001f3f;">COTIZACIÓN:</strong> <span style="font-size: 1.1em;">${folio}</span></div>
+                        <div><strong style="color: #001f3f;">CLIENTE:</strong> <span style="font-size: 1.1em;">${nombreCliente}</span></div>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong style="color: #001f3f;">FECHA DE EMISIÓN:</strong><br>
+                        ${fechaObj.toLocaleDateString('es-MX', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
+                        <br><strong>ATENDIÓ:</strong> ${quienCotiza}
+                    </div>
                 </div>
 
-                <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-                    <thead style="background: #17a2b8; color: white;">
-                        <tr>
-                            <th style="padding:5px;">PRODUCTO</th>
-                            <th style="padding:5px;">TELA</th>
-                            <th style="padding:5px;">COLOR</th>
-                            <th style="padding:5px;">CANT</th>
-                            <th style="padding:5px;">MEDIDAS</th>
-                            <th style="padding:5px;">M²</th>
-                            <th style="padding:5px; text-align:right;">TOTAL</th>
+                <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8;">
+                    <thead>
+                        <tr style="text-align: center;">
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TIPO</th>
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TELA</th>
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">COLOR</th>
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">CANT.</th>
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">MEDIDAS</th>
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL M²</th>
+                            <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${filasHTML}
-                    </tbody>
+                    <tbody>${filasHTML}</tbody>
                 </table>
+
+                <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+                    <div style="width: 55%; font-size: 9px; color: #555; text-align: justify;">
+                        <p style="margin-bottom: 3px; font-weight: bold; color: #000;">TÉRMINOS Y CONDICIONES:</p>
+                        <ul style="padding-left: 15px; margin: 0;">
+                            <li>Se requiere el 50% de anticipo para iniciar producción y el 50% restante contra entrega.</li>
+                            <li>Una vez realizado el anticipo <strong>no hay cambios ni devoluciones</strong>.</li>
+                            <li>Los precios están expresados en Moneda Nacional (MXN).</li>
+                            <li>Tiempo estimado de entrega: 7 a 10 días hábiles.</li>
+                            <li>Vigencia de cotización: 15 días naturales.</li>
+                        </ul>
+                    </div>
+
+                    <div style="width: 40%;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                            <tr><td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">$${pdfSubtotal.toFixed(2)}</td>
+                            </tr>
+
+                            ${pdfDescuento > 0 ? `
+                            <tr>
+                                <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${totales.pctDescuento}%):</td>
+                                <td style="text-align: right; padding: 4px; color: #dc3545;">-$${pdfDescuento.toFixed(2)}</td>
+                            </tr>` : ''}
+                            
+                            ${totales.totalGastos > 0 ? 
+                                totales.listaGastos.map(g => `
+                                <tr>
+                                    <td style="text-align: right; padding: 4px; font-weight: bold; color: #6610f2;">+ ${g.descripcion || 'Gasto Extra'}:</td>
+                                    <td style="text-align: right; padding: 4px; color: #6610f2;">$${g.monto.toFixed(2)}</td>
+                                </tr>
+                                `).join('') 
+                            : ''}
+
+                            <tr>
+                                <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">${llevaIva ? '$'+pdfIVA.toFixed(2) : 'No Incluido'}</td>
+                            </tr>
+                            <tr style="border-top: 2px solid #17a2b8;"><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${totales.granTotal.toFixed(2)}</td></tr>
+                        </table>
+                    </div>
+                </div>
             </div>
 
-            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
-                <table style="width: 250px; font-size: 11px;">
-                    <tr>
-                        <td style="text-align: right; padding: 3px; font-weight:bold; color:#555;">SUBTOTAL:</td>
-                        <td style="text-align: right; padding: 3px;">$${sumaSubtotalBase.toFixed(2)}</td>
-                    </tr>
-                    ${montoDescuentoPDF > 0 ? `
-                    <tr>
-                        <td style="text-align: right; padding: 3px; color:#dc3545;">Descuento (${pctDescuento}%):</td>
-                        <td style="text-align: right; padding: 3px; color:#dc3545;">-$${montoDescuentoPDF.toFixed(2)}</td>
-                    </tr>` : ''}
-                    ${listaGastosHTML}
-                    <tr>
-                        <td style="text-align: right; padding: 3px; font-weight:bold; color:#555;">IVA (16%):</td>
-                        <td style="text-align: right; padding: 3px;">${aplicaIva ? '$'+montoIVAPDF.toFixed(2) : 'No Incluido'}</td>
-                    </tr>
-                    <tr style="border-top: 2px solid #333;">
-                        <td style="text-align: right; padding: 8px 3px; font-size: 14px; font-weight:bold; color:#000;">TOTAL NETO:</td>
-                        <td style="text-align: right; padding: 8px 3px; font-size: 14px; font-weight:bold; color:#000;">$${granTotalPDF.toFixed(2)}</td>
-                    </tr>
-                </table>
+            <div>
+                <div style="margin-top: 15px; border-top: 2px solid #6CDAE7; border-bottom: 2px solid #6CDAE7; padding: 12px 0; font-size: 7px; color: #444; text-align: justify; page-break-inside: avoid;">
+                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                         <div style="width: 48%;">
+                            <ul style="margin: 0; padding-left: 10px; list-style-type: disc; line-height: 1.4;">
+                                <li style="margin-bottom: 4px;">Cualquier modificación en la cotización después del anticipo se le aplicará un cargo mínimo de $600 pesos dentro de la Ciudad de México.</li>
+                                <li style="margin-bottom: 4px;">Ancho máximo sugerido (2.20), mayor a esta medida se sugiere dividir la persiana.</li>
+                                <li style="margin-bottom: 4px;">Por ser productos hechos a la medida, al momento de levantar el pedido no hay cambios, cancelaciones ni devoluciones.</li>
+                                <li style="margin-bottom: 4px;">Se requiere el 50% de anticipo al confirmar el pedido, el resto al concluir la instalación.</li>
+                                <li style="margin-bottom: 4px;">No se aceptan cambios, cancelaciones ni devoluciones después de recibir su pedido por ser productos hechos a la medida. (En caso de cancelación será con un cargo al cliente del 30 % del total y solamente si dicha cancelación se hace dentro de las 24 horas posteriores al levantamiento del pedido).</li>
+                                <li style="margin-bottom: 4px;">La empresa no se hace responsable por techos, pisos, paredes irregulares, deformes, con humedad o en mal estado, plafones mal colocados, tuberías, cableado o vicios ocultos, así como decoloraciones en las telas por el sol y/o químicos.</li>
+                                <li style="margin-bottom: 4px;">Todos nuestros productos se pueden motorizar y/o automatizar, por lo que de requerir las persianas así, el cliente debe contar en cada área con salidas o tomas de corriente eléctricas aterrizadas.</li>
+                                <li style="margin-bottom: 4px;">Los motores cuentan con garantía, misma que será en fábrica, (están excluidas las descargas eléctricas) la que determine el fabricante con un diagnóstico; por lo que si se solicita, este se llevará hasta 5 días hábiles. (Si el cliente requiere el servicio de recolección, retiro y reinstalación de su persiana será con cargo adicional).</li>
+                            </ul>
+                        </div>
+                        <div style="width: 48%;">
+                            <ul style="margin: 0; padding-left: 10px; list-style-type: disc; line-height: 1.4;">
+                                <li style="margin-bottom: 4px;">Para respetar la promoción de instalación gratis, es posible reprogramar la instalación solicitándolo con 48 hrs de anticipación, en caso contrario la reprogramación de instalación tendrá un costo de $800 pesos. La nula respuesta de confirmación se toma en cuenta como cancelación.</li>
+                                <li style="margin-bottom: 4px;">En el caso de que el cliente modifique las medidas ya autorizadas, será responsable de los efectos que de esto resulte.</li>
+                                <li style="margin-bottom: 4px;">Después de la instalación o recepción de los productos, cualquier reclamación será válida solo 24 horas después de la recepción del mismo.</li>
+                                <li style="margin-bottom: 4px;">Nuestra empresa cuenta con garantía en todos nuestros productos y son válidas en planta (después de ser revisadas y autorizadas por control de calidad el cual dará el diagnóstico), en caso de que aplique alguna, para que esta proceda, se tomará en cuenta, el diagnóstico, el uso, maltrato, mantenimiento, tiempo, desgaste, si el cliente requiere recolección, retiro y reinstalación será con cargo adicional.</li>
+                                <li style="margin-bottom: 4px;">En caso de que el cliente no esté presente en la toma de medidas, la persona que nos atienda será la responsable de proporcionar los datos, mismos que se reconocerán en el pedido como válidos en la rectificación de medidas.</li>
+                                <li style="margin-bottom: 4px;">El área a instalar deberá estar libre; nuestro personal no se hace responsable por desmontar cortineros, cortinas, drapeadas o cualquier otro artículo decorativo; en caso de así requerirse deberá ser notificado a su vendedor el día del levantamiento.</li>
+                                <li style="margin-bottom: 4px;">La empresa no se hace responsable por daños ocasionados (si el cliente le solicita al personal el movimiento de mobiliario u otros objetos, por lo que será bajo su responsabilidad).</li>
+                                <li style="margin-bottom: 4px;">El personal de la empresa no está autorizado para hacer trabajos no especificados en la orden.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; font-weight: bold; font-size: 10px; margin-top: 10px; color: #000;">
+                    ***Se mejora cualquier cotización***
+                </div>
             </div>
-            
-             <div style="font-size: 8px; color: #777; text-align: center; margin-top: 20px;">
-                *** Se mejora cualquier presupuesto por escrito ***
-            </div>
-        </div>
-    `;
+        `;
 
-    const opt = { 
-        margin: 0.5, 
-        filename: `Cotizacion_${folio}.pdf`, 
-        image: { type: 'jpeg', quality: 0.98 }, 
-        html2canvas: { scale: 2 }, 
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
-    };
+        const opt = { 
+            margin: 0, 
+            filename: `Cotizacion_${folio}.pdf`, 
+            image: { type: 'jpeg', quality: 1 }, 
+            html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 }, 
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
+        };
 
-    document.body.style.cursor = 'wait';
-    await html2pdf().set(opt).from(element).save();
-    document.body.style.cursor = 'default';
-}
+        // --- Generar y Descargar ---
+        document.body.style.cursor = 'wait';
+        await html2pdf().set(opt).from(element).save();
+        document.body.style.cursor = 'default';
+    }
 
 
     // --- NUEVA FUNCIÓN MAESTRA ---
