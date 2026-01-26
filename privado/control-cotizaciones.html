@@ -339,6 +339,11 @@
     }
 }
 
+
+/* Agrega esto en tu bloque de estilos */
+.btn-orden { color: #fd7e14; } /* Color naranja para diferenciarlo */
+.btn-orden:hover { transform: scale(1.2); color: #e8590c; }
+
     </style>
 
 </head>
@@ -691,7 +696,7 @@
         
         <td class="text-center">
             <button class="btn-icon btn-ver" onclick="abrirModalDetalles('${c._id}')" title="Ver Detalles">👁️</button>
-
+            <button class="btn-icon btn-orden" onclick="generarPDFOrdenTrabajo('${c._id}')" title="Orden de Instalación">🔨</button>
             <button class="btn-icon btn-pdf" onclick="generarPDFDesdeHistorial('${c._id}')" title="Re-generar PDF Nuevo">📄</button>
 
             ${ esImportada ? 
@@ -1211,6 +1216,154 @@ async function registrarPago() {
 
     cargarHistorial();
 
+// --- FUNCIÓN PARA GENERAR ORDEN DE INSTALACIÓN (SIN PRECIOS) ---
+async function generarPDFOrdenTrabajo(id) {
+    // 1. Buscar datos
+    const c = todasLasCotizaciones.find(item => item._id === id);
+    if (!c) return alert("Error: No se encontraron datos.");
+
+    // 2. Construir filas de la tabla TÉCNICA
+    let filasHTML = '';
+    
+    // Estilos de celda para este reporte
+    const cellStyle = "padding: 8px; border: 1px solid #444; font-size: 10px; vertical-align: middle;";
+    
+    if (c.items && c.items.length > 0) {
+        c.items.forEach((item, index) => {
+            filasHTML += `
+                <tr>
+                    <td style="${cellStyle} text-align: center; font-weight: bold; background: #f0f0f0;">${index + 1}</td>
+                    <td style="${cellStyle} text-align: center; font-size: 1.1em;">${item.cantidad}</td>
+                    <td style="${cellStyle}">
+                        <strong style="font-size: 1.1em;">${item.producto}</strong><br>
+                        <span style="color: #555;">Tela: ${item.tela || '-'} (${item.color || '-'})</span>
+                    </td>
+                    <td style="${cellStyle} text-align: center; font-weight: bold; font-size: 1.1em;">
+                        ${item.medidas ? item.medidas.ancho + ' x ' + item.medidas.alto : '-'}
+                    </td>
+                    <td style="${cellStyle}">
+                        <div style="margin-bottom: 4px;">
+                            <strong>Mando:</strong> ${item.accesorios ? item.accesorios.mando : '-'} 
+                            ${item.accesorios ? `(${item.accesorios.color})` : ''}
+                        </div>
+                        ${item.motor && item.motor !== 'Manual' ? 
+                            `<div style="color: #0056b3; font-weight: bold;">⚡ MOTOR: ${item.motor}</div>` : ''}
+                        ${item.control ? 
+                            `<div>🎮 Control: ${item.control}</div>` : ''}
+                        ${item.componente ? 
+                            `<div style="color: #e65100; font-style: italic;">🔌 Extras: ${item.componente}</div>` : ''}
+                    </td>
+                    <td style="${cellStyle} background: #fffde7; color: #d63384; font-style: italic;">
+                        ${item.notas ? item.notas : '---'}
+                    </td>
+                    <td style="${cellStyle} text-align: center; color: #ccc; font-size: 1.5em;">
+                        ☐
+                    </td>
+                </tr>`;
+        });
+    }
+
+    // 3. Construir el Documento
+    const element = document.createElement('div');
+    // Usamos el mismo truco del box-sizing para que quede centrado perfecto
+    element.style.width = '816px'; 
+    element.style.minHeight = '1056px'; 
+    element.style.boxSizing = 'border-box';
+    element.style.padding = '40px';
+    element.style.background = 'white';
+    element.style.fontFamily = 'Arial, sans-serif';
+    element.style.color = '#333';
+    element.style.fontSize = '11px';
+    element.style.lineHeight = '1.3';
+    element.style.display = 'flex';
+    element.style.flexDirection = 'column';
+    element.style.justifyContent = 'space-between';
+
+    element.innerHTML = `
+        <div style="flex: 1;">
+            
+            <div style="border-bottom: 3px solid #fd7e14; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="width: 50%;">
+                    <img src="/IMG/logopd.png" alt="Persianas Delta" style="max-width: 180px;">
+                    <div style="font-size: 14px; font-weight: bold; color: #333; margin-top: 5px;">HOJA DE INSTALACIÓN / TALLER</div>
+                </div>
+                <div style="width: 50%; text-align: right;">
+                    <div style="font-size: 1.4em; font-weight: bold; color: #fd7e14;">FOLIO: ${c.folioInteligente}</div>
+                    <div style="margin-top: 5px;"><strong>Fecha:</strong> ${new Date(c.fecha).toLocaleDateString('es-MX')}</div>
+                    <div><strong>Vendedor:</strong> ${c.quienCotiza || '---'}</div>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 10px 0; color: #fd7e14; font-size: 1.1em; border-bottom: 1px solid #ddd; padding-bottom: 5px;">📍 DATOS DE INSTALACIÓN</h3>
+                <div style="display: flex; justify-content: space-between;">
+                    <div style="width: 48%;">
+                        <div style="font-size: 1.2em; font-weight: bold; color: #000;">${c.cliente}</div>
+                        </div>
+                    <div style="width: 48%;">
+                        <div style="border: 1px dashed #ccc; padding: 5px; height: 40px; color: #999;">Observaciones generales:</div>
+                    </div>
+                </div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background-color: #333; color: white; text-align: center;">
+                        <th style="padding: 8px; border: 1px solid #444; width: 30px;">#</th>
+                        <th style="padding: 8px; border: 1px solid #444; width: 40px;">Cant</th>
+                        <th style="padding: 8px; border: 1px solid #444;">Producto / Especificaciones</th>
+                        <th style="padding: 8px; border: 1px solid #444; width: 100px;">Medidas (An x Al)</th>
+                        <th style="padding: 8px; border: 1px solid #444;">Operación / Mando</th>
+                        <th style="padding: 8px; border: 1px solid #444;">Notas / Ubicación</th>
+                        <th style="padding: 8px; border: 1px solid #444; width: 30px;">OK</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filasHTML}
+                </tbody>
+            </table>
+
+            <div style="font-size: 10px; color: #666; font-style: italic;">
+                * Verificar superficies antes de instalar. Cualquier anomalía reportarla a ventas inmediatamente.
+            </div>
+        </div>
+
+        <div>
+            <div style="display: flex; justify-content: space-between; margin-top: 50px; page-break-inside: avoid;">
+                <div style="width: 40%; text-align: center;">
+                    <div style="border-top: 1px solid #000; padding-top: 5px; font-weight: bold;">Firma del Instalador</div>
+                    <div style="font-size: 9px; color: #666;">Trabajo terminado</div>
+                </div>
+                <div style="width: 40%; text-align: center;">
+                    <div style="border-top: 1px solid #000; padding-top: 5px; font-weight: bold;">Firma de Conformidad Cliente</div>
+                    <div style="font-size: 9px; color: #666;">Recibí a entera satisfacción</div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px; font-size: 9px; color: #aaa;">
+                Documento de uso interno - Operaciones Persianas Delta
+            </div>
+        </div>
+    `;
+
+    // Configuración para guardar
+    const opt = { 
+        margin: 0,
+        filename: `Orden_Instalacion_${c.folioInteligente}.pdf`, 
+        image: { type: 'jpeg', quality: 0.98 }, 
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 }, 
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
+    };
+
+    document.body.style.cursor = 'wait';
+    try {
+        await html2pdf().set(opt).from(element).save();
+    } catch (error) {
+        console.error("Error generando PDF de Orden", error);
+        alert("Hubo un problema generando la Orden de Trabajo.");
+    }
+    document.body.style.cursor = 'default';
+}
    </script>
 
 </body>
