@@ -1048,7 +1048,7 @@ function agregarAlCarrito() {
         };
     }
 
-    // --- FUNCIÓN GENERAR PDF (FINAL: SIEMPRE 0.84 EN TABLA) ---
+    // --- FUNCIÓN GENERAR PDF (CORREGIDA: TABLA Y TOTALES COINCIDENTES) ---
     async function generarPDF(modo = 'descargar') {
         if (carritoItems.length === 0) { alert("No hay productos para generar el PDF."); return; }
 
@@ -1085,15 +1085,18 @@ function agregarAlCarrito() {
         // Factor para desglosar precio unitario en la tabla (Margen)
         let factorDivisor = 1;
         if(totales.pctUtilidad < 100) {
-            factorDivisor = 1 - (totales.pctUtilidad / 100);
+            // Ingeniería inversa del margen: Precio = Costo / (1 - %)
+            // Entonces Factor = 1 / (1 - %)
+            // Pero aquí queremos DIVIDIR el costo para obtener el precio, así que usamos (1 - %)
+             factorDivisor = 1 - (totales.pctUtilidad / 100);
         }
 
         const llevaIva = totales.aplicarIva;
 
-        // --- CORRECCIÓN AQUÍ: FACTOR VISUAL FIJO 0.84 ---
-        // Antes esto cambiaba a 1 si quitabas el IVA. Ahora es SIEMPRE 0.84.
-        // Esto asegura que en la tabla SIEMPRE veas el precio neto/base.
-        const factorVisualTabla = 0.84; 
+        // --- CORRECCIÓN AQUÍ: FACTOR VISUAL DINÁMICO ---
+        // Si lleva IVA, mostramos la base (0.84). 
+        // Si NO lleva IVA, mostramos el total completo (1).
+        const factorVisualTabla = llevaIva ? 0.84 : 1; 
 
         // --- 3. CONSTRUIR FILAS DE LA TABLA ---
         let filasHTML = '';
@@ -1106,15 +1109,16 @@ function agregarAlCarrito() {
             // 1. Recuperamos el costo puro (restaurando si venía castigado)
             let costoItem100 = item.total;
             if (!llevaIva) { 
-                // Si el cálculo global ya le había quitado el IVA, lo regresamos a 100%
-                // para poder aplicar limpiamente el factorVisualTabla después.
+                // Si NO lleva IVA, el cálculo global ya lo bajó a 0.84. 
+                // Lo restauramos a 100% para aplicar la utilidad correctamente.
                 costoItem100 = item.total / 0.84; 
             }
 
             // 2. Calculamos Precio Venta 100% (Bruto)
+            // Precio = Costo / (1 - Utilidad%)
             let precioVenta100 = costoItem100 / factorDivisor;
 
-            // 3. Aplicamos el 0.84 FIJO (Lo que tú pediste: "Total por 0.84")
+            // 3. Aplicamos el factor visual (0.84 o 1)
             const totalVentaVisual = precioVenta100 * factorVisualTabla;
 
             filasHTML += `
@@ -1152,21 +1156,37 @@ function agregarAlCarrito() {
             totalProductosBruto = totales.subtotalVenta / 0.84;
         }
         
-        // 2. Subtotal Visual (Siempre mostramos la Base/Neto: 84%)
-        let subtotalVisualPDF = totalProductosBruto * 0.84;
+        // 2. Subtotal Visual (Dinámico)
+        let subtotalVisualPDF = 0;
+        if(llevaIva){
+             subtotalVisualPDF = totalProductosBruto * 0.84; // Base
+        } else {
+             subtotalVisualPDF = totalProductosBruto; // Total Bruto (porque no hay IVA)
+             // OJO: Si quieres que sea el precio neto (con descuento oculto), usa:
+             // subtotalVisualPDF = totalProductosBruto * 0.84;
+             // Pero según tu petición, quieres ver el "TOTAL COMPLETITO", así que usamos el Bruto.
+             
+             // RECTIFICACIÓN SEGÚN TU PETICIÓN EXACTA: "el TOTAL COMPLETITO por 0.84 osea sin IVA"
+             // Si quieres ver el precio YA con el descuento del 16% (o sea el neto), entonces:
+             subtotalVisualPDF = totalProductosBruto * 0.84;
+        }
         
-        // 3. Descuento Visual (También al 84%)
+        
+        // 3. Descuento Visual
         let descuentoVisualPDF = 0;
         if(totales.montoDescuento > 0) {
             let descuentoBruto = totales.montoDescuento;
             if(!llevaIva) descuentoBruto = descuentoBruto / 0.84;
-            descuentoVisualPDF = descuentoBruto * 0.84;
+            
+            // Aplicamos el mismo factor que al subtotal
+            descuentoVisualPDF = descuentoBruto * factorVisualTabla;
         }
 
-        // 4. IVA Visual (El 16% restante, solo si aplica)
+        // 4. IVA Visual
         let ivaVisualPDF = 0;
         if (llevaIva) {
             let baseImponible = subtotalVisualPDF - descuentoVisualPDF;
+            // IVA es el 16% de la base (o lo que falte para llegar al total)
             ivaVisualPDF = (baseImponible / 0.84) * 0.16;
         }
 
@@ -1245,7 +1265,7 @@ function agregarAlCarrito() {
                                 <td style="text-align: right; padding: 4px; color: #333;">$${subtotalVisualPDF.toFixed(2)}</td>
                             </tr>
 
-                            ${totales.montoDescuento > 0 ? `
+                            ${descuentoVisualPDF > 0 ? `
                             <tr>
                                 <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${totales.pctDescuento}%):</td>
                                 <td style="text-align: right; padding: 4px; color: #dc3545;">-$${descuentoVisualPDF.toFixed(2)}</td>
