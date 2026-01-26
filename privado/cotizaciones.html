@@ -765,73 +765,49 @@ function agregarAlCarrito() {
     actualizarTablaCarrito();
 }
 
-    // --- FUNCIÓN ACTUALIZAR TABLA (CORREGIDA: MUESTRA PRECIO VENTA REAL) ---
-    function actualizarTablaCarrito() {
-        const tbody = document.querySelector('#tabla-items tbody');
-        tbody.innerHTML = '';
-
-        // 1. Obtener el porcentaje de utilidad seleccionado
-        const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
-        
-        // 2. Calcular el "Factor de Utilidad" (Ingeniería Inversa)
-        // Si quiero ganar el 50% (margen), el precio es Costo / (1 - 0.50)
-        let factorUtilidad = 1;
-        if (pctUtilidad < 100) {
-            factorUtilidad = 1 / (1 - (pctUtilidad / 100));
-        } else {
-            // Protección por si seleccionan 100% o más (matemáticamente imposible en margen)
-            factorUtilidad = 1; 
-        }
-
-        // 3. Factor IVA Visual (Solo para mostrar con o sin IVA según el checkbox)
-        const aplicaIva = document.getElementById('check-iva').checked;
-        // Si el checkbox está apagado, mostramos el precio neto (x 0.84) para que coincida con el total
-        const factorIva = aplicaIva ? 1 : 0.84; 
-
-        if(carritoItems.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Tu carrito está vacío.</td></tr>';
-            calcularTotalesGlobales();
-            return;
-        }
-
-        carritoItems.forEach((item, index) => {
-            // item.total es el COSTO BASE de producción (Suma de motor, tela, componentes, etc.)
-            
-            // A. Costo Unitario Visual (Opcional, si quieres ver el costo real)
-            const costoUnitarioReal = item.financiero.costoBase * factorIva; 
-            
-            // B. PRECIO DE VENTA TOTAL (El número importante)
-            // Fórmula: (Costo Total * Factor Utilidad) * Factor IVA Visual
-            const precioVentaTotal = (item.total * factorUtilidad) * factorIva; 
-
-            const fila = `
-                <tr>
-                    <td>
-                        <strong style="font-size:1.1em;">${item.producto}</strong><br>
-                        <span style="color:#555;">${item.tela} - ${item.color}</span><br>
-                        ${item.motor !== "Manual" ? `<div style="font-size:0.85em; color:#0056b3; margin-top:2px;">⚙️ ${item.motor} ${item.control ? " + 🎮 " + item.control : ""}</div>` : ""}
-                        ${item.componente ? `<div style="font-size:0.85em; color:#e65100; font-weight:bold; margin-top:2px;">🔌 Incluye: ${item.componente}</div>` : ""}
-                        <div style="font-size:0.8em; color:#666; margin-top:2px;">Accesorios: ${item.accesorios.color} | Mando: ${item.accesorios.mando}</div>
-                        ${item.notas ? `<div style="font-size:0.85em; color:#d63384; background-color:#fff0f6; padding:3px 5px; border-radius:4px; margin-top:4px; font-style:italic; border:1px solid #ffadd2;">📝 Nota: ${item.notas}</div>` : ""}
-                    </td>
-                    <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
-                    <td style="text-align: center;">${item.cantidad}</td>
-                    
-                    <td style="color: #999; font-size: 0.85em;">$${costoUnitarioReal.toFixed(2)}</td>
-                    
-                    <td style="font-weight:bold; color: #001f3f; font-size: 1.1em;">$${precioVentaTotal.toFixed(2)}</td>
-                    
-                    <td style="white-space: nowrap;">
-                        <button onclick="editarItem(${index})" style="color:#007bff; border:none; background:none; cursor:pointer; font-size: 1.2em; margin-right: 5px;" title="Editar">✏️</button>
-                        <button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer; font-size: 1.2em;" title="Eliminar">&times;</button>
-                    </td>
-                </tr>
-            `;
-            tbody.innerHTML += fila;
-        });
-
-        calcularTotalesGlobales();
+   function actualizarTablaCarrito() {
+    const tbody = document.querySelector('#tabla-items tbody');
+    tbody.innerHTML = '';
+    
+    // Obtenemos los globales para usar el mismo factor
+    const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
+    let factorUtilidad = 1;
+    if (pctUtilidad < 100) {
+        factorUtilidad = 1 / (1 - (pctUtilidad / 100));
     }
+
+    if(carritoItems.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Tu carrito está vacío.</td></tr>';
+        calcularTotalesGlobales();
+        return;
+    }
+
+    carritoItems.forEach((item, index) => {
+        // 1. Precio Venta Bruto (100%)
+        const precioBruto = item.total * factorUtilidad;
+        // 2. Precio Venta Base (84%) -> ESTE ES EL QUE SIEMPRE SE MUESTRA
+        const precioBase = precioBruto * 0.84;
+
+        const fila = `
+            <tr>
+                <td>
+                    <strong style="font-size:1.1em;">${item.producto}</strong><br>
+                    <span style="color:#555;">${item.tela} - ${item.color}</span>
+                    </td>
+                <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
+                <td style="text-align: center;">${item.cantidad}</td>
+                <td style="color: #999; font-size: 0.85em;">$${(item.total).toFixed(2)}</td> <td style="font-weight:bold; color: #001f3f; font-size: 1.1em;">$${precioBase.toFixed(2)}</td>
+                <td style="white-space: nowrap;">
+                    <button onclick="editarItem(${index})" style="color:#007bff; border:none; background:none; cursor:pointer; font-size: 1.2em; margin-right: 5px;" title="Editar">✏️</button>
+                    <button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer; font-size: 1.2em;" title="Eliminar">&times;</button>
+                </td>
+            </tr>
+        `;
+        tbody.innerHTML += fila;
+    });
+
+    calcularTotalesGlobales();
+}
 
     function eliminarItem(index) {
         carritoItems.splice(index, 1);
@@ -923,130 +899,113 @@ function agregarAlCarrito() {
 
 
    // --- 3. CÁLCULO GLOBAL (CORREGIDO: SUBTOTAL REACTIVO) ---
-    function calcularTotalesGlobales() {
-        const aplicarIva = document.getElementById('check-iva').checked;
-        // El factor 0.84 SOLO afecta a los productos y descuentos asociados
-        const factorIva = aplicarIva ? 1 : 0.84; 
+    // --- 3. CÁLCULO GLOBAL (LÓGICA: BASE 0.84 + IVA 0.16 = TOTAL 1.0) ---
+function calcularTotalesGlobales() {
+    const aplicarIva = document.getElementById('check-iva').checked;
 
-        // 1. Costo Base de Productos (Visualmente ajustado)
-        let costoProduccionBase = carritoItems.reduce((sum, item) => sum + item.total, 0);
-        let costoProduccionVisual = costoProduccionBase * factorIva;
-        
-        // 2. Utilidad (Margen)
-        const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
-        
-        // Cálculo del precio bruto de los productos (Sin factor IVA todavía)
-        let subtotalVentaProductos = 0;
-        if (pctUtilidad < 100) {
-            subtotalVentaProductos = costoProduccionBase / (1 - (pctUtilidad / 100));
-        } else {
-            subtotalVentaProductos = costoProduccionBase;
-        }
+    // 1. Calcular el Costo de Producción Puro (Suma de items)
+    let costoProduccionTotal = carritoItems.reduce((sum, item) => sum + item.total, 0);
 
-        // --- CORRECCIÓN AQUÍ: El Subtotal Visual debe reaccionar al Checkbox ---
-        // Si IVA activo = 100%. Si IVA inactivo = 84%.
-        const subtotalVisual = subtotalVentaProductos * factorIva;
+    // 2. Calcular el Precio de Venta BRUTO (El 100% antes de partirlo)
+    const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
+    let factorUtilidad = 1;
+    if (pctUtilidad < 100) {
+        factorUtilidad = 1 / (1 - (pctUtilidad / 100));
+    }
+    const granTotalBruto = costoProduccionTotal * factorUtilidad;
 
-        // 3. Descuentos (Solo sobre productos)
-        const pctDescuento = parseInt(document.getElementById('select-descuento').value) || 0;
-        const montoDescuentoBase = subtotalVentaProductos * (pctDescuento / 100);
-        
-        // El descuento también debe bajar proporcionalmente si quitamos el IVA
-        const montoDescuentoVisual = montoDescuentoBase * factorIva;
-        
-        // Venta Neta de Productos (Subtotal Visual - Descuento Visual)
-        const ventaProductosNeta = subtotalVisual - montoDescuentoVisual;
+    // 3. Calcular la BASE (Tu "Costo Real sin IVA") -> Siempre es el 84% del Bruto
+    const subtotalBase = granTotalBruto * 0.84;
 
-        // 4. Gastos Extra (Se suman directos, sin ser afectados por el factor)
-        let totalGastos = 0;
-        let listaGastos = [];
-        if (document.getElementById('check-gastos').checked) {
-            const cant = parseInt(document.getElementById('cantidad-gastos').value);
-            for(let i=1; i<=cant; i++) {
-                const desc = document.getElementById(`gasto-desc-${i}`)?.value;
-                const monto = parseFloat(document.getElementById(`gasto-monto-${i}`)?.value) || 0;
-                if(monto > 0) {
-                    totalGastos += monto;
-                    listaGastos.push({ descripcion: desc, monto: monto });
-                }
+    // 4. Calcular Descuentos (Sobre la Base)
+    const pctDescuento = parseInt(document.getElementById('select-descuento').value) || 0;
+    // El descuento en dinero se calcula sobre la base para que cuadre
+    const montoDescuento = subtotalBase * (pctDescuento / 100);
+    
+    // Base con descuento aplicado
+    const baseConDescuento = subtotalBase - montoDescuento;
+
+    // 5. Gastos Extra (Se suman directos al final)
+    let totalGastos = 0;
+    let listaGastos = [];
+    if (document.getElementById('check-gastos').checked) {
+        const cant = parseInt(document.getElementById('cantidad-gastos').value);
+        for(let i=1; i<=cant; i++) {
+            const m = parseFloat(document.getElementById(`gasto-monto-${i}`)?.value) || 0;
+            const d = document.getElementById(`gasto-desc-${i}`)?.value || 'Gasto';
+            if(m > 0) {
+                totalGastos += m;
+                listaGastos.push({descripcion: d, monto: m});
             }
         }
-
-        // 5. Cálculo Informativo del IVA (Solo para mostrar cuánto sería)
-        // Ojo: Esto no se suma, ya está incluido en 'ventaProductosNeta', solo lo calculamos para decir "Incluye $X de IVA"
-        let montoIvaInformativo = 0;
-        if (aplicarIva) {
-            // Si el precio es 116, el IVA es 16.
-            montoIvaInformativo = ventaProductosNeta*0.16;
-        }
-
-        // 6. GRAN TOTAL FINAL
-        // Sumamos los productos (ya ajustados por el factor) + los gastos (intactos)
-        const granTotal = ventaProductosNeta + totalGastos;
-
-        // 7. Utilidad Neta Real
-        // (Lo que cobras de productos) - (Lo que te costó producir esos productos ajustado)
-        // Nota: Los gastos se asumen neutros para la utilidad operativa
-        const utilidadNeta = ventaProductosNeta - costoProduccionVisual;
-
-        // --- ACTUALIZAR PANTALLA ---
-        document.getElementById('lbl-costo-produccion').innerText = `$${costoProduccionVisual.toFixed(2)}`;
-        
-        // AHORA SÍ: Este valor cambiará cuando toques el checkbox
-        document.getElementById('lbl-subtotal-venta').innerText = `$${subtotalVisual.toFixed(2)}`;
-        
-        const lblDesc = document.getElementById('lbl-descuento-monto');
-        if(montoDescuentoVisual > 0) {
-            lblDesc.innerHTML = `<span>- Descuento (${pctDescuento}%):</span> <span>$${montoDescuentoVisual.toFixed(2)}</span>`;
-            lblDesc.style.display = 'flex';
-        } else {
-            lblDesc.style.display = 'none';
-        }
-
-        const containerGastos = document.getElementById('contenedor-desglose-gastos');
-        containerGastos.innerHTML = '';
-        if(totalGastos > 0) {
-            containerGastos.style.display = 'block';
-            listaGastos.forEach(g => {
-                const descripcion = g.descripcion || "Gasto Extra";
-                containerGastos.innerHTML += `
-                    <div style="display:flex; justify-content:space-between; color:#6610f2; font-size: 0.95em; margin-bottom: 2px;">
-                        <span>+ ${descripcion}:</span> <span>$${g.monto.toFixed(2)}</span>
-                    </div>`;
-            });
-        } else {
-            containerGastos.style.display = 'none';
-        }
-
-        const lblIva = document.getElementById('lbl-iva');
-        if(aplicarIva) {
-            lblIva.innerHTML = `<span>(IVA 16% Incluido en Productos):</span> <span>$${montoIvaInformativo.toFixed(2)}</span>`;
-            lblIva.style.color = "#666"; 
-        } else {
-            lblIva.innerHTML = `<span>IVA (Descontado):</span> <span>No incluido</span>`;
-            lblIva.style.color = "#856404";
-        }
-
-        document.getElementById('lbl-gran-total').innerText = `$${granTotal.toFixed(2)}`;
-        
-        const lblUtilidad = document.getElementById('lbl-utilidad');
-        lblUtilidad.innerText = `$${utilidadNeta.toFixed(2)}`;
-        lblUtilidad.parentElement.style.backgroundColor = utilidadNeta >= 0 ? '#d4edda' : '#f8d7da';
-        
-        return { 
-            costoProduccion: costoProduccionVisual,
-            subtotalVenta: subtotalVentaProductos, // Bruto original (100%)
-            montoDescuento: montoDescuentoBase, 
-            pctDescuento, 
-            pctUtilidad, 
-            totalGastos, 
-            listaGastos, 
-            iva: montoIvaInformativo, 
-            granTotal,
-            subtotalParaMostrar: subtotalVisual, // Este va al PDF
-            aplicarIva 
-        };
     }
+
+    // 6. Calcular IVA (El 16% del Bruto correspondiente)
+    // Matemáticamente: Si Base es 0.84, IVA es 0.16.
+    // Relación: (Base / 0.84) * 0.16
+    let iva = 0;
+    if (aplicarIva) {
+        iva = (baseConDescuento / 0.84) * 0.16;
+    }
+
+    // 7. GRAN TOTAL FINAL
+    const granTotal = baseConDescuento + iva + totalGastos;
+
+    // 8. Utilidad Neta (Lo que cobras - Lo que te costó)
+    // Usamos el total sin IVA menos el costo de producción
+    const utilidadNeta = baseConDescuento - (costoProduccionTotal * 0.84); // Castigamos costo prod también para ser justos en la visualización, o directo:
+    // const utilidadNeta = (granTotal - iva) - costoProduccionTotal; 
+
+    // --- ACTUALIZAR HTML ---
+    document.getElementById('lbl-costo-produccion').innerText = `$${costoProduccionTotal.toFixed(2)}`;
+    document.getElementById('lbl-subtotal-venta').innerText = `$${subtotalBase.toFixed(2)}`; // Siempre muestra la base
+
+    const lblDesc = document.getElementById('lbl-descuento-monto');
+    if(montoDescuento > 0) {
+        lblDesc.innerHTML = `<span>- Descuento (${pctDescuento}%):</span> <span>$${montoDescuento.toFixed(2)}</span>`;
+        lblDesc.style.display = 'flex';
+    } else {
+        lblDesc.style.display = 'none';
+    }
+
+    // Actualizar contenedor de gastos... (tu lógica visual de gastos se mantiene igual)
+    const containerGastos = document.getElementById('contenedor-desglose-gastos');
+    containerGastos.innerHTML = '';
+    if(totalGastos > 0) {
+        containerGastos.style.display = 'block';
+        listaGastos.forEach(g => {
+            containerGastos.innerHTML += `<div style="display:flex; justify-content:space-between; color:#6610f2; font-size: 0.95em;"><span>+ ${g.descripcion}:</span> <span>$${g.monto.toFixed(2)}</span></div>`;
+        });
+    } else {
+        containerGastos.style.display = 'none';
+    }
+
+    const lblIva = document.getElementById('lbl-iva');
+    if(aplicarIva) {
+        lblIva.innerHTML = `<span>+ IVA (16%):</span> <span>$${iva.toFixed(2)}</span>`;
+        lblIva.style.color = "#000"; 
+    } else {
+        lblIva.innerHTML = `<span>IVA:</span> <span>No Incluido</span>`;
+        lblIva.style.color = "#999";
+    }
+
+    document.getElementById('lbl-gran-total').innerText = `$${granTotal.toFixed(2)}`;
+    
+    // Retornamos todos los valores calculados limpios
+    return { 
+        subtotalVenta: subtotalBase, // La base del 84%
+        montoDescuento, 
+        pctDescuento, 
+        pctUtilidad, 
+        totalGastos, 
+        listaGastos, 
+        iva, 
+        granTotal, 
+        aplicarIva,
+        // Dato extra para el PDF: el factor de utilidad usado
+        factorUtilidad
+    };
+}
 
    // --- FUNCIÓN GENERAR PDF (LÓGICA HÍBRIDA FINAL) ---
    // --- FUNCIÓN GENERAR PDF (CORREGIDA: IGUAL A LA PANTALLA WEB) ---
