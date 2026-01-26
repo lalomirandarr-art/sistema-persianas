@@ -949,7 +949,7 @@ function agregarAlCarrito() {
 
         // 3. Descuentos (Solo sobre productos)
         const pctDescuento = parseInt(document.getElementById('select-descuento').value) || 0;
-        const montoDescuentoBase = (subtotalVentaProductos*.84) * (pctDescuento / 100);
+        const montoDescuentoBase = subtotalVentaProductos * (pctDescuento / 100);
         
         // El descuento también debe bajar proporcionalmente si quitamos el IVA
         const montoDescuentoVisual = montoDescuentoBase * factorIva;
@@ -977,18 +977,13 @@ function agregarAlCarrito() {
         let montoIvaInformativo = 0;
         if (aplicarIva) {
             // Si el precio es 116, el IVA es 16.
-            montoIvaInformativo = (subtotalVentaProductos*.84)*0.16;
+            montoIvaInformativo = ventaProductosNeta*0.16;
         }
 
         // 6. GRAN TOTAL FINAL
         // Sumamos los productos (ya ajustados por el factor) + los gastos (intactos)
-        const granTotal = 0
-        if(factorIva==1){
-    granTotal=  ventaProductosNeta + totalGastos + montoIvaInformativo;
-        }
-        else{
-    granTotal=  ventaProductosNeta + totalGastos + montoIvaInformativo;
-        }
+        const granTotal = ventaProductosNeta + totalGastos;
+
         // 7. Utilidad Neta Real
         // (Lo que cobras de productos) - (Lo que te costó producir esos productos ajustado)
         // Nota: Los gastos se asumen neutros para la utilidad operativa
