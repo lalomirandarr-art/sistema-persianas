@@ -1216,25 +1216,21 @@ async function registrarPago() {
 
     cargarHistorial();
 
-// --- FUNCIÓN PARA GENERAR ORDEN DE INSTALACIÓN (MEJORADA Y DETALLADA) ---
+// --- FUNCIÓN: ORDEN DE INSTALACIÓN (MARTILLO) ---
 async function generarPDFOrdenTrabajo(id) {
-    // 1. Buscar datos
     const c = todasLasCotizaciones.find(item => item._id === id);
-    if (!c) return alert("Error: No se encontraron datos.");
+    if (!c) return alert("Error: Datos no encontrados.");
 
-    // 2. Construir filas de la tabla TÉCNICA
     let filasHTML = '';
-    
-    // Estilos de celda
     const cellStyle = "padding: 6px; border: 1px solid #444; font-size: 10px; vertical-align: top;";
     
     if (c.items && c.items.length > 0) {
         c.items.forEach((item, index) => {
-            // Preparamos los textos para que si no existen no ocupen espacio
-            const textoMando = item.accesorios ? item.accesorios.mando : '-';
-            const textoColorAcc = item.accesorios ? item.accesorios.color : '-';
+            // Lógica de seguridad: Si no existe el dato, ponemos texto vacío o guiones
+            const textoMando = (item.accesorios && item.accesorios.mando) ? item.accesorios.mando : '-';
+            const textoColorAcc = (item.accesorios && item.accesorios.color) ? item.accesorios.color : '-';
             
-            // Construimos el bloque de especificaciones técnicas
+            // Construimos la lista de especificaciones
             let especificacionesHTML = `
                 <div style="margin-bottom: 2px;"><strong>▪ Mando:</strong> ${textoMando}</div>
                 <div style="margin-bottom: 2px;"><strong>▪ Color Acc:</strong> ${textoColorAcc}</div>
@@ -1244,6 +1240,8 @@ async function generarPDFOrdenTrabajo(id) {
                 especificacionesHTML += `<div style="color: #0056b3; font-weight: bold; margin-top: 3px;">⚡ Motor: ${item.motor}</div>`;
             }
             
+            // OJO: Aquí intentamos leer 'control' y 'componente'. 
+            // Si en tu BD antigua no están, simplemente no se mostrarán.
             if (item.control) {
                 especificacionesHTML += `<div style="color: #0056b3;">🎮 Control: ${item.control}</div>`;
             }
@@ -1252,33 +1250,26 @@ async function generarPDFOrdenTrabajo(id) {
                 especificacionesHTML += `<div style="color: #e65100; font-style: italic; margin-top: 3px; border-top: 1px dotted #ccc; padding-top:2px;">🔌 Extras: ${item.componente}</div>`;
             }
 
-            // Notas: Si no hay nota, dejamos el espacio en blanco pero visible
             const notaTexto = item.notas ? item.notas : '';
 
             filasHTML += `
                 <tr>
                     <td style="${cellStyle} text-align: center; font-weight: bold; background: #f0f0f0; vertical-align: middle;">${index + 1}</td>
-                    
                     <td style="${cellStyle} text-align: center; font-size: 1.1em; vertical-align: middle;">${item.cantidad}</td>
-                    
                     <td style="${cellStyle}">
                         <strong style="font-size: 1.1em; color: #000;">${item.producto}</strong><br>
                         <span style="color: #444;">Tela: ${item.tela || '-'}</span><br>
                         <span style="color: #444;">Color: ${item.color || '-'}</span>
                     </td>
-                    
                     <td style="${cellStyle} text-align: center; font-weight: bold; font-size: 1.1em; vertical-align: middle;">
                         ${item.medidas ? item.medidas.ancho + ' x ' + item.medidas.alto : '-'}
                     </td>
-                    
                     <td style="${cellStyle}">
                         ${especificacionesHTML}
                     </td>
-                    
                     <td style="${cellStyle} background: ${notaTexto ? '#fff8e1' : 'white'}; color: #d63384;">
                         ${notaTexto}
                     </td>
-                    
                     <td style="${cellStyle} text-align: center; vertical-align: middle;">
                         <div style="width: 20px; height: 20px; border: 2px solid #ccc; margin: auto;"></div>
                     </td>
@@ -1286,7 +1277,6 @@ async function generarPDFOrdenTrabajo(id) {
         });
     }
 
-    // 3. Construir el Documento
     const element = document.createElement('div');
     element.style.width = '816px'; 
     element.style.minHeight = '1056px'; 
@@ -1296,14 +1286,12 @@ async function generarPDFOrdenTrabajo(id) {
     element.style.fontFamily = 'Arial, sans-serif';
     element.style.color = '#333';
     element.style.fontSize = '11px';
-    element.style.lineHeight = '1.3';
     element.style.display = 'flex';
     element.style.flexDirection = 'column';
     element.style.justifyContent = 'space-between';
 
     element.innerHTML = `
         <div style="flex: 1;">
-            
             <div style="border-bottom: 3px solid #fd7e14; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
                 <div style="width: 50%;">
                     <img src="/IMG/logopd.png" alt="Persianas Delta" style="max-width: 180px;">
@@ -1326,7 +1314,7 @@ async function generarPDFOrdenTrabajo(id) {
                     <tr style="background-color: #333; color: white; text-align: center;">
                         <th style="padding: 8px; border: 1px solid #444; width: 30px;">#</th>
                         <th style="padding: 8px; border: 1px solid #444; width: 40px;">Cant</th>
-                        <th style="padding: 8px; border: 1px solid #444; width: 140px;">Producto / Tela</th>
+                        <th style="padding: 8px; border: 1px solid #444;">Producto / Descripción</th>
                         <th style="padding: 8px; border: 1px solid #444; width: 90px;">Medidas</th>
                         <th style="padding: 8px; border: 1px solid #444;">Especificaciones Técnicas</th>
                         <th style="padding: 8px; border: 1px solid #444; width: 120px;">Notas / Obs.</th>
@@ -1337,9 +1325,9 @@ async function generarPDFOrdenTrabajo(id) {
                     ${filasHTML}
                 </tbody>
             </table>
-
-            <div style="border: 1px dashed #999; padding: 10px; color: #666; margin-top: 10px;">
-                <strong>Observaciones Generales de la Instalación:</strong><br><br><br>
+            
+            <div style="border: 1px dashed #999; padding: 10px; color: #666; margin-top: 10px; min-height: 50px;">
+                <strong>Observaciones Generales de la Instalación:</strong>
             </div>
         </div>
 
@@ -1354,7 +1342,6 @@ async function generarPDFOrdenTrabajo(id) {
                     <div style="font-size: 9px; color: #666;">Recibí a entera satisfacción</div>
                 </div>
             </div>
-            
             <div style="text-align: center; margin-top: 20px; font-size: 9px; color: #aaa;">
                 Uso exclusivo Operaciones - Persianas Delta
             </div>
@@ -1373,7 +1360,7 @@ async function generarPDFOrdenTrabajo(id) {
     try {
         await html2pdf().set(opt).from(element).save();
     } catch (error) {
-        console.error("Error generando PDF Orden", error);
+        console.error("Error", error);
         alert("Error al generar PDF.");
     }
     document.body.style.cursor = 'default';
