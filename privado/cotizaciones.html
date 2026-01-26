@@ -1176,7 +1176,7 @@ async function generarPDF(modo = 'descargar') {
 
     // D) GRAN TOTAL
     // Como sumaSubtotalPDF ya tiene el IVA correcto según el checkbox, la suma es directa.
-    const granTotalPDF = (sumaSubtotalPDF - montoDescuentoPDF) + totalGastosPDF;
+    const granTotalPDF = (sumaSubtotalPDF - montoDescuentoPDF) + totalGastosPDF + ivaInformativoPDF ;
 
 
     // --- 5. ESTRUCTURA PDF (HTML) ---
