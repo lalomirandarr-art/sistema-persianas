@@ -758,62 +758,95 @@
 
 
 // --- FUNCIÓN PDF UNIFICADA (DISEÑO FINAL: STICKY FOOTER Y DESGLOSE) ---
+    // --- FUNCIÓN PDF DESDE HISTORIAL (CORREGIDA PARA IGUALAR LÓGICA VISUAL) ---
     async function generarPDFDesdeHistorial(id) {
         // 1. Buscar datos
         const c = todasLasCotizaciones.find(item => item._id === id);
         if (!c) return alert("Error: No se encontraron datos.");
 
-        // --- PASO A: CALCULAR FACTOR DE UTILIDAD (INGENIERÍA INVERSA) ---
-        // Necesitamos saber cuánto margen se aplicó para poder calcular el precio unitario de venta
-        
         const granTotal = c.total || 0;
-        const iva = c.iva || 0;
-        
-        // Manejo seguro de gastos (puede venir como número antiguo o array nuevo)
+        // Detectamos si tiene IVA guardado para activar la lógica visual
+        const tieneIVA = (c.iva && c.iva > 0); 
+
+        // 2. Separar Gastos (Estos no entran en la lógica del 84%)
         let totalGastos = 0;
         let listaGastos = [];
-        
         if (c.gastosAdicionales && Array.isArray(c.gastosAdicionales) && c.gastosAdicionales.length > 0) {
-            // Estructura nueva (Array)
             listaGastos = c.gastosAdicionales;
             totalGastos = listaGastos.reduce((sum, g) => sum + (g.monto || 0), 0);
         } else {
-            // Estructura vieja (Solo total numérico)
             totalGastos = c.totalGastosAdicionales || 0;
             if(totalGastos > 0) listaGastos.push({ descripcion: "Gastos Extra", monto: totalGastos });
         }
 
-        const pctDescuento = c.descuentoGlobalPct || 0;
+        // 3. Calcular Totales de Productos (Sin gastos)
+        const totalProductos = granTotal - totalGastos;
 
-        // A.2 Obtener el Subtotal de Venta Real (Sin IVA, ni gastos, ni descuentos)
-        let subtotalConDescuento = granTotal - iva - totalGastos;
-        if (subtotalConDescuento < 0) subtotalConDescuento = 0;
+        // --- LÓGICA VISUAL DEL 84% (AQUÍ ESTÁ EL CAMBIO CLAVE) ---
+        let subtotalVisual = 0;
+        let ivaVisual = 0;
+        let descuentoVisual = 0;
 
-        let subtotalVentaReal = subtotalConDescuento;
-        let montoDescuento = 0;
+        if (tieneIVA) {
+            // Lógica "Activa": Subtotal es el 84% del total de productos
+            subtotalVisual = totalProductos * 0.84;
+            ivaVisual = totalProductos * 0.16;
+            
+            // Ajustar descuento si existe
+            if (c.descuentoGlobalPct > 0) {
+                // El descuento guardado suele ser el monto final restado.
+                // Lo ajustamos visualmente al 84% también.
+                // Si tienes el monto guardado:
+                let descMonto = c.descuentoGlobalMonto || 0;
+                // Si no, lo calculamos del total:
+                if(descMonto === 0) {
+                     // Ingeniería inversa simple del descuento
+                     const factor = 1 - (c.descuentoGlobalPct / 100);
+                     const original = totalProductos / factor;
+                     descMonto = original - totalProductos;
+                }
+                descuentoVisual = descMonto * 0.84; 
+            }
 
-        // Reversar el descuento si existe
-        if (pctDescuento > 0) {
-            const factorDescuento = 1 - (pctDescuento / 100);
-            subtotalVentaReal = subtotalConDescuento / factorDescuento;
-            montoDescuento = subtotalVentaReal - subtotalConDescuento;
+        } else {
+            // Lógica "Inactiva" (Neto): El subtotal es directo
+            subtotalVisual = totalProductos;
+            ivaVisual = 0;
+            
+            if (c.descuentoGlobalMonto > 0) {
+                descuentoVisual = c.descuentoGlobalMonto;
+            } else if (c.descuentoGlobalPct > 0) {
+                 const factor = 1 - (c.descuentoGlobalPct / 100);
+                 const original = totalProductos / factor;
+                 descuentoVisual = original - totalProductos;
+            }
         }
 
-        // A.3 Obtener el Costo Total de Producción (Suma de los items.total que son costo base)
+        // 4. Calcular Factor para las Filas (Ingeniería Inversa)
+        // Necesitamos que la suma de las filas dé el 'subtotalVisual'
+        // CostoTotalProduccion / Factor = SubtotalVisual
+        // Factor = CostoTotalProduccion / SubtotalVisual
+        
         let totalCostoProduccion = 0;
         if (c.items) {
-            totalCostoProduccion = c.items.reduce((sum, item) => sum + (item.total || 0), 0);
+            // Usamos costoBase si existe, sino total (fallback)
+            totalCostoProduccion = c.items.reduce((sum, item) => {
+                const costo = item.financiero && item.financiero.costoBase ? item.financiero.costoBase : item.total;
+                return sum + (costo || 0);
+            }, 0);
         }
 
-        // A.4 Calcular el Factor (Relación Costo vs Venta)
+        // Evitamos división por cero si subtotal es 0
         let factorUtilidad = 1;
-        if (subtotalVentaReal > 0 && totalCostoProduccion > 0) {
-            factorUtilidad = totalCostoProduccion / subtotalVentaReal;
-        }
-        // Protección
-        if (factorUtilidad > 1 || factorUtilidad <= 0) factorUtilidad = 1; 
+        // Ajustamos el subtotalVisual sumándole el descuento para obtener el "Subtotal de Lista"
+        // Porque las filas deben sumar el precio ANTES de descuento global.
+        const subtotalLista = subtotalVisual + descuentoVisual;
 
-        // --- PASO B: CONSTRUIR FILAS ---
+        if (subtotalLista > 0 && totalCostoProduccion > 0) {
+            factorUtilidad = totalCostoProduccion / subtotalLista;
+        }
+
+        // --- 5. CONSTRUIR FILAS ---
         let filasHTML = '';
         const cellStyle = "padding: 6px; border-right: 1px solid #6CDAE7; font-size: 9px;";
 
@@ -824,14 +857,18 @@
                     m2 = (item.medidas.ancho * item.medidas.alto).toFixed(2);
                 }
 
-                // Convertimos el costo base a precio de venta
-                const precioVentaItem = (item.total || 0) / factorUtilidad;
+                // Determinar costo base del item
+                const costoItem = item.financiero && item.financiero.costoBase ? item.financiero.costoBase : item.total;
+                
+                // Aplicar factor inverso para obtener precio venta
+                const precioVentaItem = (costoItem || 0) / factorUtilidad;
+
+                // NOTA: 'precioVentaItem' aquí ya representa el precio base (84%) si tiene IVA,
+                // o el precio neto (84%) si no tiene IVA, gracias a cómo calculamos el factor arriba.
 
                 filasHTML += `
                     <tr style="border-bottom: 1px solid #6CDAE7;">
-                        <td style="${cellStyle} word-wrap: break-word;">
-                            <b>${item.producto}</b>
-                        </td>
+                        <td style="${cellStyle} word-wrap: break-word;"><b>${item.producto}</b></td>
                         <td style="${cellStyle}">${item.tela || '-'}</td>
                         <td style="${cellStyle}">${item.color || '-'}</td>
                         <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
@@ -848,24 +885,19 @@
                                     ${item.control ? ` + 🎮 ${item.control}` : ''}
                                 </em>
                             </div>
-                            
-                            ${item.componente ? 
-                                `<div style="color:#e65100; font-style:italic;">🔌 Componentes Extra: ${item.componente}</div>` 
-                            : ""}
-                            
-                            ${item.notas ? 
-                                `<div style="color:#d63384; font-style:italic; margin-top:2px;">📝 Nota: ${item.notas}</div>` 
-                            : ""}
+                            ${item.componente ? `<div style="color:#e65100; font-style:italic;">🔌 Componentes Extra: ${item.componente}</div>` : ""}
+                            ${item.notas ? `<div style="color:#d63384; font-style:italic; margin-top:2px;">📝 Nota: ${item.notas}</div>` : ""}
                         </td>
                     </tr>`;
             });
         }
 
-        // 4. Construir el Documento (FLEXBOX STICKY FOOTER)
+        // --- 6. ESTRUCTURA PDF ---
         const element = document.createElement('div');
-        element.style.width = '740px'; 
-        element.style.minHeight = '950px'; // Altura fija carta
-        element.style.padding = '20px';
+        element.style.width = '816px'; 
+        element.style.minHeight = '1056px'; 
+        element.style.boxSizing = 'border-box';
+        element.style.padding = '40px';
         element.style.background = 'white';
         element.style.fontFamily = 'Arial, sans-serif';
         element.style.color = '#333';
@@ -914,9 +946,7 @@
                             <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${filasHTML}
-                    </tbody>
+                    <tbody>${filasHTML}</tbody>
                 </table>
 
                 <div style="margin-top: 15px; display: flex; justify-content: space-between;">
@@ -935,12 +965,12 @@
                         <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
                             <tr>
                                 <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
-                                <td style="text-align: right; padding: 4px; color: #333;">$${subtotalVentaReal.toFixed(2)}</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">$${subtotalVisual.toFixed(2)}</td>
                             </tr>
-                            ${montoDescuento > 0 ? `
+                            ${descuentoVisual > 0 ? `
                             <tr>
-                                <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${pctDescuento}%):</td>
-                                <td style="text-align: right; padding: 4px; color: #dc3545;">-$${montoDescuento.toFixed(2)}</td>
+                                <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${c.descuentoGlobalPct || 0}%):</td>
+                                <td style="text-align: right; padding: 4px; color: #dc3545;">-$${descuentoVisual.toFixed(2)}</td>
                             </tr>` : ''}
                             
                             ${totalGastos > 0 ? 
@@ -948,13 +978,12 @@
                                 <tr>
                                     <td style="text-align: right; padding: 4px; font-weight: bold; color: #6610f2;">+ ${g.descripcion || 'Gasto Extra'}:</td>
                                     <td style="text-align: right; padding: 4px; color: #6610f2;">$${(g.monto || 0).toFixed(2)}</td>
-                                </tr>
-                                `).join('') 
+                                </tr>`).join('') 
                             : ''}
 
                             <tr>
                                 <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
-                                <td style="text-align: right; padding: 4px; color: #333;">${iva > 0 ? '$'+iva.toFixed(2) : 'No Incluido'}</td>
+                                <td style="text-align: right; padding: 4px; color: #333;">${tieneIVA ? '$'+ivaVisual.toFixed(2) : 'No Incluido'}</td>
                             </tr>
                             <tr style="border-top: 2px solid #17a2b8;">
                                 <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td>
@@ -963,10 +992,12 @@
                         </table>
                     </div>
                 </div>
-            </div> <div>
+            </div>
+
+            <div>
                 <div style="margin-top: 15px; border-top: 2px solid #6CDAE7; border-bottom: 2px solid #6CDAE7; padding: 12px 0; font-size: 7px; color: #444; text-align: justify; page-break-inside: avoid;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
-                        <div style="width: 48%;">
+                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                         <div style="width: 48%;">
                             <ul style="margin: 0; padding-left: 10px; list-style-type: disc; line-height: 1.4;">
                                 <li style="margin-bottom: 4px;">Cualquier modificación en la cotización después del anticipo se le aplicará un cargo mínimo de $600 pesos dentro de la Ciudad de México.</li>
                                 <li style="margin-bottom: 4px;">Ancho máximo sugerido (2.20), mayor a esta medida se sugiere dividir la persiana.</li>
@@ -991,16 +1022,16 @@
                             </ul>
                         </div>
                     </div>
-                    
-                    <div style="text-align: center; font-weight: bold; font-size: 10px; margin-top: 10px; color: #000;">
-                        ***Se mejora cualquier cotización***
-                    </div>
+                </div>
+                
+                <div style="text-align: center; font-weight: bold; font-size: 10px; margin-top: 10px; color: #000;">
+                    ***Se mejora cualquier cotización***
                 </div>
             </div>
         `;
 
         const opt = { 
-            margin: [0.2, 0.25, 0.2, 0.25], 
+            margin: 0, 
             filename: `Cotizacion_${c.folioInteligente}.pdf`, 
             image: { type: 'jpeg', quality: 1 }, 
             html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 }, 
