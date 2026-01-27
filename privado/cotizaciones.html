@@ -1013,113 +1013,224 @@ async function generarPDF(modo = 'descargar') {
     if (carritoItems.length === 0) { alert("No hay productos para generar el PDF."); return; }
 
     const fechaObj = new Date();
-    // ... tu código de folio ...
-    const folio = `COT-${Math.floor(Math.random()*10000)}`; // O tu lógica de folio
+    const mesActual = fechaObj.getMonth();
+    const anioActual = fechaObj.getFullYear();
     
-    const nombreCliente = document.getElementById('cliente').value || "Cliente";
+    // 1. CÁLCULO DEL FOLIO (Igual que antes)
+    let consecutivo = 1; 
+    try {
+        const respuesta = await fetch('/cotizaciones?limit=5000'); 
+        if(respuesta.ok) {
+            const historial = await respuesta.json();
+            const cotizacionesEsteMes = historial.filter(c => {
+                const fechaCoti = new Date(c.fecha);
+                if (isNaN(fechaCoti)) return false;
+                return fechaCoti.getMonth() === mesActual && fechaCoti.getFullYear() === anioActual;
+            });
+            consecutivo = cotizacionesEsteMes.length;
+            if(consecutivo === 0) consecutivo = 1; 
+        }
+    } catch (error) { console.error("Error calculando consecutivo:", error); }
+
+    const consStr = consecutivo.toString().padStart(3, '0');
+    const mesStr = (mesActual + 1).toString().padStart(2, '0');
+    const folio = `${consStr}-${mesStr}-${anioActual}`;
+    
+    const nombreCliente = document.getElementById('cliente').value || "Cliente Mostrador";
     const quienCotiza = document.getElementById('quienCotiza').value || "Vendedor";
     
-    // TRAEMOS LOS CÁLCULOS CENTRALIZADOS
-    const t = calcularTotalesGlobales(); 
-
-    // Reconstruimos el factor utilidad para el desglose individual
+    // --- 2. PREPARAR FACTORES MATEMÁTICOS (IGUAL QUE EN LA APP WEB) ---
+    
+    // A) Factor de Utilidad
+    const pctUtilidad = parseInt(document.getElementById('select-utilidad').value) || 0;
     let factorUtilidad = 1;
-    if(t.pctUtilidad < 100) factorUtilidad = 1 / (1 - (t.pctUtilidad / 100));
+    if (pctUtilidad < 100) {
+        factorUtilidad = 1 / (1 - (pctUtilidad / 100));
+    }
 
+    // B) Factor IVA Checkbox
+    const aplicaIva = document.getElementById('check-iva').checked;
+    const factorIva = aplicaIva ? 0.84 : 0.84; 
+
+    // --- 3. CONSTRUIR FILAS Y CALCULAR SUBTOTAL ---
     let filasHTML = '';
     const cellStyle = "padding: 6px; border-right: 1px solid #6CDAE7; font-size: 9px;";
     
-    carritoItems.forEach(item => {
-        // CALCULAMOS EL PRECIO BASE (84%) PARA CADA RENGLÓN
-        const precioBrutoRow = item.total * factorUtilidad;
-        const precioBaseRow = precioBrutoRow * 0.84;
+    let sumaSubtotalPDF = 0; // Acumulador para el subtotal
 
+    carritoItems.forEach(item => {
         const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
         
+        // --- AQUÍ ESTÁ LA CLAVE DEL CAMBIO ---
+        // Usamos EXACTAMENTE la misma fórmula que en actualizarTablaCarrito()
+        // item.total es el Costo Base.
+        const totalVentaRenglon = (item.total * factorUtilidad) * factorIva;
+
+        // Sumamos al subtotal general
+        sumaSubtotalPDF += totalVentaRenglon;
+
         filasHTML += `
             <tr style="border-bottom: 1px solid #6CDAE7;">
-                <td style="${cellStyle} word-wrap: break-word;"><b>${item.producto}</b></td>
+                <td style="${cellStyle} word-wrap: break-word;">
+                    <b>${item.producto}</b>
+                </td>
                 <td style="${cellStyle}">${item.tela}</td>
                 <td style="${cellStyle}">${item.color}</td>
                 <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
                 <td style="${cellStyle}">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
                 <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
-                <td style="padding: 4px; text-align: right; font-size: 9px;">$${precioBaseRow.toFixed(2)}</td>
+                <td style="padding: 4px; text-align: right; font-size: 9px;">$${totalVentaRenglon.toFixed(2)}</td>
             </tr>
             <tr style="border-bottom: 2px solid #6CDAE7; color: #444; font-size: 8px; background-color: #f9f9f9;">
                 <td colspan="7" style="padding: 4px 8px;">
-                    <em>${item.motor !== 'Manual' ? `⚙️ ${item.motor}` : ''} Accesorios: ${item.accesorios.color}</em>
-                    ${item.notas ? `<br><span style="color:#d63384;">Nota: ${item.notas}</span>` : ''}
+                    <div style="margin-bottom: 2px;">
+                        <em>
+                            ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
+                            ${item.motor !== 'Manual' ? ` | ⚙️ Motor: ${item.motor}` : ''}
+                            ${item.control ? ` + 🎮 ${item.control}` : ''}
+                        </em>
+                    </div>
+                    ${item.componente ? `<div style="color:#e65100; font-style:italic;">🔌 Componentes Extra: ${item.componente}</div>` : ""}
+                    ${item.notas ? `<div style="color:#d63384; font-style:italic; margin-top:2px;">📝 Nota: ${item.notas}</div>` : ""}
                 </td>
-            </tr>
-        `;
+            </tr>`;
     });
 
-    // CONSTRUCCIÓN DE LA TABLA DE TOTALES (USANDO LOS VALORES DE 't')
-    let htmlTotales = `
-        <tr>
-            <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
-            <td style="text-align: right; padding: 4px; color: #333;">$${t.subtotalVenta.toFixed(2)}</td>
-        </tr>
-    `;
+    // --- 4. CÁLCULOS FINALES DEL PIE DE PÁGINA ---
 
-    if(t.montoDescuento > 0) {
-        htmlTotales += `
-        <tr>
-            <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${t.pctDescuento}%):</td>
-            <td style="text-align: right; padding: 4px; color: #dc3545;">-$${t.montoDescuento.toFixed(2)}</td>
-        </tr>`;
+    // A) Descuento
+    const pctDescuento = parseInt(document.getElementById('select-descuento').value) || 0;
+    const montoDescuentoPDF = sumaSubtotalPDF * (pctDescuento / 100);
+
+    // B) Gastos Extra
+    let totalGastosPDF = 0;
+    let listaGastosHTML = '';
+    if (document.getElementById('check-gastos').checked) {
+        const cant = parseInt(document.getElementById('cantidad-gastos').value);
+        for(let i=1; i<=cant; i++) {
+            const m = parseFloat(document.getElementById(`gasto-monto-${i}`)?.value) || 0;
+            const d = document.getElementById(`gasto-desc-${i}`)?.value || 'Gasto Extra';
+            if(m > 0) {
+                totalGastosPDF += m;
+                listaGastosHTML += `
+                <tr>
+                    <td style="text-align: right; padding: 4px; font-weight: bold; color: #6610f2;">+ ${d}:</td>
+                    <td style="text-align: right; padding: 4px; color: #6610f2;">$${m.toFixed(2)}</td>
+                </tr>`;
+            }
+        }
     }
 
-    // GASTOS (Si hay)
-    if(t.totalGastos > 0) {
-        t.listaGastos.forEach(g => {
-            htmlTotales += `<tr><td style="text-align: right; font-weight:bold; color:#6610f2;">+ ${g.descripcion}:</td><td style="text-align: right; color:#6610f2;">$${g.monto.toFixed(2)}</td></tr>`;
-        });
+    // C) IVA Informativo (Igual que en la pantalla web)
+    // El IVA ya está incluido en sumaSubtotalPDF si el checkbox estaba activo,
+    // así que aquí solo calculamos cuánto es para mostrarlo desglosado si se requiere.
+    let ivaInformativoPDF = 0;
+    let textoIVA = "No Incluido";
+    if (aplicaIva) {
+        // Si el precio ya tiene IVA, desglosamos cuánto es.
+        const subtotalConDescuento = sumaSubtotalPDF;
+        ivaInformativoPDF = subtotalConDescuento*0.16;
+        textoIVA = `$${ivaInformativoPDF.toFixed(2)}`;
     }
 
-    // IVA (Solo si aplica)
-    htmlTotales += `
-        <tr>
-            <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
-            <td style="text-align: right; padding: 4px; color: #333;">${t.aplicarIva ? '$'+t.iva.toFixed(2) : 'No Incluido'}</td>
-        </tr>
-        <tr style="border-top: 2px solid #17a2b8;">
-            <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td>
-            <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${t.granTotal.toFixed(2)}</td>
-        </tr>
-    `;
+    // D) GRAN TOTAL
+    // Como sumaSubtotalPDF ya tiene el IVA correcto según el checkbox, la suma es directa.
+    const granTotalPDF = (sumaSubtotalPDF - montoDescuentoPDF) + totalGastosPDF + ivaInformativoPDF ;
 
-    // ... AQUÍ VA EL RESTO DE TU CÓDIGO DEL PDF (Element create, innerHTML, html2pdf.save) ...
-    // Solo asegúrate de insertar 'filasHTML' en el tbody y 'htmlTotales' en la tabla de totales.
-    
-    // (Te resumo la estructura final para no pegar todo el bloque gigante, usa el que tenías pero inyecta 'htmlTotales')
+
+    // --- 5. ESTRUCTURA PDF (HTML) ---
     const element = document.createElement('div');
     element.style.width = '816px'; 
     element.style.minHeight = '1056px'; 
+    element.style.boxSizing = 'border-box';
     element.style.padding = '40px';
     element.style.background = 'white';
     element.style.fontFamily = 'Arial, sans-serif';
+    element.style.color = '#333';
+    element.style.fontSize = '10px'; 
+    element.style.lineHeight = '1.3';
+    element.style.display = 'flex';
+    element.style.flexDirection = 'column';
+    element.style.justifyContent = 'space-between';
     
     element.innerHTML = `
-        <div style="flex:1;">
-             <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8;">
+        <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
+                <div style="width: 45%;">
+                    <img src="/IMG/logopd.png" alt="Persianas Delta" style="max-width: 200px;">
+                    <div style="color: #17a2b8; font-weight: bold; letter-spacing: 2px; margin-top: 2px; font-size: 9px;">PRIVACIDAD CON ESTILO</div>
+                </div>
+                <div style="width: 55%; text-align: right; font-size: 10px;">
+                    <h1 style="margin: 0; font-weight: normal; font-size: 20px; letter-spacing: 2px; color: #333;">PERSIANAS DELTA</h1>
+                    <p style="margin: 3px 0;">CDMX 5519337007 / CDMX 5581973360</p>
+                    <p style="margin: 1px 0;">https://persianasdelta.com/</p>
+                    <p style="margin: 0; font-weight: bold;">ventas@persianasdelta.com</p>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 5px;">
+                <div style="width: 60%;">
+                    <div style="margin-bottom: 3px;"><strong style="color: #001f3f;">COTIZACIÓN:</strong> <span style="font-size: 1.1em;">${folio}</span></div>
+                    <div><strong style="color: #001f3f;">CLIENTE:</strong> <span style="font-size: 1.1em;">${nombreCliente}</span></div>
+                </div>
+                <div style="text-align: right;">
+                    <strong style="color: #001f3f;">FECHA DE EMISIÓN:</strong><br>
+                    ${fechaObj.toLocaleDateString('es-MX', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
+                    <br><strong>ATENDIÓ:</strong> ${quienCotiza}
+                </div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8;">
                 <thead>
-                    <tr style="text-align: center;"><th style="background:#6CDAE7; padding:6px;">PRODUCTO</th><th style="background:#6CDAE7; padding:6px;">TOTAL</th></tr>
+                    <tr style="text-align: center;">
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TIPO</th>
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TELA</th>
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">COLOR</th>
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">CANT.</th>
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">MEDIDAS</th>
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL M²</th>
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL</th>
+                    </tr>
                 </thead>
                 <tbody>${filasHTML}</tbody>
-             </table>
-             
-             <div style="margin-top: 15px; display: flex; justify-content: space-between;">
-                 <div style="width: 55%; font-size: 9px;"> </div>
-                 <div style="width: 40%;">
-                    <table style="width: 100%; font-size: 10px;">
-                        ${htmlTotales}
+            </table>
+
+            <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+                <div style="width: 55%; font-size: 9px; color: #555; text-align: justify;">
+                    <p style="margin-bottom: 3px; font-weight: bold; color: #000;">TÉRMINOS Y CONDICIONES:</p>
+                    <ul style="padding-left: 15px; margin: 0;">
+                        <li>Se requiere el 50% de anticipo para iniciar producción y el 50% restante contra entrega.</li>
+                        <li>Una vez realizado el anticipo <strong>no hay cambios ni devoluciones</strong>.</li>
+                        <li>Los precios están expresados en Moneda Nacional (MXN).</li>
+                        <li>Tiempo estimado de entrega: 7 a 10 días hábiles.</li>
+                        <li>Vigencia de cotización: 15 días naturales.</li>
+                    </ul>
+                </div>
+
+                <div style="width: 40%;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                        <tr><td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
+                            <td style="text-align: right; padding: 4px; color: #333;">$${sumaSubtotalPDF.toFixed(2)}</td>
+                        </tr>
+
+                        ${montoDescuentoPDF > 0 ? `
+                        <tr>
+                            <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${pctDescuento}%):</td>
+                            <td style="text-align: right; padding: 4px; color: #dc3545;">-$${montoDescuentoPDF.toFixed(2)}</td>
+                        </tr>` : ''}
+                        
+                        ${listaGastosHTML}
+
+                        <tr>
+                            <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
+                            <td style="text-align: right; padding: 4px; color: #333;">${textoIVA}</td>
+                        </tr>
+                        <tr style="border-top: 2px solid #17a2b8;"><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${granTotalPDF.toFixed(2)}</td></tr>
                     </table>
-                 </div>
-             </div>
+                </div>
+            </div>
         </div>
-   
+        
         <div>
                 <div style="margin-top: 15px; border-top: 2px solid #6CDAE7; border-bottom: 2px solid #6CDAE7; padding: 12px 0; font-size: 7px; color: #444; text-align: justify; page-break-inside: avoid;">
                      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
