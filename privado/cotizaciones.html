@@ -945,7 +945,7 @@ function calcularTotalesGlobales() {
     // Relación: (Base / 0.84) * 0.16
     let iva = 0;
     if (aplicarIva) {
-        iva = (baseConDescuento / 0.84) * 0.16;
+        iva = baseConDescuento * 0.16;
     }
 
     // 7. GRAN TOTAL FINAL
