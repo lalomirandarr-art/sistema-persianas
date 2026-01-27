@@ -790,7 +790,7 @@
         if (tieneIVA) {
             // Lógica "Activa": Subtotal es el 84% del total de productos
             subtotalVisual = totalProductos * 0.84;
-            ivaVisual = totalProductos * 0.16;
+            ivaVisual = c.iva
             
             // Ajustar descuento si existe
             if (c.descuentoGlobalPct > 0) {
