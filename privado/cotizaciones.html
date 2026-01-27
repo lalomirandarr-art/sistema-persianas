@@ -1292,6 +1292,7 @@ async function generarPDF(modo = 'descargar') {
         
         const paquete = {
             cliente: cliente,
+            pctUtilidad: globales.pctUtilidad,
             quienCotiza: quienCotiza,
             items: carritoItems,
             descuentoGlobalPct: globales.pctDescuento, 
@@ -1357,6 +1358,7 @@ async function generarPDF(modo = 'descargar') {
             cliente: cliente,
             quienCotiza: quienCotiza,
             items: carritoItems,
+            pctUtilidad: globales.pctUtilidad,
             descuentoGlobalPct: globales.pctDescuento, 
             descuentoGlobalMonto: globales.montoDescuento,
             gastosAdicionales: globales.listaGastos,

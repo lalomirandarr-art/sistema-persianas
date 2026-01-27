@@ -136,6 +136,7 @@ const cotizacionSchema = new mongoose.Schema({
     // Datos Generales de la Cotización
     cliente: String,
     quienCotiza: String,
+    pctUtilidad: Number,
     fecha: { type: Date, default: Date.now },
     estatus: { type: String, default: 'Emitida' },
       
