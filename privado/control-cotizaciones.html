@@ -780,39 +780,44 @@
         if(totalGastos > 0) listaGastos.push({ descripcion: "Gastos Extra", monto: totalGastos });
     }
 
-    // --- B. DETERMINAR EL FACTOR DE UTILIDAD ---
-    // Objetivo: Saber por cuánto multiplicar el 'item.total' (costo) para llegar al precio de venta.
+    // --- B. DETERMINAR FACTORES (CORREGIDO) ---
     let factorUtilidad = 1;
+    let factorVisualTabla = 1; // Por defecto 1 (Neutro)
 
     if (c.pctUtilidad !== undefined && c.pctUtilidad !== null) {
-        // OPCIÓN 1: Cotización NUEVA (Ya tiene el dato guardado)
-        // Usamos el porcentaje exacto que guardaste.
+        // CASO 1: Cotización NUEVA (Tenemos el % guardado)
+        // Aquí la lógica debe ser IDÉNTICA al cotizador fresco:
+        // Fórmula fresca: (Costo * Utilidad) * 0.84
         if (c.pctUtilidad < 100) {
             factorUtilidad = 1 / (1 - (c.pctUtilidad / 100));
         }
+        // Si tenemos el pct, necesitamos aplicar el 0.84 igual que en el cotizador fresco
+        factorVisualTabla = tieneIVA ? 0.84 : 1; 
+
     } else {
-        // OPCIÓN 2: Cotización VIEJA (No tiene el dato guardado)
-        // Hacemos ingeniería inversa simple para no romper el PDF antiguo.
-        // Factor = (TotalSinGastos - IVA) / SumaDeCostos
+        // CASO 2: Cotización VIEJA (Ingeniería Inversa)
+        // Aquí calculamos el factor para llegar DIRECTO del Costo al Subtotal.
+        // Por lo tanto, NO debemos multiplicar por 0.84 después, o lo bajaremos de nuevo.
+        
         let sumaCostos = c.items.reduce((sum, i) => sum + (i.total || 0), 0);
         let totalNetoVenta = granTotalBD - totalGastos - ivaBD;
         
-        // Si no tiene IVA, el total guardado ya es neto (84%), así que lo subimos a 100% para hallar el factor real
+        // Si no tiene IVA, el total guardado ya es neto.
+        // Nota: Si tus datos viejos sin IVA tienen otra lógica, esto se mantiene igual.
         if (!tieneIVA) totalNetoVenta = totalNetoVenta / 0.84; 
         
         if (sumaCostos > 0) factorUtilidad = totalNetoVenta / sumaCostos;
-    }
 
-    // --- C. FACTOR VISUAL PARA LA TABLA (TU REGLA) ---
-    // Si hay IVA, mostramos la base (0.84). Si no, mostramos completo (1).
-    const factorVisualTabla = tieneIVA ? 0.84 : 1;
+        // *** CORRECCIÓN CLAVE *** // En ingeniería inversa, el factor ya nos lleva al precio objetivo.
+        // Forzamos el factor visual a 1 para no alterar el resultado calculado.
+        factorVisualTabla = 1; 
+    }
 
 
     // --- D. CONSTRUIR FILAS ---
     let filasHTML = '';
     const cellStyle = "padding: 6px; border-right: 1px solid #6CDAE7; font-size: 9px;";
     
-    // Acumulador para el subtotal visual (para que cuadre con la suma de filas)
     let sumaSubtotalVisual = 0; 
 
     if (c.items && c.items.length > 0) {
@@ -822,16 +827,12 @@
                 m2 = (item.medidas.ancho * item.medidas.alto).toFixed(2);
             }
 
-            // 1. Costo Base (Desde BD)
-            // Nota: En cotizaciones SIN IVA antiguas, item.total podría venir castigado.
-            // Para las nuevas con tu lógica actual, item.total es el costo puro.
+            // Costo Base (Desde BD)
             let costoItem = item.total || 0;
             
-            // Corrección para visualización si la cotización se guardó "sin iva" 
-            // (Asumiendo que guardaste el costo castigado en item.total en versiones previas)
-            // Si usas el código nuevo corregido, item.total es costo puro, no necesitas ajuste.
-            // Dejaré esto simple: Costo * Utilidad * FactorVisual.
-            
+            // Calculamos el precio. 
+            // Si es Caso 1: Aplica Utilidad y luego castiga con 0.84 (Igual que fresco).
+            // Si es Caso 2: Aplica Factor Perfecto y multiplica por 1 (Mantiene el valor).
             let precioVentaRow = (costoItem * factorUtilidad) * factorVisualTabla;
 
             sumaSubtotalVisual += precioVentaRow;
@@ -864,23 +865,27 @@
 
     // --- E. PREPARAR TOTALES FINALES ---
     
-    // Descuento (Leemos directo de BD y ajustamos visualmente si es necesario)
     let descuentoVisual = 0;
     if (c.descuentoGlobalMonto > 0) {
-        // El monto guardado es el real descontado.
-        // Si hay IVA, ese monto es "con IVA", así que para mostrarlo en la zona de subtotales (que es base)
-        // deberíamos ajustarlo visualmente.
-        // Si el Subtotal es Base, el Descuento debe ser Base.
-        descuentoVisual = tieneIVA ? (c.descuentoGlobalMonto / 1.16) * 0.84 : c.descuentoGlobalMonto;
+        // Ajustamos el descuento visualmente si es necesario
+        // Si estamos en Caso 2 (factorVisualTabla = 1), el descuento ya es directo.
+        // Si estamos en Caso 1 (factorVisualTabla = 0.84), necesitamos ajustarlo.
         
-        // O más simple, calculamos porcentaje sobre el subtotal visual acumulado:
+        if (factorVisualTabla === 1) {
+             descuentoVisual = c.descuentoGlobalMonto;
+        } else {
+             // Si hay factor visual 0.84, el descuento también debe seguir esa lógica
+             descuentoVisual = (c.descuentoGlobalMonto / 1.16) * 0.84;
+        }
+
+        // O usas tu lógica de porcentaje que es más segura:
         if(c.descuentoGlobalPct) {
              descuentoVisual = sumaSubtotalVisual * (c.descuentoGlobalPct / 100);
         }
     }
 
 
-    // --- F. ESTRUCTURA PDF ---
+    // --- F. ESTRUCTURA PDF (SIN CAMBIOS) ---
     const element = document.createElement('div');
     element.style.width = '816px'; 
     element.style.minHeight = '1056px'; 
@@ -912,7 +917,7 @@
 
             <div style="display: flex; justify-content: space-between; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 5px;">
                 <div style="width: 60%;">
-                    <div style="margin-bottom: 3px;"><strong style="color: #001f3f;">COTIZACIÓN:</strong> <span style="font-size: 1.1em;">${c.folioInteligente}</span></div>
+                    <div style="margin-bottom: 3px;"><strong style="color: #001f3f;">COTIZACIÓN:</strong> <span style="font-size: 1.1em;">${c.folioInteligente || c.folio || 'S/N'}</span></div>
                     <div><strong style="color: #001f3f;">CLIENTE:</strong> <span style="font-size: 1.1em;">${c.cliente}</span></div>
                 </div>
                 <div style="text-align: right;">
@@ -1020,7 +1025,7 @@
 
     const opt = { 
         margin: 0, 
-        filename: `Cotizacion_${c.folioInteligente}.pdf`, 
+        filename: `Cotizacion_${c.folioInteligente || c.folio || '00'}.pdf`, 
         image: { type: 'jpeg', quality: 1 }, 
         html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 }, 
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
