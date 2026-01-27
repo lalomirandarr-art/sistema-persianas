@@ -1050,7 +1050,7 @@ async function generarPDF(modo = 'descargar') {
 
     // B) Factor IVA Checkbox
     const aplicaIva = document.getElementById('check-iva').checked;
-    const factorIva = aplicaIva ? 0.84 : 0.84; 
+    const factorIva = aplicaIva ? 1 : 0.84; 
 
     // --- 3. CONSTRUIR FILAS Y CALCULAR SUBTOTAL ---
     let filasHTML = '';
