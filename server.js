@@ -349,47 +349,51 @@ app.put('/clientes', async (req, res) => {
     }
 });
 
-// 4. ELIMINAR CLIENTE (DELETE)
+// ==========================================
+// 🛡️ ZONA DE SEGURIDAD (LLAVE MAESTRA)
+// ==========================================
+// Esta contraseña es SOLO para borrar. Tus empleados NO deben saberla.
+// Cámbiala por una difícil que solo tú conozcas.
+const PASSWORD_MAESTRA_BORRADO = "Delta2026"; 
+
+
+// Ruta para BORRAR COTIZACIONES (Protegida con Llave Maestra)
+app.delete('/cotizaciones', async (req, res) => {
+    const { id, password } = req.body;
+
+    try {
+        // 1. VERIFICACIÓN DE SEGURIDAD
+        // Ya no buscamos en la BD. Comparamos directamente con tu llave maestra.
+        if (password !== PASSWORD_MAESTRA_BORRADO) {
+            return res.json({ exito: false, mensaje: "⛔ Contraseña incorrecta. Acción reservada para Gerencia." });
+        }
+
+        // 2. Si la contraseña coincide, procedemos a borrar
+        await Cotizacion.findByIdAndDelete(id);
+        
+        console.log(`🗑️ Cotización eliminada (ID: ${id}) mediante autorización maestra.`);
+        res.json({ exito: true, mensaje: "Cotización eliminada correctamente." });
+
+    } catch (error) {
+        console.error("Error al borrar:", error);
+        res.status(500).json({ exito: false, mensaje: "Error al borrar en el servidor." });
+    }
+});
+
+// Opcional: También protege el borrado de CLIENTES con la misma lógica
 app.delete('/clientes', async (req, res) => {
     const { id, password } = req.body;
 
     try {
-        // VERIFICACIÓN DE CONTRASEÑA
-        // Opción A: Verificar contra el usuario Admin de la base de datos (Más seguro)
-        const esAdmin = await Usuario.findOne({ usuario: "admin", clave: password });
-        
-        // Opción B: Si prefieres verificar directo el "1234" sin buscar usuario, usa esta línea en vez de la anterior:
-        // const esAdmin = (password === "1234");
-
-        if (!esAdmin) {
-            return res.status(401).json({ exito: false, mensaje: "⛔ Contraseña incorrecta." });
+        if (password !== PASSWORD_MAESTRA_BORRADO) {
+            return res.status(401).json({ exito: false, mensaje: "⛔ Contraseña incorrecta. Solo Gerencia puede borrar clientes." });
         }
 
-        // Si la contraseña es correcta, borramos
         await Cliente.findByIdAndDelete(id);
-        console.log(`🗑️ Cliente eliminado ID: ${id}`);
-        
         res.json({ exito: true, mensaje: "Cliente eliminado correctamente." });
 
     } catch (error) {
-        console.error("Error al borrar cliente:", error);
-        res.status(500).json({ exito: false, mensaje: "Error al borrar en servidor." });
-    }
-});
-
-
-
-// Ruta para BORRAR
-app.delete('/cotizaciones', async (req, res) => {
-    const { id, password } = req.body;
-    try {
-        const esAdmin = await Usuario.findOne({ usuario: "admin", clave: password });
-        if (!esAdmin) return res.json({ exito: false, mensaje: "⛔ Contraseña incorrecta." });
-
-        await Cotizacion.findByIdAndDelete(id);
-        res.json({ exito: true, mensaje: "Cotización eliminada correctamente." });
-    } catch (error) {
-        res.status(500).json({ exito: false, mensaje: "Error al borrar." });
+        res.status(500).json({ exito: false, mensaje: "Error al borrar cliente." });
     }
 });
 // --- NUEVOS ESQUEMAS PARA MONGOOSE ---
