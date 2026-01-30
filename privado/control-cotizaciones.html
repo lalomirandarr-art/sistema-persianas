@@ -860,12 +860,13 @@ async function generarPDFDesdeHistorial(id) {
 const element = document.createElement('div');
 
 // Eliminamos el ancho fijo en px para que el margen de html2pdf trabaje mejor
-element.style.width = '100%'; 
+element.style.width = '750px%'; 
 element.style.background = 'white';
 element.style.fontFamily = 'Arial, sans-serif';
 element.style.color = '#333';
 element.style.fontSize = '10px';
 element.style.lineHeight = '1.3';
+element,style,padding= '20px'
 // Quitamos el padding manual que tenías antes: element.style.padding = '40px';
 
     element.innerHTML = `
@@ -1034,7 +1035,7 @@ element.style.lineHeight = '1.3';
     const opt = { 
     // Configuramos un margen real para el PDF (en pulgadas, ya que usas 'in')
     // [Arriba, Izquierda, Abajo, Derecha]
-    margin: [0.4, 0.4, 0.6, 0.4], 
+    margin: [0.4, 0.4, 0.6, 0.5], 
     
     filename: `Cotizacion_${c.folioInteligente || c.folio || '00'}.pdf`, 
     image: { type: 'jpeg', quality: 1 }, 
@@ -1046,6 +1047,7 @@ element.style.lineHeight = '1.3';
         scale: 3, // 4 es muy alto y puede crashear navegadores, 3 es excelente calidad
         useCORS: true, 
         letterRendering: true, 
+        width: 750,
         scrollY: 0 
     }, 
     jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
