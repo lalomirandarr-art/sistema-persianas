@@ -764,7 +764,7 @@
     const c = todasLasCotizaciones.find(item => item._id === id);
     if (!c) return alert("Error: No se encontraron datos.");
 
-    // --- A. RECUPERAR DATOS DIRECTOS DE MONGO DB ---
+    // --- A. RECUPERAR DATOS DIRECTOS DE MONGO DB (INTACTO) ---
     const granTotalBD = c.total || 0;
     const ivaBD = c.iva || 0;
     const tieneIVA = (ivaBD > 0);
@@ -780,41 +780,28 @@
         if(totalGastos > 0) listaGastos.push({ descripcion: "Gastos Extra", monto: totalGastos });
     }
 
-    // --- B. DETERMINAR FACTORES (CORREGIDO) ---
+    // --- B. DETERMINAR FACTORES (INTACTO - TU MATEMÁTICA SEGURA) ---
     let factorUtilidad = 1;
-    let factorVisualTabla = 1; // Por defecto 1 (Neutro)
+    let factorVisualTabla = 1; 
 
     if (c.pctUtilidad !== undefined && c.pctUtilidad !== null) {
-        // CASO 1: Cotización NUEVA (Tenemos el % guardado)
-        // Aquí la lógica debe ser IDÉNTICA al cotizador fresco:
-        // Fórmula fresca: (Costo * Utilidad) * 0.84
         if (c.pctUtilidad < 100) {
             factorUtilidad = 1 / (1 - (c.pctUtilidad / 100));
         }
-        // Si tenemos el pct, necesitamos aplicar el 0.84 igual que en el cotizador fresco
         factorVisualTabla = tieneIVA ? 0.84 : 1; 
 
     } else {
-        // CASO 2: Cotización VIEJA (Ingeniería Inversa)
-        // Aquí calculamos el factor para llegar DIRECTO del Costo al Subtotal.
-        // Por lo tanto, NO debemos multiplicar por 0.84 después, o lo bajaremos de nuevo.
-        
         let sumaCostos = c.items.reduce((sum, i) => sum + (i.total || 0), 0);
         let totalNetoVenta = granTotalBD - totalGastos - ivaBD;
         
-        // Si no tiene IVA, el total guardado ya es neto.
-        // Nota: Si tus datos viejos sin IVA tienen otra lógica, esto se mantiene igual.
         if (!tieneIVA) totalNetoVenta = totalNetoVenta / 0.84; 
         
         if (sumaCostos > 0) factorUtilidad = totalNetoVenta / sumaCostos;
-
-        // *** CORRECCIÓN CLAVE *** // En ingeniería inversa, el factor ya nos lleva al precio objetivo.
-        // Forzamos el factor visual a 1 para no alterar el resultado calculado.
         factorVisualTabla = 1; 
     }
 
 
-    // --- D. CONSTRUIR FILAS ---
+    // --- D. CONSTRUIR FILAS (INTACTO) ---
     let filasHTML = '';
     const cellStyle = "padding: 6px; border-right: 1px solid #6CDAE7; font-size: 9px;";
     
@@ -827,18 +814,17 @@
                 m2 = (item.medidas.ancho * item.medidas.alto).toFixed(2);
             }
 
-            // Costo Base (Desde BD)
+            // Costo Base
             let costoItem = item.total || 0;
             
-            // Calculamos el precio. 
-            // Si es Caso 1: Aplica Utilidad y luego castiga con 0.84 (Igual que fresco).
-            // Si es Caso 2: Aplica Factor Perfecto y multiplica por 1 (Mantiene el valor).
+            // Calculamos el precio (Matemática intacta)
             let precioVentaRow = (costoItem * factorUtilidad) * factorVisualTabla;
 
             sumaSubtotalVisual += precioVentaRow;
 
+            // --- PEQUEÑO AJUSTE VISUAL AQUÍ: Agregué 'page-break-inside: avoid' para que no corte filas ---
             filasHTML += `
-                <tr style="border-bottom: 1px solid #6CDAE7;">
+                <tr style="border-bottom: 1px solid #6CDAE7; page-break-inside: avoid;">
                     <td style="${cellStyle} word-wrap: break-word;"><b>${item.producto}</b></td>
                     <td style="${cellStyle}">${item.tela || '-'}</td>
                     <td style="${cellStyle}">${item.color || '-'}</td>
@@ -847,7 +833,7 @@
                     <td style="${cellStyle} text-align: center;">${m2} m²</td>
                     <td style="padding: 4px; text-align: right; font-size: 9px;">$${precioVentaRow.toFixed(2)}</td>
                 </tr>
-                <tr style="border-bottom: 2px solid #6CDAE7; color: #444; font-size: 8px; background-color: #f9f9f9;">
+                <tr style="border-bottom: 2px solid #6CDAE7; color: #444; font-size: 8px; background-color: #f9f9f9; page-break-inside: avoid;">
                     <td colspan="7" style="padding: 4px 8px;">
                         <div style="margin-bottom: 2px;">
                             <em>
@@ -863,45 +849,38 @@
         });
     }
 
-    // --- E. PREPARAR TOTALES FINALES ---
-    
+    // --- E. PREPARAR TOTALES FINALES (INTACTO) ---
     let descuentoVisual = 0;
     if (c.descuentoGlobalMonto > 0) {
-        // Ajustamos el descuento visualmente si es necesario
-        // Si estamos en Caso 2 (factorVisualTabla = 1), el descuento ya es directo.
-        // Si estamos en Caso 1 (factorVisualTabla = 0.84), necesitamos ajustarlo.
-        
         if (factorVisualTabla === 1) {
              descuentoVisual = c.descuentoGlobalMonto;
         } else {
-             // Si hay factor visual 0.84, el descuento también debe seguir esa lógica
              descuentoVisual = (c.descuentoGlobalMonto / 1.16) * 0.84;
         }
-
-        // O usas tu lógica de porcentaje que es más segura:
         if(c.descuentoGlobalPct) {
              descuentoVisual = sumaSubtotalVisual * (c.descuentoGlobalPct / 100);
         }
     }
 
 
-    // --- F. ESTRUCTURA PDF (SIN CAMBIOS) ---
+    // --- F. ESTRUCTURA PDF (AQUÍ ESTÁN LOS CAMBIOS PARA EL CENTRADO) ---
     const element = document.createElement('div');
-    element.style.width = '816px'; 
-    element.style.minHeight = '1056px'; 
+    
+    // 1. CAMBIO VISUAL: Ancho al 100% (para que lo defina el margen) y quitamos padding interno.
+    element.style.width = '100%'; 
+    // element.style.minHeight = '1056px'; // Quitamos altura fija para que fluya
     element.style.boxSizing = 'border-box';
-    element.style.padding = '40px';
+    element.style.padding = '0px'; // IMPORTANTE: Quitamos padding del HTML, usaremos margen del PDF
     element.style.background = 'white';
     element.style.fontFamily = 'Arial, sans-serif';
     element.style.color = '#333';
     element.style.fontSize = '10px';
     element.style.lineHeight = '1.3';
-    element.style.display = 'flex';
-    element.style.flexDirection = 'column';
-    element.style.justifyContent = 'space-between';
+    // Quitamos flex column que a veces da problemas con saltos de página automáticos
+    // element.style.display = 'flex'; 
 
     element.innerHTML = `
-        <div style="flex: 1;">
+        <div style="width: 100%;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
                 <div style="width: 45%;">
                     <img src="/IMG/logopd.png" alt="Persianas Delta" style="max-width: 200px;">
@@ -927,8 +906,8 @@
                 </div>
             </div>
 
-            <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8;">
-                <thead>
+            <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8; margin-bottom: 20px;">
+                <thead style="display: table-header-group;">
                     <tr style="text-align: center;">
                         <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TIPO</th>
                         <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TELA</th>
@@ -942,7 +921,7 @@
                 <tbody>${filasHTML}</tbody>
             </table>
 
-            <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; page-break-inside: avoid;">
                 <div style="width: 55%; font-size: 9px; color: #555; text-align: justify;">
                     <p style="margin-bottom: 3px; font-weight: bold; color: #000;">TÉRMINOS Y CONDICIONES:</p>
                     <ul style="padding-left: 15px; margin: 0;">
@@ -1023,10 +1002,18 @@
         </div>
     `;
 
+    // --- 2. CAMBIO VISUAL: OPCIONES DE MARGEN Y SALTOS ---
     const opt = { 
-        margin: 0, 
+        // AHORA EL MARGEN LO CONTROLA EL PDF (0.4 pulgadas en todos lados)
+        // Esto evita que se corte arriba en la segunda hoja.
+        margin: 0.4, 
+        
         filename: `Cotizacion_${c.folioInteligente || c.folio || '00'}.pdf`, 
         image: { type: 'jpeg', quality: 1 }, 
+        
+        // Esto evita que corte filas a la mitad
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+        
         html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 }, 
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
     };
@@ -1277,7 +1264,7 @@ async function generarPDFOrdenTrabajo(id) {
             const notaTexto = item.notas ? item.notas : '';
 
             filasHTML += `
-                <tr>
+                <tr style="border-bottom: 1px solid #6CDAE7; page-break-inside: avoid;">
                     <td style="${cellStyle} text-align: center; font-weight: bold; background: #f0f0f0; vertical-align: middle;">${index + 1}</td>
                     <td style="${cellStyle} text-align: center; font-size: 1.1em; vertical-align: middle;">${item.cantidad}</td>
                     <td style="${cellStyle}">
