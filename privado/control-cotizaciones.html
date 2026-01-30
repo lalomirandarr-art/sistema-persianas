@@ -1038,18 +1038,24 @@ async function generarPDFDesdeHistorial(id) {
 
 
     const opt = { 
-        // 3. QUITAMOS EL MARGEN DEL PDF
-        // Ya lo estamos manejando con el padding de 40px en el HTML.
-        margin: 0, 
-        
-        filename: `Cotizacion_${c.folioInteligente || c.folio || '00'}.pdf`, 
-        image: { type: 'jpeg', quality: 1 }, 
-        
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-        
-        html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 }, 
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
-    };
+    // Configuramos un margen real para el PDF (en pulgadas, ya que usas 'in')
+    // [Arriba, Izquierda, Abajo, Derecha]
+    margin: [0.4, 0.4, 0.6, 0.4], 
+    
+    filename: `Cotizacion_${c.folioInteligente || c.folio || '00'}.pdf`, 
+    image: { type: 'jpeg', quality: 1 }, 
+    
+    // El modo 'avoid-all' a veces es muy agresivo, 'css' y 'legacy' son mejores
+    pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', 'table', 'div'] },
+    
+    html2canvas: { 
+        scale: 3, // 4 es muy alto y puede crashear navegadores, 3 es excelente calidad
+        useCORS: true, 
+        letterRendering: true, 
+        scrollY: 0 
+    }, 
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
+};
 
     document.body.style.cursor = 'wait';
     try {
