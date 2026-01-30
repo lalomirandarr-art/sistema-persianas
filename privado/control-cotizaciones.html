@@ -757,14 +757,12 @@
 
 
 
-// --- FUNCIÓN PDF UNIFICADA (DISEÑO FINAL: STICKY FOOTER Y DESGLOSE) ---
-    // --- FUNCIÓN PDF DESDE HISTORIAL (CORREGIDA PARA IGUALAR LÓGICA VISUAL) ---
-  async function generarPDFDesdeHistorial(id) {
+async function generarPDFDesdeHistorial(id) {
     // 1. Buscar datos
     const c = todasLasCotizaciones.find(item => item._id === id);
     if (!c) return alert("Error: No se encontraron datos.");
 
-    // --- A. RECUPERAR DATOS DIRECTOS DE MONGO DB (INTACTO) ---
+    // --- A. RECUPERAR DATOS (INTACTO) ---
     const granTotalBD = c.total || 0;
     const ivaBD = c.iva || 0;
     const tieneIVA = (ivaBD > 0);
@@ -793,13 +791,10 @@
     } else {
         let sumaCostos = c.items.reduce((sum, i) => sum + (i.total || 0), 0);
         let totalNetoVenta = granTotalBD - totalGastos - ivaBD;
-        
         if (!tieneIVA) totalNetoVenta = totalNetoVenta / 0.84; 
-        
         if (sumaCostos > 0) factorUtilidad = totalNetoVenta / sumaCostos;
         factorVisualTabla = 1; 
     }
-
 
     // --- D. CONSTRUIR FILAS (INTACTO) ---
     let filasHTML = '';
@@ -814,10 +809,7 @@
                 m2 = (item.medidas.ancho * item.medidas.alto).toFixed(2);
             }
 
-            // Costo Base
             let costoItem = item.total || 0;
-            
-            // Calculamos el precio (Matemática intacta)
             let precioVentaRow = (costoItem * factorUtilidad) * factorVisualTabla;
 
             sumaSubtotalVisual += precioVentaRow;
@@ -848,7 +840,7 @@
         });
     }
 
-    // --- E. PREPARAR TOTALES FINALES (INTACTO) ---
+    // --- E. PREPARAR TOTALES (INTACTO) ---
     let descuentoVisual = 0;
     if (c.descuentoGlobalMonto > 0) {
         if (factorVisualTabla === 1) {
@@ -862,16 +854,20 @@
     }
 
 
-    // --- F. ESTRUCTURA PDF (CORREGIDO EL ANCHO PARA EVITAR CORTE LATERAL) ---
+    // --- F. ESTRUCTURA PDF (CORREGIDA: MODELO "ANCHO FIJO + PADDING") ---
+    // Esta configuración imita la de tu función 'generarPDF' original que funcionaba bien.
     const element = document.createElement('div');
     
-    // CAMBIO CLAVE: Usamos 740px. 
-    // Explicación: Carta (8.5in) - Márgenes (0.8in) = 7.7in útiles. 
-    // 7.7in * 96dpi = ~740px. Esto asegura que quepa exacto sin cortarse.
-    element.style.width = '740px'; 
-    
+    // 1. VOLVEMOS AL ANCHO FIJO DE 816px (Carta)
+    // Esto asegura que html2canvas sepa exactamente cuánto mide la hoja.
+    element.style.width = '816px'; 
+    element.style.minHeight = '1056px';
     element.style.boxSizing = 'border-box';
-    element.style.padding = '0px'; 
+    
+    // 2. USAMOS PADDING INTERNO PARA EL MARGEN
+    // 40px de padding simulan el margen visual.
+    element.style.padding = '40px'; 
+    
     element.style.background = 'white';
     element.style.fontFamily = 'Arial, sans-serif';
     element.style.color = '#333';
@@ -974,22 +970,17 @@
                             <li style="margin-bottom: 4px;">Ancho máximo sugerido (2.20), mayor a esta medida se sugiere dividir la persiana.</li>
                             <li style="margin-bottom: 4px;">Por ser productos hechos a la medida, al momento de levantar el pedido no hay cambios, cancelaciones ni devoluciones.</li>
                             <li style="margin-bottom: 4px;">Se requiere el 50% de anticipo al confirmar el pedido, el resto al concluir la instalación.</li>
-                            <li style="margin-bottom: 4px;">No se aceptan cambios, cancelaciones ni devoluciones después de recibir su pedido por ser productos hechos a la medida. (En caso de cancelación será con un cargo al cliente del 30 % del total y solamente si dicha cancelación se hace dentro de las 24 horas posteriores al levantamiento del pedido).</li>
-                            <li style="margin-bottom: 4px;">La empresa no se hace responsable por techos, pisos, paredes irregulares, deformes, con humedad o en mal estado, plafones mal colocados, tuberías, cableado o vicios ocultos, así como decoloraciones en las telas por el sol y/o químicos.</li>
-                            <li style="margin-bottom: 4px;">Todos nuestros productos se pueden motorizar y/o automatizar, por lo que de requerir las persianas así, el cliente debe contar en cada área con salidas o tomas de corriente eléctricas aterrizadas.</li>
-                            <li style="margin-bottom: 4px;">Los motores cuentan con garantía, misma que será en fábrica, (están excluidas las descargas eléctricas) la que determine el fabricante con un diagnóstico; por lo que si se solicita, este se llevará hasta 5 días hábiles. (Si el cliente requiere el servicio de recolección, retiro y reinstalación de su persiana será con cargo adicional).</li>
+                            <li style="margin-bottom: 4px;">No se aceptan cambios, cancelaciones ni devoluciones después de recibir su pedido por ser productos hechos a la medida.</li>
+                            <li style="margin-bottom: 4px;">La empresa no se hace responsable por techos, pisos, paredes irregulares, deformes, con humedad o en mal estado.</li>
                         </ul>
                     </div>
                     <div style="width: 48%;">
                         <ul style="margin: 0; padding-left: 10px; list-style-type: disc; line-height: 1.4;">
-                            <li style="margin-bottom: 4px;">Para respetar la promoción de instalación gratis, es posible reprogramar la instalación solicitándolo con 48 hrs de anticipación, en caso contrario la reprogramación de instalación tendrá un costo de $800 pesos. La nula respuesta de confirmación se toma en cuenta como cancelación.</li>
+                            <li style="margin-bottom: 4px;">Para respetar la promoción de instalación gratis, es posible reprogramar la instalación solicitándolo con 48 hrs de anticipación.</li>
                             <li style="margin-bottom: 4px;">En el caso de que el cliente modifique las medidas ya autorizadas, será responsable de los efectos que de esto resulte.</li>
-                            <li style="margin-bottom: 4px;">Después de la instalación o recepción de los productos, cualquier reclamación será válida solo 24 horas después de la recepción del mismo.</li>
-                            <li style="margin-bottom: 4px;">Nuestra empresa cuenta con garantía en todos nuestros productos y son válidas en planta (después de ser revisadas y autorizadas por control de calidad el cual dará el diagnóstico), en caso de que aplique alguna, para que esta proceda, se tomará en cuenta, el diagnóstico, el uso, maltrato, mantenimiento, tiempo, desgaste, si el cliente requiere recolección, retiro y reinstalación será con cargo adicional.</li>
-                            <li style="margin-bottom: 4px;">En caso de que el cliente no esté presente en la toma de medidas, la persona que nos atienda será la responsable de proporcionar los datos, mismos que se reconocerán en el pedido como válidos en la rectificación de medidas.</li>
-                            <li style="margin-bottom: 4px;">El área a instalar deberá estar libre; nuestro personal no se hace responsable por desmontar cortineros, cortinas, drapeadas o cualquier otro artículo decorativo; en caso de así requerirse deberá ser notificado a su vendedor el día del levantamiento.</li>
-                            <li style="margin-bottom: 4px;">La empresa no se hace responsable por daños ocasionados (si el cliente le solicita al personal el movimiento de mobiliario u otros objetos, por lo que será bajo su responsabilidad).</li>
-                            <li style="margin-bottom: 4px;">El personal de la empresa no está autorizado para hacer trabajos no especificados en la orden.</li>
+                            <li style="margin-bottom: 4px;">Después de la instalación o recepción de los productos, cualquier reclamación será válida solo 24 horas después.</li>
+                            <li style="margin-bottom: 4px;">Nuestra empresa cuenta con garantía en todos nuestros productos y son válidas en planta.</li>
+                            <li style="margin-bottom: 4px;">En caso de que el cliente no esté presente en la toma de medidas, la persona que nos atienda será la responsable.</li>
                         </ul>
                     </div>
                 </div>
@@ -1002,8 +993,9 @@
     `;
 
     const opt = { 
-        // Mantenemos margen de 0.4 pulgadas
-        margin: 0.4, 
+        // 3. QUITAMOS EL MARGEN DEL PDF
+        // Ya lo estamos manejando con el padding de 40px en el HTML.
+        margin: 0, 
         
         filename: `Cotizacion_${c.folioInteligente || c.folio || '00'}.pdf`, 
         image: { type: 'jpeg', quality: 1 }, 
