@@ -856,23 +856,17 @@ async function generarPDFDesdeHistorial(id) {
 
     // --- F. ESTRUCTURA PDF (CORREGIDA: MODELO "ANCHO FIJO + PADDING") ---
     // Esta configuración imita la de tu función 'generarPDF' original que funcionaba bien.
-    const element = document.createElement('div');
-    
-    // 1. VOLVEMOS AL ANCHO FIJO DE 816px (Carta)
-    // Esto asegura que html2canvas sepa exactamente cuánto mide la hoja.
-    element.style.width = '816px'; 
-    element.style.minHeight = '1056px';
-    element.style.boxSizing = 'border-box';
-    
-    // 2. USAMOS PADDING INTERNO PARA EL MARGEN
-    // 40px de padding simulan el margen visual.
-    element.style.padding = '40px'; 
-    
-    element.style.background = 'white';
-    element.style.fontFamily = 'Arial, sans-serif';
-    element.style.color = '#333';
-    element.style.fontSize = '10px';
-    element.style.lineHeight = '1.3';
+    // --- F. ESTRUCTURA PDF (AJUSTADA) ---
+const element = document.createElement('div');
+
+// Eliminamos el ancho fijo en px para que el margen de html2pdf trabaje mejor
+element.style.width = '100%'; 
+element.style.background = 'white';
+element.style.fontFamily = 'Arial, sans-serif';
+element.style.color = '#333';
+element.style.fontSize = '10px';
+element.style.lineHeight = '1.3';
+// Quitamos el padding manual que tenías antes: element.style.padding = '40px';
 
     element.innerHTML = `
         <div style="width: 100%;">
@@ -901,7 +895,7 @@ async function generarPDFDesdeHistorial(id) {
                 </div>
             </div>
 
-            <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8; margin-bottom: 20px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8; margin-bottom: 20px; page-break-inside: auto;">
                 <thead style="display: table-header-group;">
                     <tr style="text-align: center;">
                         <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TIPO</th>
