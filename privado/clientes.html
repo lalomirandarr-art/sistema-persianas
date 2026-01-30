@@ -421,7 +421,7 @@
 
         // --- 5. ELIMINAR CLIENTE (Con Contraseña) ---
         async function eliminarCliente(id) {
-            const password = prompt("⚠️ ESTA ACCIÓN NO SE PUEDE DESHACER.\n\nIntroduce la contraseña (1234) para borrar:");
+            const password = prompt("⚠️ ESTA ACCIÓN NO SE PUEDE DESHACER:");
             if (!password) return; // Si cancela
 
             try {
