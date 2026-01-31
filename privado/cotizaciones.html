@@ -1084,12 +1084,12 @@ async function generarPDF(modo = 'descargar') {
                     <div style="margin-bottom: 2px;">
                         <em>
                             ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
-                            ${item.motor !== 'Manual' ? ` | ⚙️ Motor: ${item.motor}` : ''}
-                            ${item.control ? ` + 🎮 ${item.control}` : ''}
+                            ${item.motor !== 'Manual' ? ` |  Motor: ${item.motor}` : ''}
+                            ${item.control ? ` +  ${item.control}` : ''}
                         </em>
                     </div>
                     ${item.componente ? `<div style="color:#e65100; font-style:italic;">🔌 Componentes Extra: ${item.componente}</div>` : ""}
-                    ${item.notas ? `<div style="color:#d63384; font-style:italic; margin-top:2px;">📝 Nota: ${item.notas}</div>` : ""}
+                    ${item.notas ? `<div style="color:#171516; font-style:italic; margin-top:2px;"> Nota: ${item.notas}</div>` : ""}
                 </td>
             </tr>`;
     });

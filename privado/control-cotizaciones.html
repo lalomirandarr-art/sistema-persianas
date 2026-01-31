@@ -901,9 +901,9 @@ async function generarPDFDesdeHistorial(id) {
 
                                 ▸ Accesorios: ${item.accesorios ? item.accesorios.color : '-'} (${item.accesorios ? item.accesorios.mando : '-'})
 
-                                ${item.motor && item.motor !== 'Manual' ? ` | ⚙️ Motor: ${item.motor}` : ''}
+                                ${item.motor && item.motor !== 'Manual' ? ` |  Motor: ${item.motor}` : ''}
 
-                                ${item.control ? ` + 🎮 ${item.control}` : ''}
+                                ${item.control ? ` +  ${item.control}` : ''}
 
                             </em>
 
@@ -911,7 +911,7 @@ async function generarPDFDesdeHistorial(id) {
 
                         ${item.componente ? `<div style="color:#e65100; font-style:italic;">🔌 Extras: ${item.componente}</div>` : ""}
 
-                        ${item.notas ? `<div style="color:#d63384; font-style:italic; margin-top:2px;">📝 Nota: ${item.notas}</div>` : ""}
+                        ${item.notas ? `<div style="color:#171516; font-style:italic; margin-top:2px;"> Nota: ${item.notas}</div>` : ""}
 
                     </td>
 
