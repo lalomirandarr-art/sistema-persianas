@@ -1059,7 +1059,7 @@ async function generarPDF(modo = 'descargar') {
     let sumaSubtotalPDF = 0; 
 
     carritoItems.forEach(item => {
-        const metrosCuadrados = (item.medidas.ancho * item.medidas.alto).toFixed(2);
+        const metrosCuadrados = item.medidas.areaCobrada.toFixed(2);
         
         // Cálculo matemático (INTACTO)
         const totalVentaRenglon = (item.total * factorUtilidad) * factorIva;
