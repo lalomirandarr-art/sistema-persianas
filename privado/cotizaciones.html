@@ -1054,7 +1054,7 @@ async function generarPDF(modo = 'descargar') {
 
     // --- 3. CONSTRUIR FILAS Y CALCULAR SUBTOTAL ---
     let filasHTML = '';
-    const cellStyle = "padding: 6px; border-right: 1px solid #6CDAE7; font-size: 9px;";
+    const cellStyle = "padding: 6px; border-right: 1px solid #6CDAE7; font-size: 9px; page-break-inside: avoid;";
     
     let sumaSubtotalPDF = 0; 
 
@@ -1068,7 +1068,7 @@ async function generarPDF(modo = 'descargar') {
 
         // --- CAMBIO VISUAL: Agregado 'page-break-inside: avoid' a los TR ---
         filasHTML += `
-            <tr style="border-bottom: 1px solid #6CDAE7; page-break-inside: avoid;">
+            <tr class="fila-indivisible" style="border-bottom: 1px solid #6CDAE7; page-break-inside: avoid;">
                 <td style="${cellStyle} word-wrap: break-word;">
                     <b>${item.producto}</b>
                 </td>
@@ -1079,7 +1079,7 @@ async function generarPDF(modo = 'descargar') {
                 <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
                 <td style="padding: 4px; text-align: right; font-size: 9px;">$${totalVentaRenglon.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             </tr>
-            <tr style="border-bottom: 2px solid #6CDAE7; color: #444; font-size: 8px; background-color: #f9f9f9; page-break-inside: avoid;">
+            <tr class="fila-indivisible" style="border-bottom: 1px solid #6CDAE7; page-break-inside: avoid;">
                 <td colspan="7" style="padding: 4px 8px;">
                     <div style="margin-bottom: 2px;">
                         <em>
@@ -1270,7 +1270,9 @@ async function generarPDF(modo = 'descargar') {
         image: { type: 'jpeg', quality: 1 }, 
         
         // --- CAMBIO VISUAL: Configuración de salto de página ---
-        pagebreak: { mode: ['css', 'legacy'] },
+        pagebreak: { mode: ['css', 'legacy'],
+                    avoid: 'fila-indivisible'
+         },
         
         html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0,width: 700},
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
