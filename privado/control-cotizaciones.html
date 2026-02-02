@@ -1600,7 +1600,7 @@ async function generarPDFOrdenTrabajo(id) {
                         <span style="color: #444;">Color: ${item.color || '-'}</span>
                     </td>
                     <td style="${cellStyle} text-align: center; font-weight: bold; font-size: 1.1em; vertical-align: middle;">
-                        ${item.medidas ? item.medidas.ancho + ' x ' + item.medidas.alto : '-'}
+                        ${item.medidas ? parseFloat(item.medidas.ancho).toFixed(2) + 'm x ' + parseFloat(item.medidas.alto).toFixed(2) + 'm' : '-'}
                     </td>
                     <td style="${cellStyle}">
                         ${especificacionesHTML}

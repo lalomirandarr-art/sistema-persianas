@@ -1075,7 +1075,7 @@ async function generarPDF(modo = 'descargar') {
                 <td style="${cellStyle}">${item.tela}</td>
                 <td style="${cellStyle}">${item.color}</td>
                 <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
-                <td style="${cellStyle}">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
+                <td style="${cellStyle}">${parseFloat(item.medidas.ancho).toFixed(2)}m x ${parseFloat(item.medidas.alto).toFixed(2)}m</td>
                 <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
                 <td style="padding: 4px; text-align: right; font-size: 9px;">$${totalVentaRenglon.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             </tr>
