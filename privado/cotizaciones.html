@@ -1271,7 +1271,7 @@ async function generarPDF(modo = 'descargar') {
         
         // --- CAMBIO VISUAL: Configuración de salto de página ---
         pagebreak: { mode: ['css', 'legacy'],
-                    avoid: 'fila-indivisible'
+                    avoid: '.fila-indivisible'
          },
         
         html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0,width: 700},
