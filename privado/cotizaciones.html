@@ -1136,10 +1136,10 @@ async function generarPDF(modo = 'descargar') {
     const element = document.createElement('div');
     
     // CONFIGURACIÓN VISUAL ROBUSTA (Igual que en Historial)
-    element.style.width = '750'; 
+    element.style.width = '750px'
     element.style.minHeight = 'auto'; 
     element.style.boxSizing = 'border-box';
-    element.style.padding = '40px'; // Padding hace el margen visual
+    element.style.padding = '0px'; // Padding hace el margen visual
     element.style.background = 'white';
     element.style.fontFamily = 'Arial, sans-serif';
     element.style.color = '#333';
@@ -1265,14 +1265,14 @@ async function generarPDF(modo = 'descargar') {
     `;
 
     const opt = { 
-        margin: 0, 
+        margin: [0.4,0.4,0.6,0.4],
         filename: `Cotizacion_${folio}.pdf`, 
         image: { type: 'jpeg', quality: 1 }, 
         
         // --- CAMBIO VISUAL: Configuración de salto de página ---
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
         
-        html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 }, 
+        html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0,width: 750},
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
     };
 
