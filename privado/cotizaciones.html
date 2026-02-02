@@ -1077,7 +1077,7 @@ async function generarPDF(modo = 'descargar') {
                 <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
                 <td style="${cellStyle}">${item.medidas.ancho}m x ${item.medidas.alto}m</td>
                 <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
-                <td style="padding: 4px; text-align: right; font-size: 9px;">$${totalVentaRenglon.toFixed(2)}</td>
+                <td style="padding: 4px; text-align: right; font-size: 9px;">$${totalVentaRenglon.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             </tr>
             <tr style="border-bottom: 2px solid #6CDAE7; color: #444; font-size: 8px; background-color: #f9f9f9; page-break-inside: avoid;">
                 <td colspan="7" style="padding: 4px 8px;">
@@ -1113,7 +1113,7 @@ async function generarPDF(modo = 'descargar') {
                 listaGastosHTML += `
                 <tr>
                     <td style="text-align: right; padding: 4px; font-weight: bold; color: #6610f2;">+ ${d}:</td>
-                    <td style="text-align: right; padding: 4px; color: #6610f2;">$${m.toFixed(2)}</td>
+                    <td style="text-align: right; padding: 4px; color: #6610f2;">$${m.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>`;
             }
         }
@@ -1125,7 +1125,7 @@ async function generarPDF(modo = 'descargar') {
     if (aplicaIva) {
         const subtotalConDescuento = sumaSubtotalPDF-montoDescuentoPDF;
         ivaInformativoPDF = subtotalConDescuento*0.16;
-        textoIVA = `$${ivaInformativoPDF.toFixed(2)}`;
+        textoIVA = `$${ivaInformativoPDF.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
 
     // D) GRAN TOTAL

@@ -887,8 +887,7 @@ async function generarPDFDesdeHistorial(id) {
 
                     <td style="${cellStyle} text-align: center;">${m2} m²</td>
 
-                    <td style="padding: 4px; text-align: right; font-size: 9px;">$${precioVentaRow.toFixed(2)}</td>
-
+                    <td style="padding: 4px; text-align: right; font-size: 9px;">$${precioVentaRow.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>
 
                 <tr style="border-bottom: 2px solid #6CDAE7; color: #444; font-size: 8px; background-color: #f9f9f9; page-break-inside: avoid;">
@@ -1115,7 +1114,7 @@ async function generarPDFDesdeHistorial(id) {
 
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
 
-                            <td style="text-align: right; padding: 4px; color: #333;">$${sumaSubtotalVisual.toFixed(2)}</td>
+                            <td style="text-align: right; padding: 4px; color: #333;">$${sumaSubtotalVisual.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
 
                         </tr>
 
@@ -1125,7 +1124,7 @@ async function generarPDFDesdeHistorial(id) {
 
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${c.descuentoGlobalPct || 0}%):</td>
 
-                            <td style="text-align: right; padding: 4px; color: #dc3545;">-$${descuentoVisual.toFixed(2)}</td>
+                            <td style="text-align: right; padding: 4px; color: #dc3545;">-$${descuentoVisual.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
 
                         </tr>` : ''}
 
@@ -1139,7 +1138,7 @@ async function generarPDFDesdeHistorial(id) {
 
                                 <td style="text-align: right; padding: 4px; font-weight: bold; color: #6610f2;">+ ${g.descripcion || 'Gasto Extra'}:</td>
 
-                                <td style="text-align: right; padding: 4px; color: #6610f2;">$${(g.monto || 0).toFixed(2)}</td>
+                                <td style="text-align: right; padding: 4px; color: #6610f2;">$${(g.monto || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
 
                             </tr>`).join('')
 
@@ -1159,7 +1158,7 @@ async function generarPDFDesdeHistorial(id) {
 
                             <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td>
 
-                            <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${granTotalBD.toFixed(2)}</td>
+                            <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${granTotalBD.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
 
                         </tr>
 
