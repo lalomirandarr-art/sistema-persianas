@@ -854,11 +854,14 @@ async function generarPDFDesdeHistorial(id) {
         c.items.forEach(item => {
 
             let m2 = "0.00";
+            
 
             if (item.medidas && item.medidas.ancho && item.medidas.alto) {
 
-                m2 = (item.medidas.ancho * item.medidas.alto).toFixed(2);
+                // Lógica Senior: Prioridad a lo guardado, fallback al cálculo matemático
+                 const areaReal = item.medidas.areaCobrada || (item.medidas.ancho * item.medidas.alto);
 
+                m2 = areaReal.toFixed(2);
             }
 
 
