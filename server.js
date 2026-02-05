@@ -3,6 +3,16 @@ require('dotenv').config();
 
 
 // server.js - Versión Multi-Producto (Carrito)
+let sharedBrowser = null;
+
+async function getBrowser() {
+  if (sharedBrowser) return sharedBrowser;
+  sharedBrowser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+  });
+  return sharedBrowser;
+}
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -649,7 +659,7 @@ function subirPdfAGridFS(buffer, filename, metadata = {}) {
   });
 }
 app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
-  let browser;
+  let page;
   try {
     const { html, folio, cotizacionId } = req.body;
 
@@ -659,47 +669,37 @@ app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
     const baseUrl = `${req.protocol}://${req.get('host')}/`;
 
     const fullHtml = `
-  <!doctype html>
-  <html>
-    <head>
-      <meta charset="utf-8" />
-      <base href="${baseUrl}">
-      <style>
-        thead { display: table-header-group; }
-        .fila-indivisible { break-inside: avoid; page-break-inside: avoid; }
-        body { margin: 0; }
-      </style>
-    </head>
-    <body>${html}</body>
-  </html>
-`;
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <base href="${baseUrl}">
+    <style>
+      thead { display: table-header-group; }
+      .fila-indivisible { break-inside: avoid; page-break-inside: avoid; }
+      body { margin: 0; }
+    </style>
+  </head>
+  <body>${html}</body>
+</html>`;
 
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage"]
-    });
+    const browser = await getBrowser();
+    page = await browser.newPage();
 
-    const page = await browser.newPage();
     page.setDefaultTimeout(30000);
-page.setDefaultNavigationTimeout(30000);
-await page.setContent(fullHtml, { waitUntil: "load", timeout: 30000 });
+    page.setDefaultNavigationTimeout(30000);
+    await page.setContent(fullHtml, { waitUntil: "load", timeout: 30000 });
     await page.emulateMediaType("print");
 
-    // ✅ Generamos buffer PDF (motor real de impresión)
     const pdfBuffer = await page.pdf({
       format: "Letter",
       printBackground: true,
       margin: { top: "0.4in", right: "0.4in", bottom: "0.6in", left: "0.5in" }
     });
 
-    // ✅ Guardar en GridFS
     const filename = `Cotizacion_${folio || cotizacionId}.pdf`;
-    const fileId = await subirPdfAGridFS(pdfBuffer, filename, {
-      cotizacionId,
-      folio
-    });
+    const fileId = await subirPdfAGridFS(pdfBuffer, filename, { cotizacionId, folio });
 
-    // ✅ Guardar referencia en tu documento de cotización
     await Cotizacion.findByIdAndUpdate(cotizacionId, {
       $set: {
         "pdf.fileId": fileId,
@@ -708,7 +708,6 @@ await page.setContent(fullHtml, { waitUntil: "load", timeout: 30000 });
       }
     });
 
-    // ✅ Enviar PDF al navegador
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.send(pdfBuffer);
@@ -717,7 +716,7 @@ await page.setContent(fullHtml, { waitUntil: "load", timeout: 30000 });
     console.error("❌ PDF ERROR:", err);
     res.status(500).json({ exito:false, mensaje: err.message || "Error generando PDF" });
   } finally {
-    if (browser) await browser.close().catch(()=>{});
+    if (page) await page.close().catch(()=>{});
   }
 });
 
