@@ -680,7 +680,7 @@ app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
     });
 
     const page = await browser.newPage();
-    await page.setContent(fullHtml, { waitUntil: "networkidle0" });
+    await page.setContent(fullHtml, { waitUntil: "load", timeout: 30000 });
     await page.emulateMediaType("print");
 
     // ✅ Generamos buffer PDF (motor real de impresión)

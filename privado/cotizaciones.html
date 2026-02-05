@@ -1293,60 +1293,55 @@ async function generarPDF(modo = 'descargar', cotizacionId) {
 
    document.body.style.cursor = 'wait';
 
-try {
-  // ✅ Mandamos el HTML exacto (el mismo que ibas a imprimir)
-  const payload = {
-    folio,
-    html: element.innerHTML
-  };
+// ✅ PON ESTO AL FINAL de generarPDF (sustituye tu bloque try/catch actual)
 if (!cotizacionId) {
   alert("No se recibió cotizacionId. Guarda primero y luego genera PDF.");
   return;
 }
+
+document.body.style.cursor = 'wait';
+try {
   const resp = await fetch('/pdf/cotizacion', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  credentials: 'same-origin',
-  body: JSON.stringify({
-    folio,
-    html: element.innerHTML,
-    cotizacionId  // ✅ AQUÍ VA
-  })
-});
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ folio, html: element.innerHTML, cotizacionId })
+  });
 
-// 👇 Esto te va a decir EL motivo real (404/500/401 + texto)
-if (!resp.ok) {
-  const texto = await resp.text().catch(() => '');
-  throw new Error(`Servidor respondió ${resp.status} ${resp.statusText}: ${texto.slice(0, 300)}`);
-}
+  const textoError = !resp.ok ? await resp.text().catch(() => '') : '';
+  if (!resp.ok) {
+    throw new Error(`Servidor respondió ${resp.status} ${resp.statusText}: ${textoError.slice(0, 400)}`);
+  }
 
-// Validación extra: asegurar que sí sea PDF (por si te redirige a index.html)
-const ct = resp.headers.get('content-type') || '';
-if (!ct.includes('application/pdf')) {
-  const texto = await resp.text().catch(() => '');
-  throw new Error(`Respuesta no es PDF. Content-Type: ${ct}. Body: ${texto.slice(0, 300)}`);
-}
+  const ct = resp.headers.get('content-type') || '';
+  if (!ct.includes('application/pdf')) {
+    const t = await resp.text().catch(() => '');
+    throw new Error(`Respuesta no es PDF. Content-Type=${ct}. Body: ${t.slice(0, 400)}`);
+  }
 
-  if (!resp.ok) throw new Error('No se pudo generar el PDF');
-
-  // ✅ Descargar como archivo
   const blob = await resp.blob();
   const url = URL.createObjectURL(blob);
 
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Cotizacion_${folio}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  // Si quieres abrirlo en pestaña cuando modo === 'ver'
+  if (modo === 'ver') {
+    window.open(url, '_blank');
+  } else {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Cotizacion_${folio}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
   URL.revokeObjectURL(url);
 
 } catch (error) {
   console.error("Error generando PDF", error);
-  alert("Hubo un problema generando el PDF.");
+  alert("Hubo un problema generando el PDF.\n" + (error.message || error));
+} finally {
+  document.body.style.cursor = 'default';
 }
-
-document.body.style.cursor = 'default';
 }
 
 
