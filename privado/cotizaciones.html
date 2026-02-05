@@ -1059,6 +1059,7 @@ async function generarPDF(modo = 'descargar') {
     let sumaSubtotalPDF = 0; 
 
    
+
 carritoItems.forEach(item => {
   const metrosCuadrados = item.medidas.areaCobrada.toFixed(2);
 
@@ -1066,39 +1067,47 @@ carritoItems.forEach(item => {
   sumaSubtotalPDF += totalVentaRenglon;
 
   filasHTML += `
-    <tbody class="fila-indivisible">
-      <tr style="border-bottom: 1px solid #6CDAE7;">
-        <td style="${cellStyle} word-wrap: break-word;">
-          <b>${item.producto}</b>
-        </td>
-        <td style="${cellStyle}">${item.tela}</td>
-        <td style="${cellStyle}">${item.color}</td>
-        <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
-        <td style="${cellStyle}">
-          ${parseFloat(item.medidas.ancho).toFixed(2)}m x ${parseFloat(item.medidas.alto).toFixed(2)}m
-        </td>
-        <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
-        <td style="padding: 4px; text-align: right; font-size: 9px;">
-          $${totalVentaRenglon.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </td>
-      </tr>
+    <tr>
+      <td colspan="7" style="padding: 0; border: 0;">
+        <div class="fila-indivisible" style="margin:0; padding:0;">
+          <table style="width:100%; border-collapse: collapse; table-layout: fixed;">
+            <tr style="border-bottom: 1px solid #6CDAE7;">
+              <td style="${cellStyle} word-wrap: break-word;">
+                <b>${item.producto}</b>
+              </td>
+              <td style="${cellStyle}">${item.tela}</td>
+              <td style="${cellStyle}">${item.color}</td>
+              <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
+              <td style="${cellStyle}">
+                ${parseFloat(item.medidas.ancho).toFixed(2)}m x ${parseFloat(item.medidas.alto).toFixed(2)}m
+              </td>
+              <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
+              <td style="padding: 4px; text-align: right; font-size: 9px;">
+                $${totalVentaRenglon.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </td>
+            </tr>
 
-      <tr style="border-bottom: 1px solid #6CDAE7;">
-        <td colspan="7" style="padding: 4px 8px;">
-          <div style="margin-bottom: 2px;">
-            <em>
-              ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
-              ${item.motor !== 'Manual' ? ` |  Motor: ${item.motor}` : ''}
-              ${item.control ? ` +  ${item.control}` : ''}
-            </em>
-          </div>
-          ${item.componente ? `<div style="color:#e65100; font-style:italic;">🔌 Componentes Extra: ${item.componente}</div>` : ""}
-          ${item.notas ? `<div style="color:#171516; font-style:italic; margin-top:2px;"> Nota: ${item.notas}</div>` : ""}
-        </td>
-      </tr>
-    </tbody>
+            <tr style="border-bottom: 1px solid #6CDAE7;">
+              <td colspan="7" style="padding: 4px 8px;">
+                <div style="margin-bottom: 2px;">
+                  <em>
+                    ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
+                    ${item.motor !== 'Manual' ? ` |  Motor: ${item.motor}` : ''}
+                    ${item.control ? ` +  ${item.control}` : ''}
+                  </em>
+                </div>
+                ${item.componente ? `<div style="color:#e65100; font-style:italic;">🔌 Componentes Extra: ${item.componente}</div>` : ""}
+                ${item.notas ? `<div style="color:#171516; font-style:italic; margin-top:2px;"> Nota: ${item.notas}</div>` : ""}
+              </td>
+            </tr>
+          </table>
+        </div>
+      </td>
+    </tr>
   `;
 });
+``
+
 
 
     // --- 4. CÁLCULOS FINALES DEL PIE DE PÁGINA (INTACTO) ---
@@ -1155,17 +1164,13 @@ carritoItems.forEach(item => {
     
     element.innerHTML = `
     
- <style>
-    .fila-indivisible {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-    /* Extra por compatibilidad */
-    tr, td, th {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-  </style>
+<style>
+  .fila-indivisible{
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+</style>
+
 
         <div style="width: 100%;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
@@ -1193,20 +1198,24 @@ carritoItems.forEach(item => {
                 </div>
             </div>
 
-            <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8; margin-bottom: 20px;">
-                <thead style="display: table-header-group;">
-                    
-                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TIPO</th>
-                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TELA</th>
-                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">COLOR</th>
-                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">CANT.</th>
-                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">MEDIDAS</th>
-                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL M²</th>
-                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL</th>
-                    
-                </thead>
-                ${filasHTML}
-            </table>
+            <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8; margin-bottom: 20px; table-layout: fixed;">
+  <thead style="display: table-header-group;">
+    <tr style="text-align: center;">
+      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TIPO</th>
+      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TELA</th>
+      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">COLOR</th>
+      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">CANT.</th>
+      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">MEDIDAS</th>
+      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL M²</th>
+      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    ${filasHTML}
+  </tbody>
+</table>
+``
 
             <div style="display: flex; justify-content: space-between; page-break-inside: avoid;">
                 <div style="width: 55%; font-size: 9px; color: #555; text-align: justify;">
@@ -1291,7 +1300,7 @@ carritoItems.forEach(item => {
         
         // --- CAMBIO VISUAL: Configuración de salto de página ---
         pagebreak: { mode: ['avoid-all','css', 'legacy'],
-                    avoid: '.fila-indivisible'
+                    avoid: ['.fila-indivisible']
          },
         
         html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0,width: 700},
