@@ -659,20 +659,20 @@ app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
     const baseUrl = `${req.protocol}://${req.get('host')}/`;
 
     const fullHtml = `
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <base href="${baseUrl}">
-          <style>
-            thead { display: table-header-group; }
-            .fila-indivisible { break-inside: avoid; page-break-inside: avoid; }
-            body { margin: 0; }
-          </style>
-        </head>
-        <body>${html}</body>
-      </html>
-    `;
+  <!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <base href="${baseUrl}">
+      <style>
+        thead { display: table-header-group; }
+        .fila-indivisible { break-inside: avoid; page-break-inside: avoid; }
+        body { margin: 0; }
+      </style>
+    </head>
+    <body>${html}</body>
+  </html>
+`;
 
     browser = await puppeteer.launch({
       headless: true,
@@ -680,7 +680,9 @@ app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
     });
 
     const page = await browser.newPage();
-    await page.setContent(fullHtml, { waitUntil: "load", timeout: 30000 });
+    page.setDefaultTimeout(30000);
+page.setDefaultNavigationTimeout(30000);
+await page.setContent(fullHtml, { waitUntil: "load", timeout: 30000 });
     await page.emulateMediaType("print");
 
     // ✅ Generamos buffer PDF (motor real de impresión)
