@@ -1058,41 +1058,48 @@ async function generarPDF(modo = 'descargar') {
     
     let sumaSubtotalPDF = 0; 
 
-    carritoItems.forEach(item => {
-        const metrosCuadrados = item.medidas.areaCobrada.toFixed(2);
-        
-        // Cálculo matemático (INTACTO)
-        const totalVentaRenglon = (item.total * factorUtilidad) * factorIva;
+   
+carritoItems.forEach(item => {
+  const metrosCuadrados = item.medidas.areaCobrada.toFixed(2);
 
-        sumaSubtotalPDF += totalVentaRenglon;
+  const totalVentaRenglon = (item.total * factorUtilidad) * factorIva;
+  sumaSubtotalPDF += totalVentaRenglon;
 
-        // --- CAMBIO VISUAL: Agregado 'page-break-inside: avoid' a los TR ---
-        filasHTML += `
-            <tr class="fila-indivisible" style="border-bottom: 1px solid #6CDAE7; page-break-inside: avoid;">
-                <td style="${cellStyle} word-wrap: break-word;">
-                    <b>${item.producto}</b>
-                </td>
-                <td style="${cellStyle}">${item.tela}</td>
-                <td style="${cellStyle}">${item.color}</td>
-                <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
-                <td style="${cellStyle}">${parseFloat(item.medidas.ancho).toFixed(2)}m x ${parseFloat(item.medidas.alto).toFixed(2)}m</td>
-                <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
-                <td style="padding: 4px; text-align: right; font-size: 9px;">$${totalVentaRenglon.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            </tr>
-            <tr class="fila-indivisible" style="border-bottom: 1px solid #6CDAE7; page-break-inside: avoid;">
-                <td colspan="7" style="padding: 4px 8px;">
-                    <div style="margin-bottom: 2px;">
-                        <em>
-                            ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
-                            ${item.motor !== 'Manual' ? ` |  Motor: ${item.motor}` : ''}
-                            ${item.control ? ` +  ${item.control}` : ''}
-                        </em>
-                    </div>
-                    ${item.componente ? `<div style="color:#e65100; font-style:italic;">🔌 Componentes Extra: ${item.componente}</div>` : ""}
-                    ${item.notas ? `<div style="color:#171516; font-style:italic; margin-top:2px;"> Nota: ${item.notas}</div>` : ""}
-                </td>
-            </tr>`;
-    });
+  filasHTML += `
+    <tbody class="fila-indivisible">
+      <tr style="border-bottom: 1px solid #6CDAE7;">
+        <td style="${cellStyle} word-wrap: break-word;">
+          <b>${item.producto}</b>
+        </td>
+        <td style="${cellStyle}">${item.tela}</td>
+        <td style="${cellStyle}">${item.color}</td>
+        <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
+        <td style="${cellStyle}">
+          ${parseFloat(item.medidas.ancho).toFixed(2)}m x ${parseFloat(item.medidas.alto).toFixed(2)}m
+        </td>
+        <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
+        <td style="padding: 4px; text-align: right; font-size: 9px;">
+          $${totalVentaRenglon.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </td>
+      </tr>
+
+      <tr style="border-bottom: 1px solid #6CDAE7;">
+        <td colspan="7" style="padding: 4px 8px;">
+          <div style="margin-bottom: 2px;">
+            <em>
+              ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
+              ${item.motor !== 'Manual' ? ` |  Motor: ${item.motor}` : ''}
+              ${item.control ? ` +  ${item.control}` : ''}
+            </em>
+          </div>
+          ${item.componente ? `<div style="color:#e65100; font-style:italic;">🔌 Componentes Extra: ${item.componente}</div>` : ""}
+          ${item.notas ? `<div style="color:#171516; font-style:italic; margin-top:2px;"> Nota: ${item.notas}</div>` : ""}
+        </td>
+      </tr>
+    </tbody>
+  `;
+});
+
 
     // --- 4. CÁLCULOS FINALES DEL PIE DE PÁGINA (INTACTO) ---
 
@@ -1147,6 +1154,19 @@ async function generarPDF(modo = 'descargar') {
     element.style.lineHeight = '1.3';
     
     element.innerHTML = `
+    
+ <style>
+    .fila-indivisible {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    /* Extra por compatibilidad */
+    tr, td, th {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  </style>
+
         <div style="width: 100%;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
                 <div style="width: 45%;">
@@ -1175,7 +1195,7 @@ async function generarPDF(modo = 'descargar') {
 
             <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8; margin-bottom: 20px;">
                 <thead style="display: table-header-group;">
-                    <tr style="text-align: center;">
+                    
                         <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TIPO</th>
                         <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TELA</th>
                         <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">COLOR</th>
@@ -1183,9 +1203,9 @@ async function generarPDF(modo = 'descargar') {
                         <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">MEDIDAS</th>
                         <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL M²</th>
                         <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL</th>
-                    </tr>
+                    
                 </thead>
-                <tbody>${filasHTML}</tbody>
+                ${filasHTML}
             </table>
 
             <div style="display: flex; justify-content: space-between; page-break-inside: avoid;">
@@ -1270,7 +1290,7 @@ async function generarPDF(modo = 'descargar') {
         image: { type: 'jpeg', quality: 1 }, 
         
         // --- CAMBIO VISUAL: Configuración de salto de página ---
-        pagebreak: { mode: ['css', 'legacy'],
+        pagebreak: { mode: ['avoid-all','css', 'legacy'],
                     avoid: '.fila-indivisible'
          },
         
