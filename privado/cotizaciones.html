@@ -1007,8 +1007,6 @@ function calcularTotalesGlobales() {
     };
 }
 
-   // --- FUNCIÓN GENERAR PDF (LÓGICA HÍBRIDA FINAL) ---
-   // --- FUNCIÓN GENERAR PDF (CORREGIDA: IGUAL A LA PANTALLA WEB) ---
 async function generarPDF(modo = 'descargar') {
     if (carritoItems.length === 0) { alert("No hay productos para generar el PDF."); return; }
 
@@ -1048,67 +1046,64 @@ async function generarPDF(modo = 'descargar') {
         factorUtilidad = 1 / (1 - (pctUtilidad / 100));
     }
 
-    // B) Factor IVA Checkbox
+    // B) Factor IVA Checkbox (INTACTO)
     const aplicaIva = document.getElementById('check-iva').checked;
     const factorIva = aplicaIva ? 0.84 : 0.84; 
 
     // --- 3. CONSTRUIR FILAS Y CALCULAR SUBTOTAL ---
     let filasHTML = '';
-    const cellStyle = "padding: 6px; border-right: 1px solid #6CDAE7; font-size: 9px; page-break-inside: avoid;";
+    const cellStyle = "padding: 6px; border-right: 1px solid #6CDAE7; font-size: 9px;";
     
     let sumaSubtotalPDF = 0; 
 
-   
+    // ✅ CAMBIO: cada producto ahora va como BLOQUE (DIV) indivisible dentro de un <tr><td colspan="7">
+    carritoItems.forEach(item => {
+        const metrosCuadrados = item.medidas.areaCobrada.toFixed(2);
+        
+        // Cálculo matemático (INTACTO)
+        const totalVentaRenglon = (item.total * factorUtilidad) * factorIva;
+        sumaSubtotalPDF += totalVentaRenglon;
 
-carritoItems.forEach(item => {
-  const metrosCuadrados = item.medidas.areaCobrada.toFixed(2);
+        filasHTML += `
+            <tr>
+                <td colspan="7" style="padding: 0; border: 0;">
+                    <div class="fila-indivisible" style="margin:0; padding:0;">
+                        <table style="width:100%; border-collapse: collapse; table-layout: fixed;">
+                            <tr style="border-bottom: 1px solid #6CDAE7;">
+                                <td style="${cellStyle} word-wrap: break-word;">
+                                    <b>${item.producto}</b>
+                                </td>
+                                <td style="${cellStyle}">${item.tela}</td>
+                                <td style="${cellStyle}">${item.color}</td>
+                                <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
+                                <td style="${cellStyle}">
+                                    ${parseFloat(item.medidas.ancho).toFixed(2)}m x ${parseFloat(item.medidas.alto).toFixed(2)}m
+                                </td>
+                                <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
+                                <td style="padding: 4px; text-align: right; font-size: 9px;">
+                                    $${totalVentaRenglon.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                            </tr>
 
-  const totalVentaRenglon = (item.total * factorUtilidad) * factorIva;
-  sumaSubtotalPDF += totalVentaRenglon;
-
-  filasHTML += `
-    <tr>
-      <td colspan="7" style="padding: 0; border: 0;">
-        <div class="fila-indivisible" style="margin:0; padding:0;">
-          <table style="width:100%; border-collapse: collapse; table-layout: fixed;">
-            <tr style="border-bottom: 1px solid #6CDAE7;">
-              <td style="${cellStyle} word-wrap: break-word;">
-                <b>${item.producto}</b>
-              </td>
-              <td style="${cellStyle}">${item.tela}</td>
-              <td style="${cellStyle}">${item.color}</td>
-              <td style="${cellStyle} text-align: center;">${item.cantidad}</td>
-              <td style="${cellStyle}">
-                ${parseFloat(item.medidas.ancho).toFixed(2)}m x ${parseFloat(item.medidas.alto).toFixed(2)}m
-              </td>
-              <td style="${cellStyle} text-align: center;">${metrosCuadrados} m²</td>
-              <td style="padding: 4px; text-align: right; font-size: 9px;">
-                $${totalVentaRenglon.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </td>
+                            <tr style="border-bottom: 1px solid #6CDAE7;">
+                                <td colspan="7" style="padding: 4px 8px;">
+                                    <div style="margin-bottom: 2px;">
+                                        <em>
+                                            ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
+                                            ${item.motor !== 'Manual' ? ` |  Motor: ${item.motor}` : ''}
+                                            ${item.control ? ` +  ${item.control}` : ''}
+                                        </em>
+                                    </div>
+                                    ${item.componente ? `<div style="color:#e65100; font-style:italic;">🔌 Componentes Extra: ${item.componente}</div>` : ""}
+                                    ${item.notas ? `<div style="color:#171516; font-style:italic; margin-top:2px;"> Nota: ${item.notas}</div>` : ""}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
             </tr>
-
-            <tr style="border-bottom: 1px solid #6CDAE7;">
-              <td colspan="7" style="padding: 4px 8px;">
-                <div style="margin-bottom: 2px;">
-                  <em>
-                    ▸ Accesorios: ${item.accesorios.color} (${item.accesorios.mando})
-                    ${item.motor !== 'Manual' ? ` |  Motor: ${item.motor}` : ''}
-                    ${item.control ? ` +  ${item.control}` : ''}
-                  </em>
-                </div>
-                ${item.componente ? `<div style="color:#e65100; font-style:italic;">🔌 Componentes Extra: ${item.componente}</div>` : ""}
-                ${item.notas ? `<div style="color:#171516; font-style:italic; margin-top:2px;"> Nota: ${item.notas}</div>` : ""}
-              </td>
-            </tr>
-          </table>
-        </div>
-      </td>
-    </tr>
-  `;
-});
-``
-
-
+        `;
+    });
 
     // --- 4. CÁLCULOS FINALES DEL PIE DE PÁGINA (INTACTO) ---
 
@@ -1139,23 +1134,22 @@ carritoItems.forEach(item => {
     let ivaInformativoPDF = 0;
     let textoIVA = "No Incluido";
     if (aplicaIva) {
-        const subtotalConDescuento = sumaSubtotalPDF-montoDescuentoPDF;
-        ivaInformativoPDF = subtotalConDescuento*0.16;
+        const subtotalConDescuento = sumaSubtotalPDF - montoDescuentoPDF;
+        ivaInformativoPDF = subtotalConDescuento * 0.16;
         textoIVA = `$${ivaInformativoPDF.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
 
     // D) GRAN TOTAL
-    const granTotalPDF = (sumaSubtotalPDF - montoDescuentoPDF) + totalGastosPDF + ivaInformativoPDF ;
-
+    const granTotalPDF = (sumaSubtotalPDF - montoDescuentoPDF) + totalGastosPDF + ivaInformativoPDF;
 
     // --- 5. ESTRUCTURA PDF (HTML) ---
     const element = document.createElement('div');
     
-    // CONFIGURACIÓN VISUAL ROBUSTA (Igual que en Historial)
-    element.style.width = '700px'
+    // CONFIGURACIÓN VISUAL ROBUSTA (IGUAL)
+    element.style.width = '700px';
     element.style.minHeight = 'auto'; 
     element.style.boxSizing = 'border-box';
-    element.style.padding = '0px'; // Padding hace el margen visual
+    element.style.padding = '0px';
     element.style.background = 'white';
     element.style.fontFamily = 'Arial, sans-serif';
     element.style.color = '#333';
@@ -1163,14 +1157,13 @@ carritoItems.forEach(item => {
     element.style.lineHeight = '1.3';
     
     element.innerHTML = `
-    
-<style>
-  .fila-indivisible{
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
-</style>
-
+        <style>
+            /* ✅ CLAVE: evitar cortes a nivel bloque (div), que html2pdf sí respeta mejor */
+            .fila-indivisible{
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+        </style>
 
         <div style="width: 100%;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
@@ -1199,23 +1192,23 @@ carritoItems.forEach(item => {
             </div>
 
             <table style="width: 100%; border-collapse: collapse; font-size: 9px; border: 2px solid #17a2b8; margin-bottom: 20px; table-layout: fixed;">
-  <thead style="display: table-header-group;">
-    <tr style="text-align: center;">
-      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TIPO</th>
-      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TELA</th>
-      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">COLOR</th>
-      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">CANT.</th>
-      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">MEDIDAS</th>
-      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL M²</th>
-      <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL</th>
-    </tr>
-  </thead>
+                <thead style="display: table-header-group;">
+                    <!-- ✅ CAMBIO: el <tr> faltaba y causaba descuadre -->
+                    <tr style="text-align: center;">
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TIPO</th>
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TELA</th>
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">COLOR</th>
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">CANT.</th>
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">MEDIDAS</th>
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL M²</th>
+                        <th style="border: 1px solid #5abfd1; padding: 6px; background-color: #6CDAE7; color: black;">TOTAL</th>
+                    </tr>
+                </thead>
 
-  <tbody>
-    ${filasHTML}
-  </tbody>
-</table>
-``
+                <tbody>
+                    ${filasHTML}
+                </tbody>
+            </table>
 
             <div style="display: flex; justify-content: space-between; page-break-inside: avoid;">
                 <div style="width: 55%; font-size: 9px; color: #555; text-align: justify;">
@@ -1235,7 +1228,8 @@ carritoItems.forEach(item => {
 
                 <div style="width: 40%;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-                        <tr><td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
+                        <tr>
+                            <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
                             <td style="text-align: right; padding: 4px; color: #333;">$${sumaSubtotalPDF.toFixed(2)}</td>
                         </tr>
 
@@ -1244,19 +1238,23 @@ carritoItems.forEach(item => {
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${pctDescuento}%):</td>
                             <td style="text-align: right; padding: 4px; color: #dc3545;">-$${montoDescuentoPDF.toFixed(2)}</td>
                         </tr>` : ''}
-                        
+
                         ${listaGastosHTML}
 
                         <tr>
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">IVA (16%):</td>
                             <td style="text-align: right; padding: 4px; color: #333;">${textoIVA}</td>
                         </tr>
-                        <tr style="border-top: 2px solid #17a2b8;"><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td><td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${granTotalPDF.toFixed(2)}</td></tr>
+
+                        <tr style="border-top: 2px solid #17a2b8;">
+                            <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td>
+                            <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${granTotalPDF.toFixed(2)}</td>
+                        </tr>
                     </table>
                 </div>
             </div>
         </div>
-        
+
         <div>
             <div style="margin-top: 15px; border-top: 2px solid #6CDAE7; border-bottom: 2px solid #6CDAE7; padding: 12px 0; font-size: 7px; color: #444; text-align: justify; page-break-inside: avoid;">
                  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
@@ -1271,8 +1269,8 @@ carritoItems.forEach(item => {
                             <li style="margin-bottom: 4px;">Todos nuestros productos se pueden motorizar y/o automatizar, por lo que de requerir las persianas así, el cliente debe contar en cada área con salidas o tomas de corriente eléctricas aterrizadas.</li>
                             <li style="margin-bottom: 4px;">Los motores cuentan con garantía, misma que será en fábrica, (están excluidas las descargas eléctricas) la que determine el fabricante con un diagnóstico; por lo que si se solicita, este se llevará hasta 5 días hábiles. (Si el cliente requiere el servicio de recolección, retiro y reinstalación de su persiana será con cargo adicional).</li>
                         </ul>
-                    </div>
-                    <div style="width: 48%;">
+                     </div>
+                     <div style="width: 48%;">
                         <ul style="margin: 0; padding-left: 10px; list-style-type: disc; line-height: 1.4;">
                             <li style="margin-bottom: 4px;">Para respetar la promoción de instalación gratis, es posible reprogramar la instalación solicitándolo con 48 hrs de anticipación, en caso contrario la reprogramación de instalación tendrá un costo de $800 pesos. La nula respuesta de confirmación se toma en cuenta como cancelación.</li>
                             <li style="margin-bottom: 4px;">En el caso de que el cliente modifique las medidas ya autorizadas, será responsable de los efectos que de esto resulte.</li>
@@ -1283,8 +1281,8 @@ carritoItems.forEach(item => {
                             <li style="margin-bottom: 4px;">La empresa no se hace responsable por daños ocasionados (si el cliente le solicita al personal el movimiento de mobiliario u otros objetos, por lo que será bajo su responsabilidad).</li>
                             <li style="margin-bottom: 4px;">El personal de la empresa no está autorizado para hacer trabajos no especificados en la orden.</li>
                         </ul>
-                    </div>
-                </div>
+                     </div>
+                 </div>
             </div>
             
             <div style="text-align: center; font-weight: bold; font-size: 10px; margin-top: 10px; color: #000;">
@@ -1294,16 +1292,17 @@ carritoItems.forEach(item => {
     `;
 
     const opt = { 
-        margin: [0.4,0.4,0.6,0.5],
+        margin: [0.4, 0.4, 0.6, 0.5],
         filename: `Cotizacion_${folio}.pdf`, 
         image: { type: 'jpeg', quality: 1 }, 
         
-        // --- CAMBIO VISUAL: Configuración de salto de página ---
-        pagebreak: { mode: ['avoid-all','css', 'legacy'],
-                    avoid: ['.fila-indivisible']
-         },
+        // ✅ pagebreak mejorado (sin cambiar estética)
+        pagebreak: { 
+            mode: ['avoid-all', 'css', 'legacy'],
+            avoid: ['.fila-indivisible']
+        },
         
-        html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0,width: 700},
+        html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0, width: 700 },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
     };
 
@@ -1317,6 +1316,7 @@ carritoItems.forEach(item => {
     }
     document.body.style.cursor = 'default';
 }
+
 
     // --- NUEVA FUNCIÓN MAESTRA ---
     async function guardarYVerPDF() {
