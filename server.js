@@ -618,52 +618,7 @@ async function migrarTelasAlNuevoFormato() {
     console.log("🎉 Migración de telas finalizada.");
 }
 
-// Llama a la función al iniciar (comentar después de usar)
- // setTimeout(() => { migrarTelasAlNuevoFormato(); }, 5000);
 
-app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
-  try {
-    const data = req.body;
-
-    // ✅ IMPORTANTE: el backend NO recalcula.
-    // Solo imprime lo que ya viene calculado del frontend.
-    const html = buildCotizacionHTML(data);
-
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'] 
-    });
-
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    await page.emulateMediaType('print');
-
-    const pdfBuffer = await page.pdf({
-      format: 'Letter',
-      printBackground: true,
-      margin: { top: '0.4in', right: '0.4in', bottom: '0.6in', left: '0.5in' }
-    });
-
-    await browser.close();
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Cotizacion_${data.folio || 'sin_folio'}.pdf"`);
-    res.send(pdfBuffer);
-
-  } catch (error) {
-    console.error("❌ Error generando PDF:", error);
-    res.status(500).json({ exito: false, mensaje: "Error generando PDF" });
-  }
-});
-
-function escapeHtml(str = '') {
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
 
 app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
   let browser;
