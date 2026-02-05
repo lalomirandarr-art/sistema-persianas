@@ -666,15 +666,18 @@ function escapeHtml(str = '') {
 }
 
 app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
+  let browser;
   try {
     const { html, folio } = req.body;
 
-    console.log("📄 PDF solicitado:", folio, "HTML len:", html?.length, "Usuario:", req.session?.usuario);
+    if (!html) {
+      return res.status(400).json({ exito: false, mensaje: "Falta el HTML para generar el PDF" });
+    }
 
-    if (!html) return res.status(400).send("Falta html en el body");
-
+    // ✅ Base URL para que /IMG/logopd.png funcione cuando Chromium renderiza
     const baseUrl = `${req.protocol}://${req.get('host')}/`;
 
+    // ✅ Documento completo + <base href=""> para rutas relativas
     const fullHtml = `
       <!doctype html>
       <html>
@@ -687,34 +690,43 @@ app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
             body { margin: 0; }
           </style>
         </head>
-        <body>${html}</body>
+        <body>
+          ${html}
+        </body>
       </html>
     `;
 
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage"
+      ]
     });
 
     const page = await browser.newPage();
-    await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
-    await page.emulateMediaType('print');
+    await page.setContent(fullHtml, { waitUntil: "networkidle0" });
+    await page.emulateMediaType("print");
 
     const pdfBuffer = await page.pdf({
-      format: 'Letter',
+      format: "Letter",
       printBackground: true,
-      margin: { top: '0.4in', right: '0.4in', bottom: '0.6in', left: '0.5in' }
+      margin: { top: "0.4in", right: "0.4in", bottom: "0.6in", left: "0.5in" }
     });
 
-    await browser.close();
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Cotizacion_${folio || 'sin_folio'}.pdf"`);
-    res.send(pdfBuffer);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="Cotizacion_${folio || "sin_folio"}.pdf"`
+    );
+    return res.send(pdfBuffer);
 
   } catch (err) {
-    console.error("❌ PDF ERROR:", err);
-    res.status(500).send("Error generando PDF: " + (err.message || err));
+    console.error("❌ Error generando PDF:", err);
+    return res.status(500).json({ exito: false, mensaje: err.message || "Error generando PDF" });
+  } finally {
+    if (browser) await browser.close().catch(() => {});
   }
 });
 
