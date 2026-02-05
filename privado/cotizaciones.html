@@ -1230,13 +1230,12 @@ async function generarPDF(modo = 'descargar', cotizacionId) {
                     <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
                         <tr>
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #555;">SUBTOTAL:</td>
-                            <td style="text-align: right; padding: 4px; color: #333;">$${sumaSubtotalPDF.toFixed(2)}</td>
-                        </tr>
+                            <td style="text-align: right; padding: 4px; color: #333;">$${sumaSubtotalPDF.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
 
                         ${montoDescuentoPDF > 0 ? `
                         <tr>
                             <td style="text-align: right; padding: 4px; font-weight: bold; color: #dc3545;">DESCUENTO (${pctDescuento}%):</td>
-                            <td style="text-align: right; padding: 4px; color: #dc3545;">-$${montoDescuentoPDF.toFixed(2)}</td>
+                            <td style="text-align: right; padding: 4px; color: #dc3545;">-$${montoDescuentoPDF.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>` : ''}
 
                         ${listaGastosHTML}
@@ -1248,7 +1247,7 @@ async function generarPDF(modo = 'descargar', cotizacionId) {
 
                         <tr style="border-top: 2px solid #17a2b8;">
                             <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">TOTAL NETO:</td>
-                            <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${granTotalPDF.toFixed(2)}</td>
+                            <td style="text-align: right; padding: 6px; font-weight: bold; color: #001f3f; font-size: 13px;">$${granTotalPDF.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                     </table>
                 </div>
