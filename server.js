@@ -3,16 +3,9 @@ require('dotenv').config();
 
 
 // server.js - Versión Multi-Producto (Carrito)
-let sharedBrowser = null;
-
-async function getBrowser() {
-  if (sharedBrowser) return sharedBrowser;
-  sharedBrowser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
-  });
-  return sharedBrowser;
-}
+const fs = require('fs');
+const os = require('os');
+const { Readable } = require('stream');
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -48,7 +41,6 @@ mongoose.connect(uri)
     .then(() => console.log("✅ Conectado a la Nube"))
     .catch(e => console.error("❌ Error:", e));
 
-const { Readable } = require('stream');
 
 let pdfBucket = null;
 
@@ -660,11 +652,14 @@ function subirPdfAGridFS(buffer, filename, metadata = {}) {
 }
 app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
   let page;
+  let tmpPath = null;
+
   try {
     const { html, folio, cotizacionId } = req.body;
 
-    if (!html) return res.status(400).json({ exito:false, mensaje:"Falta HTML" });
-    if (!cotizacionId) return res.status(400).json({ exito:false, mensaje:"Falta cotizacionId" });
+    if (!html) return res.status(400).json({ exito: false, mensaje: "Falta HTML" });
+    if (!cotizacionId) return res.status(400).json({ exito: false, mensaje: "Falta cotizacionId" });
+    if (!pdfBucket) return res.status(503).json({ exito: false, mensaje: "GridFS aún no está listo, intenta de nuevo." });
 
     const baseUrl = `${req.protocol}://${req.get('host')}/`;
 
@@ -683,22 +678,55 @@ app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
   <body>${html}</body>
 </html>`;
 
+    // 1) Reusar Chrome (menos picos)
     const browser = await getBrowser();
     page = await browser.newPage();
-
     page.setDefaultTimeout(30000);
     page.setDefaultNavigationTimeout(30000);
+
+    // 2) Render HTML
     await page.setContent(fullHtml, { waitUntil: "load", timeout: 30000 });
     await page.emulateMediaType("print");
 
-    const pdfBuffer = await page.pdf({
+    // 3) Generar PDF a archivo temporal (menos RAM)
+    const safeFolio = (folio || cotizacionId).replace(/[^\w\-]/g, '_');
+    tmpPath = `${os.tmpdir()}/Cotizacion_${safeFolio}_${Date.now()}.pdf`;
+
+    await page.pdf({
+      path: tmpPath,
       format: "Letter",
       printBackground: true,
       margin: { top: "0.4in", right: "0.4in", bottom: "0.6in", left: "0.5in" }
     });
 
     const filename = `Cotizacion_${folio || cotizacionId}.pdf`;
-    const fileId = await subirPdfAGridFS(pdfBuffer, filename, { cotizacionId, folio });
+
+    // 4) Subir a GridFS desde stream
+    const uploadStream = pdfBucket.openUploadStream(filename, {
+      contentType: "application/pdf",
+      metadata: { cotizacionId, folio }
+    });
+
+    const uploadPromise = new Promise((resolve, reject) => {
+      fs.createReadStream(tmpPath)
+        .pipe(uploadStream)
+        .on('error', reject)
+        .on('finish', () => resolve(uploadStream.id));
+    });
+
+    // 5) Responder al cliente con el PDF (stream)
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+    const downloadPromise = new Promise((resolve, reject) => {
+      fs.createReadStream(tmpPath)
+        .on('error', reject)
+        .pipe(res)
+        .on('finish', resolve);
+    });
+
+    // 6) Esperar upload → actualizar cotización → esperar descarga
+    const fileId = await uploadPromise;
 
     await Cotizacion.findByIdAndUpdate(cotizacionId, {
       $set: {
@@ -708,18 +736,18 @@ app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
       }
     });
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.send(pdfBuffer);
+    await downloadPromise;
 
   } catch (err) {
     console.error("❌ PDF ERROR:", err);
-    res.status(500).json({ exito:false, mensaje: err.message || "Error generando PDF" });
+    if (!res.headersSent) {
+      res.status(500).json({ exito: false, mensaje: err.message || "Error generando PDF" });
+    }
   } finally {
-    if (page) await page.close().catch(()=>{});
+    if (page) await page.close().catch(() => {});
+    if (tmpPath) fs.unlink(tmpPath, () => {});
   }
 });
-
 app.get('/cotizaciones/:id/pdf', protegerRuta, async (req, res) => {
   try {
     const cot = await Cotizacion.findById(req.params.id).lean();
@@ -739,6 +767,20 @@ app.get('/cotizaciones/:id/pdf', protegerRuta, async (req, res) => {
     res.status(500).send("Error descargando PDF");
   }
 });
+
+
+let sharedBrowser = null;
+
+async function getBrowser() {
+  if (sharedBrowser) return sharedBrowser;
+
+  sharedBrowser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+  });
+
+  return sharedBrowser;
+}
 
 // ==========================================
 //        RUTAS PROTEGIDAS (HTML)
