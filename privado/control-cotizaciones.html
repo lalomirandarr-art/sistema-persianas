@@ -697,7 +697,7 @@
         <td class="text-center">
             <button class="btn-icon btn-ver" onclick="abrirModalDetalles('${c._id}')" title="Ver Detalles">👁️</button>
             <button class="btn-icon btn-orden" onclick="generarPDFOrdenTrabajo('${c._id}')" title="Orden de Instalación">🔨</button>
-            <button class="btn-icon btn-pdf" onclick="generarPDFDesdeHistorial('${c._id}')" title="Re-generar PDF Nuevo">📄</button>
+            <button class="btn-icon btn-pdf" onclick="descargarPDFGuardado('${c._id}')" title="Ver PDF guardado">📄</button>
 
             ${ esImportada ? 
                 `<a href="${urlRespaldo}" download="${nombreDescarga}"xt-decoration:none; font-size: 1.2em;" title="Ver Original Escaneado">🗄️</a>` 
@@ -1703,6 +1703,12 @@ async function generarPDFOrdenTrabajo(id) {
     }
     document.body.style.cursor = 'default';
 }
+
+function descargarPDFGuardado(id) {
+  window.open(`/cotizaciones/${id}/pdf`, '_blank');
+}
+
+
    </script>
 
 </body>

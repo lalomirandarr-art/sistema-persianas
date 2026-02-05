@@ -38,7 +38,17 @@ mongoose.connect(uri)
     .then(() => console.log("✅ Conectado a la Nube"))
     .catch(e => console.error("❌ Error:", e));
 
+const { Readable } = require('stream');
 
+let pdfBucket = null;
+
+mongoose.connection.once('open', () => {
+  console.log("🗂️ Inicializando GridFSBucket para PDFs...");
+  // "pdfs" será el prefijo: pdfs.files y pdfs.chunks
+  pdfBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+    bucketName: 'pdfs'
+  });
+});
 // ==========================================
 //              ZONA DE USUARIOS
 // ==========================================
@@ -139,7 +149,12 @@ const cotizacionSchema = new mongoose.Schema({
     pctUtilidad: Number,
     fecha: { type: Date, default: Date.now },
     estatus: { type: String, default: 'Emitida' },
-      
+      // dentro de cotizacionSchema, al final o donde quieras:
+pdf: {
+  fileId: { type: mongoose.Schema.Types.ObjectId, default: null },
+  filename: { type: String, default: "" },
+  updatedAt: { type: Date, default: null }
+},
 
     // LISTA DE PRODUCTOS (Array de objetos)
     items: [{
@@ -199,7 +214,7 @@ app.post('/cotizaciones', async (req, res) => {
         const nuevaCotizacion = new Cotizacion(req.body);
         await nuevaCotizacion.save();
         console.log("✅ Cotización guardada con éxito.");
-        res.json({ exito: true, mensaje: "Cotización guardada correctamente" });
+        res.json({ exito: true, mensaje: "Cotización guardada correctamente", id: nuevaCotizacion._id });
     } catch (error) {
         console.error("Error al guardar:", error);
         res.status(500).json({ exito: false, mensaje: "Error en el servidor" });
@@ -618,21 +633,31 @@ async function migrarTelasAlNuevoFormato() {
     console.log("🎉 Migración de telas finalizada.");
 }
 
+function subirPdfAGridFS(buffer, filename, metadata = {}) {
+  return new Promise((resolve, reject) => {
+    if (!pdfBucket) return reject(new Error("GridFSBucket no está listo"));
 
+    const uploadStream = pdfBucket.openUploadStream(filename, {
+      contentType: 'application/pdf',
+      metadata
+    });
 
+    Readable.from(buffer)
+      .pipe(uploadStream)
+      .on('error', reject)
+      .on('finish', () => resolve(uploadStream.id));
+  });
+}
 app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
   let browser;
   try {
-    const { html, folio } = req.body;
+    const { html, folio, cotizacionId } = req.body;
 
-    if (!html) {
-      return res.status(400).json({ exito: false, mensaje: "Falta el HTML para generar el PDF" });
-    }
+    if (!html) return res.status(400).json({ exito:false, mensaje:"Falta HTML" });
+    if (!cotizacionId) return res.status(400).json({ exito:false, mensaje:"Falta cotizacionId" });
 
-    // ✅ Base URL para que /IMG/logopd.png funcione cuando Chromium renderiza
     const baseUrl = `${req.protocol}://${req.get('host')}/`;
 
-    // ✅ Documento completo + <base href=""> para rutas relativas
     const fullHtml = `
       <!doctype html>
       <html>
@@ -645,47 +670,74 @@ app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
             body { margin: 0; }
           </style>
         </head>
-        <body>
-          ${html}
-        </body>
+        <body>${html}</body>
       </html>
     `;
 
     browser = await puppeteer.launch({
       headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage"
-      ]
+      args: ["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage"]
     });
 
     const page = await browser.newPage();
     await page.setContent(fullHtml, { waitUntil: "networkidle0" });
     await page.emulateMediaType("print");
 
+    // ✅ Generamos buffer PDF (motor real de impresión)
     const pdfBuffer = await page.pdf({
       format: "Letter",
       printBackground: true,
       margin: { top: "0.4in", right: "0.4in", bottom: "0.6in", left: "0.5in" }
     });
 
+    // ✅ Guardar en GridFS
+    const filename = `Cotizacion_${folio || cotizacionId}.pdf`;
+    const fileId = await subirPdfAGridFS(pdfBuffer, filename, {
+      cotizacionId,
+      folio
+    });
+
+    // ✅ Guardar referencia en tu documento de cotización
+    await Cotizacion.findByIdAndUpdate(cotizacionId, {
+      $set: {
+        "pdf.fileId": fileId,
+        "pdf.filename": filename,
+        "pdf.updatedAt": new Date()
+      }
+    });
+
+    // ✅ Enviar PDF al navegador
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="Cotizacion_${folio || "sin_folio"}.pdf"`
-    );
-    return res.send(pdfBuffer);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(pdfBuffer);
 
   } catch (err) {
-    console.error("❌ Error generando PDF:", err);
-    return res.status(500).json({ exito: false, mensaje: err.message || "Error generando PDF" });
+    console.error("❌ PDF ERROR:", err);
+    res.status(500).json({ exito:false, mensaje: err.message || "Error generando PDF" });
   } finally {
-    if (browser) await browser.close().catch(() => {});
+    if (browser) await browser.close().catch(()=>{});
   }
 });
 
+app.get('/cotizaciones/:id/pdf', protegerRuta, async (req, res) => {
+  try {
+    const cot = await Cotizacion.findById(req.params.id).lean();
+    if (!cot) return res.status(404).send("Cotización no encontrada");
 
+    const fileId = cot.pdf?.fileId;
+    if (!fileId) return res.status(404).send("Esta cotización no tiene PDF guardado");
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${cot.pdf.filename || 'Cotizacion.pdf'}"`);
+
+    // Stream desde GridFS
+    pdfBucket.openDownloadStream(fileId).pipe(res);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error descargando PDF");
+  }
+});
 
 // ==========================================
 //        RUTAS PROTEGIDAS (HTML)
