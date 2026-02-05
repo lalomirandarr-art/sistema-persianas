@@ -1007,7 +1007,7 @@ function calcularTotalesGlobales() {
     };
 }
 
-async function generarPDF(modo = 'descargar') {
+async function generarPDF(modo = 'descargar', cotizacionId) {
     if (carritoItems.length === 0) { alert("No hay productos para generar el PDF."); return; }
 
     const fechaObj = new Date();
@@ -1299,12 +1299,19 @@ try {
     folio,
     html: element.innerHTML
   };
-
+if (!cotizacionId) {
+  alert("No se recibió cotizacionId. Guarda primero y luego genera PDF.");
+  return;
+}
   const resp = await fetch('/pdf/cotizacion', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   credentials: 'same-origin',
-  body: JSON.stringify({ folio, html: element.innerHTML })
+  body: JSON.stringify({
+    folio,
+    html: element.innerHTML,
+    cotizacionId  // ✅ AQUÍ VA
+  })
 });
 
 // 👇 Esto te va a decir EL motivo real (404/500/401 + texto)
@@ -1345,69 +1352,74 @@ document.body.style.cursor = 'default';
 
 
     // --- NUEVA FUNCIÓN MAESTRA ---
-    async function guardarYVerPDF() {
-        if(carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
-        const cliente = document.getElementById('cliente').value;
-        const quienCotiza = document.getElementById('quienCotiza').value;
-        if(!cliente || !quienCotiza) { alert("Faltan datos del cliente o cotizador."); return; }
+   async function guardarYVerPDF() {
+  if (carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
 
-        const globales = calcularTotalesGlobales();
-        
-        const paquete = {
-            cliente: cliente,
-            pctUtilidad: globales.pctUtilidad,
-            quienCotiza: quienCotiza,
-            items: carritoItems,
-            descuentoGlobalPct: globales.pctDescuento, 
-            descuentoGlobalMonto: globales.montoDescuento,
-            gastosAdicionales: globales.listaGastos,
-            totalGastosAdicionales: globales.totalGastos,
-            iva: globales.iva,
-            total: globales.granTotal,
-            descuentoGlobalPct: globales.pctDescuento 
-        };
+  const cliente = document.getElementById('cliente').value;
+  const quienCotiza = document.getElementById('quienCotiza').value;
+  if (!cliente || !quienCotiza) { alert("Faltan datos del cliente o cotizador."); return; }
 
-        // Indicador de carga visual
-        const btn = document.querySelector('button[onclick="guardarYVerPDF()"]');
-        const textoOriginal = btn.innerText;
-        btn.innerText = "⏳ Guardando...";
-        btn.disabled = true;
+  const globales = calcularTotalesGlobales();
 
-        try {
-            // 1. PRIMERO GUARDAMOS EN MONGO
-            const res = await fetch('/cotizaciones', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(paquete)
-            });
-            const r = await res.json();
-            
-            if(r.exito) {
-                // 2. SI SE GUARDÓ BIEN, GENERAMOS EL PDF EN NUEVA PESTAÑA
-                btn.innerText = "📄 Generando PDF...";
-                
-                // Generamos PDF en modo 'ver'
-                await generarPDF('ver');
+  const paquete = {
+    cliente: cliente,
+    pctUtilidad: globales.pctUtilidad,
+    quienCotiza: quienCotiza,
+    items: carritoItems,
+    descuentoGlobalPct: globales.pctDescuento,
+    descuentoGlobalMonto: globales.montoDescuento,
+    gastosAdicionales: globales.listaGastos,
+    totalGastosAdicionales: globales.totalGastos,
+    iva: globales.iva,
+    total: globales.granTotal
+    // OJO: tenías descuentoGlobalPct repetido; no afecta, pero ya lo dejamos una vez.
+  };
 
-                alert("✅ Cotización guardada y PDF generado.");
-                
-                // 3. LIMPIAMOS TODO
-                carritoItems = [];
-                actualizarTablaCarrito();
-                document.getElementById('cliente').value = '';
-                document.getElementById('select-descuento').value = 0;
-            } else {
-                alert("Error al guardar: " + r.mensaje);
-            }
-        } catch(e) { 
-            alert("Error de conexión"); 
-            console.error(e); 
-        } finally {
-            // Restaurar botón
-            btn.innerText = textoOriginal;
-            btn.disabled = false;
-        }
+  const btn = document.querySelector('button[onclick="guardarYVerPDF()"]');
+  const textoOriginal = btn.innerText;
+  btn.innerText = "⏳ Guardando...";
+  btn.disabled = true;
+
+  try {
+    // 1) Guardar cotización
+    const res = await fetch('/cotizaciones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(paquete)
+    });
+    const r = await res.json();
+
+    if (r.exito) {
+      // ✅ ESTE ES EL CAMBIO CLAVE
+      const cotizacionId = r.id;
+      if (!cotizacionId) {
+        throw new Error("El servidor no devolvió el id de la cotización.");
+      }
+
+      // 2) Generar PDF (y guardarlo) usando ese ID
+      btn.innerText = "📄 Generando PDF...";
+      await generarPDF('ver', cotizacionId);
+
+      alert("✅ Cotización guardada y PDF generado.");
+
+      // 3) Limpiar
+      carritoItems = [];
+      actualizarTablaCarrito();
+      document.getElementById('cliente').value = '';
+      document.getElementById('select-descuento').value = 0;
+
+    } else {
+      alert("Error al guardar: " + r.mensaje);
     }
+
+  } catch (e) {
+    alert("Error: " + (e.message || "de conexión"));
+    console.error(e);
+  } finally {
+    btn.innerText = textoOriginal;
+    btn.disabled = false;
+  }
+}
 
     async function guardarCotizacionCompleta() {
         if(carritoItems.length === 0) { alert("Agrega al menos una persiana."); return; }
