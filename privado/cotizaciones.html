@@ -1301,12 +1301,24 @@ try {
   };
 
   const resp = await fetch('/pdf/cotizacion', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    // ✅ como estás en el mismo dominio, la cookie de sesión viaja (por si acaso, lo forzamos)
-    credentials: 'same-origin',
-    body: JSON.stringify(payload)
-  });
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'same-origin',
+  body: JSON.stringify({ folio, html: element.innerHTML })
+});
+
+// 👇 Esto te va a decir EL motivo real (404/500/401 + texto)
+if (!resp.ok) {
+  const texto = await resp.text().catch(() => '');
+  throw new Error(`Servidor respondió ${resp.status} ${resp.statusText}: ${texto.slice(0, 300)}`);
+}
+
+// Validación extra: asegurar que sí sea PDF (por si te redirige a index.html)
+const ct = resp.headers.get('content-type') || '';
+if (!ct.includes('application/pdf')) {
+  const texto = await resp.text().catch(() => '');
+  throw new Error(`Respuesta no es PDF. Content-Type: ${ct}. Body: ${texto.slice(0, 300)}`);
+}
 
   if (!resp.ok) throw new Error('No se pudo generar el PDF');
 
