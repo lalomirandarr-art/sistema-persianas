@@ -1291,31 +1291,45 @@ async function generarPDF(modo = 'descargar') {
         </div>
     `;
 
-    const opt = { 
-        margin: [0.4, 0.4, 0.6, 0.5],
-        filename: `Cotizacion_${folio}.pdf`, 
-        image: { type: 'jpeg', quality: 1 }, 
-        
-        // ✅ pagebreak mejorado (sin cambiar estética)
-        pagebreak: { 
-            mode: ['avoid-all', 'css', 'legacy'],
-            avoid: ['.fila-indivisible']
-        },
-        
-        html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0, width: 700 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
-    };
+   document.body.style.cursor = 'wait';
 
-    // --- Generar y Descargar ---
-    document.body.style.cursor = 'wait';
-    try {
-        await html2pdf().set(opt).from(element).save();
-    } catch (error) {
-        console.error("Error generando PDF", error);
-        alert("Hubo un problema generando el PDF.");
-    }
-    document.body.style.cursor = 'default';
+try {
+  // ✅ Mandamos el HTML exacto (el mismo que ibas a imprimir)
+  const payload = {
+    folio,
+    html: element.innerHTML
+  };
+
+  const resp = await fetch('/pdf/cotizacion', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    // ✅ como estás en el mismo dominio, la cookie de sesión viaja (por si acaso, lo forzamos)
+    credentials: 'same-origin',
+    body: JSON.stringify(payload)
+  });
+
+  if (!resp.ok) throw new Error('No se pudo generar el PDF');
+
+  // ✅ Descargar como archivo
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Cotizacion_${folio}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+} catch (error) {
+  console.error("Error generando PDF", error);
+  alert("Hubo un problema generando el PDF.");
 }
+
+document.body.style.cursor = 'default';
+}
+
 
 
     // --- NUEVA FUNCIÓN MAESTRA ---

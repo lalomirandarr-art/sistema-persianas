@@ -8,7 +8,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const path = require('path'); 
-
+const puppeteer = require('puppeteer');
 const app = express();
 
 /** SEGURIDAD Y SESIONES */
@@ -29,7 +29,7 @@ function protegerRuta(req, res, next) {
 }
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 /** CONEXIÓN MONGODB */
@@ -621,6 +621,143 @@ async function migrarTelasAlNuevoFormato() {
 // Llama a la función al iniciar (comentar después de usar)
  // setTimeout(() => { migrarTelasAlNuevoFormato(); }, 5000);
 
+app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
+  try {
+    const data = req.body;
+
+    // ✅ IMPORTANTE: el backend NO recalcula.
+    // Solo imprime lo que ya viene calculado del frontend.
+    const html = buildCotizacionHTML(data);
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.emulateMediaType('print');
+
+    const pdfBuffer = await page.pdf({
+      format: 'Letter',
+      printBackground: true,
+      margin: { top: '0.4in', right: '0.4in', bottom: '0.6in', left: '0.5in' }
+    });
+
+    await browser.close();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Cotizacion_${data.folio || 'sin_folio'}.pdf"`);
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error("❌ Error generando PDF:", error);
+    res.status(500).json({ exito: false, mensaje: "Error generando PDF" });
+  }
+});
+
+function escapeHtml(str = '') {
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function buildCotizacionHTML(data) {
+  const {
+    folio = '',
+    nombreCliente = 'Cliente Mostrador',
+    quienCotiza = 'Vendedor',
+    fechaEmisionTexto = '',
+    logoUrl = '',
+    filasHTML = '',
+    resumenHTML = '',
+    terminosHTML = '',
+    leyendasHTML = ''
+  } = data;
+
+  // Logo debe ser URL absoluta para que Chromium lo cargue bien
+  const logoImg = logoUrl
+    ? `<img src="${escapeHtml(logoUrl)}" alt="Persianas Delta" style="max-width:200px;">`
+    : '';
+
+  return `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <style>
+    body { font-family: Arial, sans-serif; color:#333; }
+    /* Repite encabezado en cada página (motor de impresión de Chromium) */
+    thead { display: table-header-group; break-inside: avoid; }
+    /* Evita que se parta el bloque del producto */
+    .fila-indivisible { break-inside: avoid; page-break-inside: avoid; }
+  </style>
+</head>
+
+<body>
+  <div style="width:700px; box-sizing:border-box; padding:0; background:white; font-size:10px; line-height:1.3;">
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #17a2b8; padding-bottom:10px; margin-bottom:15px;">
+      <div style="width:45%;">
+        ${logoImg}
+        <div style="color:#17a2b8; font-weight:bold; letter-spacing:2px; margin-top:2px; font-size:9px;">
+          PRIVACIDAD CON ESTILO
+        </div>
+      </div>
+      <div style="width:55%; text-align:right; font-size:10px;">
+        <h1 style="margin:0; font-weight:normal; font-size:20px; letter-spacing:2px; color:#333;">PERSIANAS DELTA</h1>
+        <p style="margin:3px 0;">CDMX 5519337007 / CDMX 5581973360</p>
+        <p style="margin:1px 0;">https://persianasdelta.com/</p>
+        <p style="margin:0; font-weight:bold;">ventas@persianasdelta.com</p>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; margin-bottom:15px; background:#f9f9f9; padding:10px; border-radius:5px;">
+      <div style="width:60%;">
+        <div style="margin-bottom:3px;">
+          <strong style="color:#001f3f;">COTIZACIÓN:</strong>
+          <span style="font-size:1.1em;">${escapeHtml(folio)}</span>
+        </div>
+        <div>
+          <strong style="color:#001f3f;">CLIENTE:</strong>
+          <span style="font-size:1.1em;">${escapeHtml(nombreCliente)}</span>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <strong style="color:#001f3f;">FECHA DE EMISIÓN:</strong><br>
+        ${escapeHtml(fechaEmisionTexto)}<br>
+        <strong>ATENDIÓ:</strong> ${escapeHtml(quienCotiza)}
+      </div>
+    </div>
+
+    <table style="width:100%; border-collapse:collapse; font-size:9px; border:2px solid #17a2b8; margin-bottom:20px;">
+      <thead>
+        <tr style="text-align:center;">
+          <th style="border:1px solid #5abfd1; padding:6px; background-color:#6CDAE7; color:black;">TIPO</th>
+          <th style="border:1px solid #5abfd1; padding:6px; background-color:#6CDAE7; color:black;">TELA</th>
+          <th style="border:1px solid #5abfd1; padding:6px; background-color:#6CDAE7; color:black;">COLOR</th>
+          <th style="border:1px solid #5abfd1; padding:6px; background-color:#6CDAE7; color:black;">CANT.</th>
+          <th style="border:1px solid #5abfd1; padding:6px; background-color:#6CDAE7; color:black;">MEDIDAS</th>
+          <th style="border:1px solid #5abfd1; padding:6px; background-color:#6CDAE7; color:black;">TOTAL M²</th>
+          <th style="border:1px solid #5abfd1; padding:6px; background-color:#6CDAE7; color:black;">TOTAL</th>
+        </tr>
+      </thead>
+
+      ${filasHTML}
+    </table>
+
+    ${resumenHTML}
+    ${terminosHTML}
+    ${leyendasHTML}
+
+  </div>
+</body>
+</html>
+  `;
+}
 
 
 // ==========================================
