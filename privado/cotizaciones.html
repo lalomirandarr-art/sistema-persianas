@@ -927,7 +927,7 @@ function agregarAlCarrito() {
   const btnAdd = document.querySelector('.btn-add'); // tu botón "AGREGAR PERSIANA"
   btnAdd.innerText = "💾 GUARDAR CAMBIOS";
   document.getElementById('btn-cancelar-edicion').style.display = 'block';
-
+    actualizarTablaCarrito();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
