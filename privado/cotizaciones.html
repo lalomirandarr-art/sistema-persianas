@@ -206,6 +206,25 @@ input:checked + .slider:before {
 .slider.round:before {
   border-radius: 50%;
 }
+
+/* ✅ Resaltar fila en edición (azul claro) */
+.fila-editando {
+  background: #e7f5ff !important;              /* azul claro */
+  border-left: 6px solid #17a2b8 !important;   /* turquesa de tu marca */
+}
+
+/* “chip” o badge de estado */
+.badge-editando {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #0b5ed7;                  /* azul fuerte */
+  background: #d0ebff;             /* azul pastel */
+  border: 1px solid #74c0fc;       /* contorno azul */
+}
     </style>
 </head>
 <body>
@@ -336,7 +355,13 @@ input:checked + .slider:before {
 
                 <div style="margin-top: 15px;">
                    
-                    <button class="btn-add" onclick="agregarAlCarrito()">➕ AGREGAR PERSIANA</button>
+                    <button id="btn-agregar" class="btn-add" onclick="agregarAlCarrito()">➕ AGREGAR PERSIANA</button>
+                    <button id="btn-cancelar-edicion"
+                      class="btn-add"
+                       onclick="cancelarEdicionItem()"
+                        style="display:none; background:#6c757d; margin-top:8px;">
+                        ❌ CANCELAR EDICIÓN
+                        </button>
                 </div>
             </div>
 
@@ -468,6 +493,9 @@ input:checked + .slider:before {
 
 <script>
     // --- VARIABLES GLOBALES ---
+    // --- MODO EDICIÓN DEL ITEM ---
+let editIndex = null;        // índice del item que se está editando (o null si no)
+let editBackupItem = null;   // copia del item original (por si cancelan)
     let productosDB = [], motoresDB = [], telasDB = [], coloresDB = [];
     let clientesDB = []; 
     let carritoItems = []; 
@@ -676,34 +704,6 @@ if (Array.isArray(d.gastosAdicionales) && d.gastosAdicionales.length > 0) {
                 }
    
 
-                // C) Restaurar Descuentos
-                if (d.descuentoGlobalPct) {
-                    document.getElementById('select-descuento').value = d.descuentoGlobalPct;
-                }
-
-                // D) Restaurar Gastos Extra (Si existen)
-                if (d.gastosAdicionales && d.gastosAdicionales.length > 0) {
-                    document.getElementById('check-gastos').checked = true;
-                    document.getElementById('panel-gastos').style.display = 'block';
-                    
-                    // Ajustamos el selector de cantidad de gastos
-                    const cantGastos = d.gastosAdicionales.length;
-                    document.getElementById('cantidad-gastos').value = cantGastos > 3 ? 3 : cantGastos;
-                    
-                    generarCamposGastos(); // Generamos los inputs vacíos
-
-                    // Llenamos los inputs con un pequeño retraso para asegurar que existan
-                    setTimeout(() => {
-                        d.gastosAdicionales.forEach((gasto, i) => {
-                            const inputDesc = document.getElementById(`gasto-desc-${i+1}`);
-                            const inputMonto = document.getElementById(`gasto-monto-${i+1}`);
-                            if(inputDesc) inputDesc.value = gasto.descripcion;
-                            if(inputMonto) inputMonto.value = gasto.monto;
-                        });
-                        calcularTotalesGlobales();
-                    }, 50);
-                }
-
                 // E) Recalcular los totales finales
                 calcularTotalesGlobales();
 
@@ -719,110 +719,104 @@ if (Array.isArray(d.gastosAdicionales) && d.gastosAdicionales.length > 0) {
 
     
     inicializar();
+function construirItemDesdeFormulario() {
+  const idProd = document.getElementById('select-producto').value;
+  const idTela = document.getElementById('select-tela').value;
+  const ancho = parseFloat(document.getElementById('ancho').value);
+  const alto  = parseFloat(document.getElementById('alto').value);
+  const cant  = parseInt(document.getElementById('cantidad').value);
+  const notas = document.getElementById('item-notas').value.trim();
 
+  if (!idProd || !idTela || !ancho || !alto || !cant) {
+    alert("Por favor completa los campos del producto.");
+    return null;
+  }
+
+  const prodObj = productosDB.find(p => p._id === idProd);
+  const telaObj = telasDB.find(t => t._id === idTela);
+  const color   = document.getElementById('select-color').value;
+
+  // Precio Tela Específico
+  let precioTela = 0;
+  if (telaObj && telaObj.configuraciones) {
+    const config = telaObj.configuraciones.find(c => c.producto === prodObj.nombre);
+    if (config) precioTela = config.precio;
+  }
+
+  // --- LOGICA MOTORIZACIÓN ---
+  const usaMotor = document.getElementById('check-motor').checked;
+
+  let motorObj = null, precioMotor = 0;
+  let controlObj = null, precioControl = 0;
+  let listaComponentesNombres = [];
+  let precioComponentesTotal = 0;
+
+  if (usaMotor) {
+    const idMotor = document.getElementById('select-motor').value;
+    if (idMotor) {
+      motorObj = motoresDB.find(m => m._id === idMotor);
+      precioMotor = motorObj ? motorObj.precio : 0;
+    }
+
+    const idControl = document.getElementById('select-control').value;
+    if (idControl) {
+      controlObj = controlesDB.find(c => c._id === idControl);
+      precioControl = controlObj ? controlObj.precio : 0;
+    }
+
+    const checkboxes = document.querySelectorAll('#container-componentes .check-componente:checked');
+    checkboxes.forEach(chk => {
+      const precio = parseFloat(chk.dataset.precio) || 0;
+      const nombre = chk.dataset.nombre;
+      listaComponentesNombres.push(nombre);
+      precioComponentesTotal += precio;
+    });
+  }
+
+  const accColor = document.getElementById('accesorio-color').value;
+  const accMando = document.getElementById('accesorio-mando').value;
+
+  // --- CÁLCULO DE COSTO BASE ---
+  let area = ancho * alto;
+  if (area < 1) area = 1;
+
+  const costoBaseUnitario = ((prodObj.precio + precioTela) * area) + precioMotor + precioControl + precioComponentesTotal;
+  const totalCostoBase = costoBaseUnitario * cant;
+
+  const textoComponentes = listaComponentesNombres.length > 0 ? listaComponentesNombres.join(", ") : "";
+
+  return {
+    producto: prodObj.nombre,
+    tela: telaObj.nombre,
+    color: color,
+    medidas: { ancho, alto, areaCobrada: area },
+    cantidad: cant,
+    motor: motorObj ? motorObj.nombre : "Manual",
+    control: controlObj ? controlObj.nombre : "",
+    componente: textoComponentes,
+    accesorios: { color: accColor, mando: accMando },
+    notas: notas,
+    financiero: { costoBase: costoBaseUnitario },
+    precioUnitario: costoBaseUnitario,
+    total: totalCostoBase
+  };
+}
 // --- 1. AGREGAR AL CARRITO (SOLO COSTO BASE) ---
 // --- 1. AGREGAR AL CARRITO (CORREGIDA PARA MÚLTIPLES COMPONENTES) ---
 function agregarAlCarrito() {
-    const idProd = document.getElementById('select-producto').value;
-    const idTela = document.getElementById('select-tela').value;
-    const ancho = parseFloat(document.getElementById('ancho').value);
-    const alto = parseFloat(document.getElementById('alto').value);
-    const cant = parseInt(document.getElementById('cantidad').value);
-    const notas = document.getElementById('item-notas').value.trim();
+  const item = construirItemDesdeFormulario();
+  if (!item) return;
 
-
-    if(!idProd || !idTela || !ancho || !alto || !cant) {
-        alert("Por favor completa los campos del producto.");
-        return;
-    }
-
-    const prodObj = productosDB.find(p => p._id === idProd);
-    const telaObj = telasDB.find(t => t._id === idTela);
-    const color = document.getElementById('select-color').value;
-    
-    // Precio Tela Específico
-    let precioTela = 0;
-    if (telaObj && telaObj.configuraciones) {
-        const config = telaObj.configuraciones.find(c => c.producto === prodObj.nombre);
-        if (config) precioTela = config.precio;
-    }
-
-    // --- LOGICA MOTORIZACIÓN ---
-    const usaMotor = document.getElementById('check-motor').checked;
-    
-    let motorObj = null, precioMotor = 0;
-    let controlObj = null, precioControl = 0;
-    
-    // Variables para componentes múltiples
-    let listaComponentesNombres = []; 
-    let precioComponentesTotal = 0;
-
-    if(usaMotor) {
-        // A. Motor
-        const idMotor = document.getElementById('select-motor').value;
-        if(idMotor) {
-            motorObj = motoresDB.find(m => m._id === idMotor);
-            precioMotor = motorObj ? motorObj.precio : 0;
-        }
-        // B. Control
-        const idControl = document.getElementById('select-control').value;
-        if(idControl) {
-            controlObj = controlesDB.find(c => c._id === idControl);
-            precioControl = controlObj ? controlObj.precio : 0;
-        }
-        
-        // C. Componentes (MÚLTIPLES CHECKBOXES)
-        // Buscamos solo los que estén marcados (:checked)
-        const checkboxes = document.querySelectorAll('#container-componentes .check-componente:checked');
-        
-        checkboxes.forEach(chk => {
-            // Leemos el precio y nombre que guardamos en los atributos data- del HTML
-            const precio = parseFloat(chk.dataset.precio) || 0;
-            const nombre = chk.dataset.nombre;
-            
-            listaComponentesNombres.push(nombre); // Guardamos nombre
-            precioComponentesTotal += precio;     // Sumamos precio
-        });
-    }
-
-    const accColor = document.getElementById('accesorio-color').value;
-    const accMando = document.getElementById('accesorio-mando').value;
-    
-    // --- CÁLCULO DE COSTO BASE ---
-    let area = ancho * alto;
-    if(area < 1) area = 1; 
-    
-    // FÓRMULA FINAL: (Prod + Tela)*m2 + Motor + Control + SUMA DE COMPONENTES
-    const costoBaseUnitario = ((prodObj.precio + precioTela) * area) + precioMotor + precioControl + precioComponentesTotal;
-    const totalCostoBase = costoBaseUnitario * cant;
-
-    // Convertimos la lista de nombres (Array) a Texto separado por comas
-    // Ej: "Hub Wifi, Cargador 5v"
-    const textoComponentes = listaComponentesNombres.length > 0 ? listaComponentesNombres.join(", ") : "";
-
-    // Creamos el item FINAL
-    const item = {
-        producto: prodObj.nombre,
-        tela: telaObj.nombre,
-        color: color,
-        medidas: { ancho, alto, areaCobrada: area },
-        cantidad: cant,
-        
-        // Guardamos los datos de motorización
-        motor: motorObj ? motorObj.nombre : "Manual",
-        control: controlObj ? controlObj.nombre : "",
-        componente: textoComponentes, // <--- AQUÍ VA LA LISTA DE NOMBRES
-        
-        accesorios: { color: accColor, mando: accMando },
-        notas: notas,
-        financiero: { costoBase: costoBaseUnitario }, 
-        
-        precioUnitario: costoBaseUnitario, 
-        total: totalCostoBase
-    };
-    document.getElementById('item-notas').value = '';
+  // ✅ Si estamos editando, actualiza EN LA MISMA POSICIÓN (no cambia orden)
+  if (editIndex !== null) {
+    carritoItems[editIndex] = item;
+    salirModoEdicion();  // vuelve al modo normal
+  } else {
     carritoItems.push(item);
-    actualizarTablaCarrito();
+    limpiarFormularioItem();
+  }
+
+  actualizarTablaCarrito(); // ✅ totales en tiempo real, como tú quieres
 }
 
    function actualizarTablaCarrito() {
@@ -843,119 +837,99 @@ function agregarAlCarrito() {
     }
 
     carritoItems.forEach((item, index) => {
-        // 1. Precio Venta Bruto (100%)
-        const precioBruto = item.total * factorUtilidad;
-        // 2. Precio Venta Base (84%) -> ESTE ES EL QUE SIEMPRE SE MUESTRA
-        const precioBase = precioBruto * 0.84;
+  const precioBruto = item.total * factorUtilidad;
+  const precioBase = precioBruto * 0.84;
 
-        const fila = `
-            <tr>
-                <td>
-                    <strong style="font-size:1.1em;">${item.producto}</strong><br>
-                    <span style="color:#555;">${item.tela} - ${item.color}</span>
-                    </td>
-                <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
-                <td style="text-align: center;">${item.cantidad}</td>
-                <td style="color: #999; font-size: 0.85em;">$${(item.total).toFixed(2)}</td> <td style="font-weight:bold; color: #001f3f; font-size: 1.1em;">$${precioBase.toFixed(2)}</td>
-                <td style="white-space: nowrap;">
-                    <button onclick="editarItem(${index})" style="color:#007bff; border:none; background:none; cursor:pointer; font-size: 1.2em; margin-right: 5px;" title="Editar">✏️</button>
-                    <button onclick="eliminarItem(${index})" style="color:red; border:none; background:none; cursor:pointer; font-size: 1.2em;" title="Eliminar">&times;</button>
-                </td>
-            </tr>
-        `;
-        tbody.innerHTML += fila;
-    });
+  // ✅ Fila resaltada si este index está en edición
+  const enEdicion = (editIndex === index);
+
+  const fila = `
+    <tr class="${enEdicion ? 'fila-editando' : ''}">
+      <td>
+        <strong style="font-size:1.1em;">${item.producto}</strong><br>
+        <span style="color:#555;">${item.tela} - ${item.color}</span>
+      </td>
+
+      <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
+
+      <td style="text-align: center;">${item.cantidad}</td>
+
+      <td style="color: #999; font-size: 0.85em;">
+        $${(item.total).toFixed(2)}
+      </td>
+
+      <td style="font-weight:bold; color: #001f3f; font-size: 1.1em;">
+        $${precioBase.toFixed(2)}
+      </td>
+
+      <td style="white-space: nowrap;">
+        <button onclick="editarItem(${index})"
+                style="color:#007bff; border:none; background:none; cursor:pointer; font-size: 1.2em; margin-right: 5px;"
+                title="Editar">✏️</button>
+
+        ${enEdicion
+  ? `<button disabled
+             style="opacity:0.4; cursor:not-allowed; border:none; background:none; font-size: 1.2em;"
+             title="No puedes eliminar mientras editas">&times;</button>`
+  : `<button onclick="eliminarItem(${index})"
+             style="color:red; border:none; background:none; cursor:pointer; font-size: 1.2em;"
+             title="Eliminar">&times;</button>`
+}
+
+        ${enEdicion ? '<span class="badge-editando">Editando…</span>' : ''}
+      </td>
+    </tr>
+  `;
+
+  tbody.innerHTML += fila;
+});
 
     calcularTotalesGlobales();
 }
 
-    function eliminarItem(index) {
-        carritoItems.splice(index, 1);
-        actualizarTablaCarrito();
+   function eliminarItem(index) {
+
+  // si borran el item que se está editando, salimos del modo edición
+  if (editIndex !== null) {
+    if (index === editIndex) {
+      salirModoEdicion();
+    } else if (index < editIndex) {
+      // si borran uno antes, el índice de edición baja 1
+      editIndex--;
     }
+  }
 
-    // --- FUNCIÓN RECUPERAR/EDITAR ITEM ---
-    function editarItem(index) {
-        const item = carritoItems[index];
+  carritoItems.splice(index, 1);
+  actualizarTablaCarrito();
+}
+``
 
-        // 1. Llenar Producto
-        // Buscamos el objeto en la base de datos local usando el nombre que guardamos
-        const prodObj = productosDB.find(p => p.nombre === item.producto);
-        if (prodObj) {
-            document.getElementById('select-producto').value = prodObj._id;
-            actualizarListaTelas(); // Importante: cargar las telas de ese producto
-        }
+   function editarItem(index) {
+  // Si ya estás editando otro item, pregunta si quieres descartar
+  if (editIndex !== null && editIndex !== index) {
+    const ok = confirm(
+      "Ya estás editando otra persiana.\n\n" +
+      "¿Quieres DESCARTAR esa edición y editar esta nueva?"
+    );
+    if (!ok) return;
+    // descartar edición anterior (carrito queda intacto)
+    salirModoEdicion();
+  }
 
-        // 2. Llenar Tela
-        const telaObj = telasDB.find(t => t.nombre === item.tela);
-        if (telaObj) {
-            document.getElementById('select-tela').value = telaObj._id;
-            actualizarListaColores(); // Importante: cargar colores de esa tela
-        }
+  editIndex = index;
 
-        // 3. Llenar Color (Con un pequeño retraso para asegurar que la lista cargó)
-        setTimeout(() => {
-            document.getElementById('select-color').value = item.color;
-        }, 50);
+  // respaldo profundo por si cancelan
+  editBackupItem = JSON.parse(JSON.stringify(carritoItems[index]));
 
-        // 4. Llenar Medidas y Cantidad
-        document.getElementById('ancho').value = item.medidas.ancho;
-        document.getElementById('alto').value = item.medidas.alto;
-        document.getElementById('cantidad').value = item.cantidad;
+  cargarFormularioDesdeItem(carritoItems[index]);
 
-        // 5. Llenar Motorización y Componentes
-        if (item.motor && item.motor !== "Manual") {
-            document.getElementById('check-motor').checked = true;
-            toggleMotor(); // Mostrar el panel
-            
-            // Motor
-            const motorObj = motoresDB.find(m => m.nombre === item.motor);
-            if (motorObj) document.getElementById('select-motor').value = motorObj._id;
+  // UI modo edición
+  const btnAdd = document.querySelector('.btn-add'); // tu botón "AGREGAR PERSIANA"
+  btnAdd.innerText = "💾 GUARDAR CAMBIOS";
+  document.getElementById('btn-cancelar-edicion').style.display = 'block';
 
-            // Control
-            if (item.control) {
-                const ctrlObj = controlesDB.find(c => c.nombre === item.control);
-                if (ctrlObj) document.getElementById('select-control').value = ctrlObj._id;
-            }
-
-            // Componentes (Checkboxes)
-            // Primero desmarcamos todos
-            document.querySelectorAll('.check-componente').forEach(c => c.checked = false);
-            
-            if (item.componente) {
-                // El item guarda algo como "Hub, Cargador"
-                // Lo separamos por la coma para tener una lista
-                const listaNombres = item.componente.split(', ');
-                
-                listaNombres.forEach(nombre => {
-                    // Buscamos el checkbox que tenga ese nombre exacto
-                    const chk = document.querySelector(`.check-componente[data-nombre="${nombre}"]`);
-                    if(chk) chk.checked = true;
-                });
-            }
-
-        } else {
-            document.getElementById('check-motor').checked = false;
-            toggleMotor();
-            document.getElementById('select-motor').value = "";
-        }
-
-        // 6. Accesorios y Notas
-        document.getElementById('accesorio-color').value = item.accesorios.color;
-        document.getElementById('accesorio-mando').value = item.accesorios.mando;
-        document.getElementById('item-notas').value = item.notas || '';
-
-        // 7. ELIMINAR DEL CARRITO
-        // Lo sacamos de la tabla para que el usuario guarde la versión corregida
-        carritoItems.splice(index, 1);
-        actualizarTablaCarrito();
-
-        // 8. Scroll arriba para ver el formulario
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        
-        // Mensaje de confirmación
-        // alert(`Editando: ${item.producto}`); 
-    }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 
    // --- 3. CÁLCULO GLOBAL (CORREGIDO: SUBTOTAL REACTIVO) ---
@@ -1654,7 +1628,98 @@ function actualizarListaTelas() {
             alert("Error de conexión al intentar guardar el color.");
         }
     }
+function cargarFormularioDesdeItem(item) {
+  const prodObj = productosDB.find(p => p.nombre === item.producto);
+  if (prodObj) {
+    document.getElementById('select-producto').value = prodObj._id;
+    actualizarListaTelas();
+  }
 
+  const telaObj = telasDB.find(t => t.nombre === item.tela);
+  if (telaObj) {
+    document.getElementById('select-tela').value = telaObj._id;
+    actualizarListaColores();
+  }
+
+  setTimeout(() => {
+    document.getElementById('select-color').value = item.color || "";
+  }, 50);
+
+  document.getElementById('ancho').value = item.medidas?.ancho ?? "";
+  document.getElementById('alto').value = item.medidas?.alto ?? "";
+  document.getElementById('cantidad').value = item.cantidad ?? 1;
+
+  // Motorización
+  if (item.motor && item.motor !== "Manual") {
+    document.getElementById('check-motor').checked = true;
+    toggleMotor();
+
+    const motorObj = motoresDB.find(m => m.nombre === item.motor);
+    if (motorObj) document.getElementById('select-motor').value = motorObj._id;
+
+    if (item.control) {
+      const ctrlObj = controlesDB.find(c => c.nombre === item.control);
+      if (ctrlObj) document.getElementById('select-control').value = ctrlObj._id;
+    }
+
+    document.querySelectorAll('.check-componente').forEach(c => c.checked = false);
+    if (item.componente) {
+      item.componente.split(', ').forEach(nombre => {
+        const chk = document.querySelector(`.check-componente[data-nombre="${nombre}"]`);
+        if (chk) chk.checked = true;
+      });
+    }
+  } else {
+    document.getElementById('check-motor').checked = false;
+    toggleMotor();
+    document.getElementById('select-motor').value = "";
+    document.getElementById('select-control').value = "";
+    document.querySelectorAll('.check-componente').forEach(c => c.checked = false);
+  }
+
+  document.getElementById('accesorio-color').value = item.accesorios?.color || "Blanco";
+  document.getElementById('accesorio-mando').value = item.accesorios?.mando || "Derecho";
+  document.getElementById('item-notas').value = item.notas || "";
+}
+
+function cancelarEdicionItem() {
+  if (editIndex === null) return;
+
+  // restaurar respaldo (si quieres 100% garantía)
+  carritoItems[editIndex] = editBackupItem;
+
+  salirModoEdicion();
+  actualizarTablaCarrito(); // totales se recalculan normal
+}
+
+function salirModoEdicion() {
+  editIndex = null;
+  editBackupItem = null;
+
+  // UI normal
+  const btnAdd = document.querySelector('.btn-add');
+  btnAdd.innerText = "➕ AGREGAR PERSIANA";
+  document.getElementById('btn-cancelar-edicion').style.display = 'none';
+
+  limpiarFormularioItem();
+}
+
+function limpiarFormularioItem() {
+  document.getElementById('select-producto').value = "";
+  document.getElementById('select-tela').innerHTML = `<option value="">-- Seleccione --</option>`;
+  document.getElementById('select-color').innerHTML = `<option value="">-- Selecciona --</option>`;
+  document.getElementById('ancho').value = "";
+  document.getElementById('alto').value = "";
+  document.getElementById('cantidad').value = 1;
+
+  document.getElementById('check-motor').checked = false;
+  toggleMotor();
+  document.getElementById('select-motor').value = "";
+  document.getElementById('select-control').value = "";
+  document.querySelectorAll('.check-componente').forEach(c => c.checked = false);
+
+  document.getElementById('item-notas').value = "";
+}
 
 
 </script>
