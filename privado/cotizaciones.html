@@ -1308,35 +1308,24 @@ try {
   });
 
   const textoError = !resp.ok ? await resp.text().catch(() => '') : '';
-  if (!resp.ok) {
-    throw new Error(`Servidor respondió ${resp.status} ${resp.statusText}: ${textoError.slice(0, 400)}`);
+  if (!resp.ok) throw new Error(`Servidor respondió ${resp.status}: ${textoError.slice(0, 300)}`);
+
+  // ✅ Modo VER: abrir el PDF real con filename correcto
+  if (modo === 'ver') {
+    window.open(`/cotizaciones/${cotizacionId}/pdf?inline=1`, '_blank');
+    return;
   }
 
-  const ct = resp.headers.get('content-type') || '';
-  if (!ct.includes('application/pdf')) {
-    const t = await resp.text().catch(() => '');
-    throw new Error(`Respuesta no es PDF. Content-Type=${ct}. Body: ${t.slice(0, 400)}`);
-  }
-
+  // ✅ Modo DESCARGAR: descargamos desde el blob
   const blob = await resp.blob();
   const url = URL.createObjectURL(blob);
 
-  // Si quieres abrirlo en pestaña cuando modo === 'ver'
-  if (modo === 'ver') {
-  // 🔥 Abrir desde endpoint real, con filename correcto
-  window.open(`/cotizaciones/${cotizacionId}/pdf?inline=1`, '_blank');
-  URL.revokeObjectURL(url); // liberamos el blob que ya no usamos
-  return;
-}
-  
-  else {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Cotizacion_${folio}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Cotizacion_${folio}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 
   URL.revokeObjectURL(url);
 

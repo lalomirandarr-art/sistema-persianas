@@ -717,13 +717,10 @@ app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
         .on('error', reject)
         .on('finish', () => resolve(uploadStream.id));
     });
-     const inline = req.query.inline === '1';
-const dispo = inline ? 'inline' : 'attachment';
+     
     // 5) Responder al cliente con el PDF (stream)
     res.setHeader("Content-Type", "application/pdf");
-
-res.setHeader("Content-Type", "application/pdf");
-res.setHeader("Content-Disposition", `${dispo}; filename="${cot.pdf?.filename || 'Cotizacion.pdf'}"`);
+res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     const downloadPromise = new Promise((resolve, reject) => {
       fs.createReadStream(tmpPath)
         .on('error', reject)
@@ -879,9 +876,12 @@ app.get('/cotizaciones/:id/pdf', protegerRuta, async (req, res) => {
     const fileId = cot.pdf?.fileId;
     if (!fileId) return res.status(404).send("Esta cotización no tiene PDF guardado");
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${cot.pdf.filename || 'Cotizacion.pdf'}"`);
+    const inline = req.query.inline === '1';
+    const dispo = inline ? 'inline' : 'attachment';
 
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `${dispo}; filename="${cot.pdf?.filename || 'Cotizacion.pdf'}"`);
+``
     // Stream desde GridFS
     pdfBucket.openDownloadStream(fileId).pipe(res);
 
