@@ -797,13 +797,26 @@ app.post('/pdf/orden-trabajo', protegerRuta, async (req, res) => {
     const safeFolio = (folio || cotizacionId).toString().replace(/[^\w\-]/g, '_');
     tmpPath = `${os.tmpdir()}/Orden_Instalacion_${safeFolio}_${Date.now()}.pdf`;
 
+
+    
+const margen = 0.25; // 0.25in = 6.35mm aprox
+const scale = (8.5 - 2 * margen) / 8.5; // ej: (8.5 - 0.5)/8.5 = 0.941
+
     // ✅ Márgenes en 0 para respetar tu layout (tu HTML ya trae padding)
-    await page.pdf({
-      path: tmpPath,
-      format: "Letter",
-      printBackground: true,
-      margin: { top: "0in", right: "0in", bottom: "0in", left: "0in" }
-    });
+   
+await page.pdf({
+  path: tmpPath,
+  format: "Letter",
+  printBackground: true,
+  margin: {
+    top: `${margen}in`,
+    right: `${margen}in`,
+    bottom: `${margen}in`,
+    left: `${margen}in`,
+  },
+  scale: scale
+});
+
 
     const filename = `Orden_Instalacion_${folio || cotizacionId}.pdf`;
 
