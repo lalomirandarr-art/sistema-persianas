@@ -1686,13 +1686,49 @@ async function generarPDFOrdenTrabajo(id) {
         </div>
     `;
 
-    const opt = { 
-        margin: 0,
-        filename: `Orden_Instalacion_${c.folioInteligente}.pdf`, 
-        image: { type: 'jpeg', quality: 0.98 }, 
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 }, 
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
-    };
+    document.body.style.cursor = 'wait';
+try {
+  const resp = await fetch('/pdf/orden-trabajo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      folio: c.folioInteligente,   // lo usas para nombre
+      html: element.innerHTML,      // tu diseño intacto
+      cotizacionId: c._id           // id para guardar en Mongo/GridFS
+    })
+  });
+
+  const textoError = !resp.ok ? await resp.text().catch(() => '') : '';
+  if (!resp.ok) {
+    throw new Error(`Servidor respondió ${resp.status} ${resp.statusText}: ${textoError.slice(0, 400)}`);
+  }
+
+  const ct = resp.headers.get('content-type') || '';
+  if (!ct.includes('application/pdf')) {
+    const t = await resp.text().catch(() => '');
+    throw new Error(`Respuesta no es PDF. Content-Type=${ct}. Body: ${t.slice(0, 400)}`);
+  }
+
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+
+  // Descargar automático
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Orden_Instalacion_${c.folioInteligente}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  URL.revokeObjectURL(url);
+
+} catch (error) {
+  console.error("Error generando PDF Orden", error);
+  alert("Hubo un problema generando el PDF de Orden.\n" + (error.message || error));
+} finally {
+  document.body.style.cursor = 'default';
+}
 
     document.body.style.cursor = 'wait';
     try {

@@ -157,7 +157,11 @@ pdf: {
   filename: { type: String, default: "" },
   updatedAt: { type: Date, default: null }
 },
-
+pdfOrden: {
+  fileId: { type: mongoose.Schema.Types.ObjectId, default: null },
+  filename: { type: String, default: "" },
+  updatedAt: { type: Date, default: null }
+},
     // LISTA DE PRODUCTOS (Array de objetos)
     items: [{
         producto: String,
@@ -748,6 +752,110 @@ app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
     if (tmpPath) fs.unlink(tmpPath, () => {});
   }
 });
+
+app.post('/pdf/orden-trabajo', protegerRuta, async (req, res) => {
+  let page;
+  let tmpPath = null;
+
+  try {
+    const { html, folio, cotizacionId } = req.body;
+
+    if (!html) return res.status(400).json({ exito: false, mensaje: "Falta HTML" });
+    if (!cotizacionId) return res.status(400).json({ exito: false, mensaje: "Falta cotizacionId" });
+    if (!pdfBucket) return res.status(503).json({ exito: false, mensaje: "GridFS aún no está listo, intenta de nuevo." });
+
+    // ✅ Importante: para que funcionen imágenes tipo /IMG/logopd.png
+    const baseUrl = `${req.protocol}://${req.get('host')}/`;
+
+    const fullHtml = `
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <base href="${baseUrl}">
+    <style>
+      body { margin: 0; }
+
+      /* Evita cortes raros en tablas/renglones */
+      thead { display: table-header-group; }
+      tr { break-inside: avoid; page-break-inside: avoid; }
+      table { break-inside: auto; }
+    </style>
+  </head>
+  <body>${html}</body>
+</html>`;
+
+    const browser = await getBrowser();
+    page = await browser.newPage();
+    page.setDefaultTimeout(30000);
+    page.setDefaultNavigationTimeout(30000);
+
+    await page.setContent(fullHtml, { waitUntil: "load", timeout: 30000 });
+    await page.emulateMediaType("print");
+
+    // Archivo temporal para no consumir RAM
+    const safeFolio = (folio || cotizacionId).toString().replace(/[^\w\-]/g, '_');
+    tmpPath = `${os.tmpdir()}/Orden_Instalacion_${safeFolio}_${Date.now()}.pdf`;
+
+    // ✅ Márgenes en 0 para respetar tu layout (tu HTML ya trae padding)
+    await page.pdf({
+      path: tmpPath,
+      format: "Letter",
+      printBackground: true,
+      margin: { top: "0in", right: "0in", bottom: "0in", left: "0in" }
+    });
+
+    const filename = `Orden_Instalacion_${folio || cotizacionId}.pdf`;
+
+    // 1) Subir a GridFS
+    const uploadStream = pdfBucket.openUploadStream(filename, {
+      contentType: "application/pdf",
+      metadata: { cotizacionId, folio, tipo: "orden-trabajo" }
+    });
+
+    const uploadPromise = new Promise((resolve, reject) => {
+      fs.createReadStream(tmpPath)
+        .pipe(uploadStream)
+        .on('error', reject)
+        .on('finish', () => resolve(uploadStream.id));
+    });
+
+    // 2) Responder al cliente con stream del PDF
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+    const downloadPromise = new Promise((resolve, reject) => {
+      fs.createReadStream(tmpPath)
+        .on('error', reject)
+        .pipe(res)
+        .on('finish', resolve);
+    });
+
+    // 3) Esperar upload → actualizar Mongo → esperar descarga
+    const fileId = await uploadPromise;
+
+    await Cotizacion.findByIdAndUpdate(cotizacionId, {
+      $set: {
+        "pdfOrden.fileId": fileId,
+        "pdfOrden.filename": filename,
+        "pdfOrden.updatedAt": new Date()
+      }
+    });
+
+    await downloadPromise;
+
+  } catch (err) {
+    console.error("❌ PDF ORDEN ERROR:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ exito: false, mensaje: err.message || "Error generando PDF de Orden" });
+    }
+  } finally {
+    if (page) await page.close().catch(() => {});
+    if (tmpPath) fs.unlink(tmpPath, () => {});
+  }
+});
+
+
 app.get('/cotizaciones/:id/pdf', protegerRuta, async (req, res) => {
   try {
     const cot = await Cotizacion.findById(req.params.id).lean();
@@ -765,6 +873,26 @@ app.get('/cotizaciones/:id/pdf', protegerRuta, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send("Error descargando PDF");
+  }
+});
+
+
+app.get('/cotizaciones/:id/pdf-orden', protegerRuta, async (req, res) => {
+  try {
+    const cot = await Cotizacion.findById(req.params.id).lean();
+    if (!cot) return res.status(404).send("Cotización no encontrada");
+
+    const fileId = cot.pdfOrden?.fileId;
+    if (!fileId) return res.status(404).send("Esta cotización no tiene PDF de Orden guardado");
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${cot.pdfOrden.filename || 'Orden_Instalacion.pdf'}"`);
+
+    pdfBucket.openDownloadStream(fileId).pipe(res);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error descargando PDF de Orden");
   }
 });
 
