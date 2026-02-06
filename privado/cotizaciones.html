@@ -1323,11 +1323,8 @@ try {
 
   // Si quieres abrirlo en pestaña cuando modo === 'ver'
   if (modo === 'ver') {
-  // Abrir el PDF guardado en GridFS (nombre correcto en descarga)
-  window.open(`/cotizaciones/${cotizacionId}/pdf`, '_blank');
-  URL.revokeObjectURL(url);
-  return;
-}
+    window.open(url, '_blank');
+  }
   
   else {
     const a = document.createElement('a');
