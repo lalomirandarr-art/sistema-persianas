@@ -438,7 +438,7 @@ input:checked + .slider:before {
 
                     <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
                      <button class="hero-button" onclick="guardarYVerPDF()" style="background-color: #001f3f; width: 100%; font-size: 1.1em;">
-                      💾 GUARDAR Y VER PDF 📄
+                      💾 GUARDAR Y DESCARGAR PDF 📄
                     </button>
                     </div>
                 </div>
@@ -1007,7 +1007,7 @@ function calcularTotalesGlobales() {
     };
 }
 
-async function generarPDF(modo = 'descargar', cotizacionId) {
+async function generarPDF(cotizacionId)  {
     if (carritoItems.length === 0) { alert("No hay productos para generar el PDF."); return; }
 
     const fechaObj = new Date();
@@ -1308,26 +1308,33 @@ try {
   });
 
   const textoError = !resp.ok ? await resp.text().catch(() => '') : '';
-  if (!resp.ok) throw new Error(`Servidor respondió ${resp.status}: ${textoError.slice(0, 300)}`);
-
-  // ✅ Modo VER: abrir el PDF real con filename correcto
-  if (modo === 'ver') {
-    window.open(`/cotizaciones/${cotizacionId}/pdf?inline=1`, '_blank');
-    return;
+  if (!resp.ok) {
+    throw new Error(`Servidor respondió ${resp.status} ${resp.statusText}: ${textoError.slice(0, 400)}`);
   }
 
-  // ✅ Modo DESCARGAR: descargamos desde el blob
+  const ct = resp.headers.get('content-type') || '';
+  if (!ct.includes('application/pdf')) {
+    const t = await resp.text().catch(() => '');
+    throw new Error(`Respuesta no es PDF. Content-Type=${ct}. Body: ${t.slice(0, 400)}`);
+  }
+
+  // ✅ Tomar filename del servidor si viene (más robusto)
+  const cd = resp.headers.get('content-disposition') || '';
+  const match = cd.match(/filename="?([^"]+)"?/i);
+  const filename = match?.[1] || `Cotizacion_${folio}.pdf`;
+
   const blob = await resp.blob();
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Cotizacion_${folio}.pdf`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
 
-  URL.revokeObjectURL(url);
+  // ✅ retraso pequeño para evitar que algunos navegadores corten la descarga
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
 
 } catch (error) {
   console.error("Error generando PDF", error);
@@ -1386,7 +1393,7 @@ try {
 
       // 2) Generar PDF (y guardarlo) usando ese ID
       btn.innerText = "📄 Generando PDF...";
-      await generarPDF('ver', cotizacionId);
+      await generarPDF(cotizacionId);
 
       alert("✅ Cotización guardada y PDF generado.");
 

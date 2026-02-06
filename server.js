@@ -719,7 +719,8 @@ app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
     });
      
     // 5) Responder al cliente con el PDF (stream)
-    res.setHeader("Content-Type", "application/pdf");
+    // 5) Responder al cliente con el PDF (stream)
+res.setHeader("Content-Type", "application/pdf");
 res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     const downloadPromise = new Promise((resolve, reject) => {
       fs.createReadStream(tmpPath)
