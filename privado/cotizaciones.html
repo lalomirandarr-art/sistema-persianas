@@ -102,6 +102,12 @@
             .layout-principal { grid-template-columns: 1fr; } /* Vuelve a apilarse en tablets/celulares */
             .cotizador-container { padding: 10px; width: 100%; }
         }
+        @media (max-width: 600px) {
+  #slot-total-piezas {
+    font-size: 0.85rem;
+    padding: 5px 8px;
+  }
+}
 
         /* --- ESTILOS PARA LA LISTA DE COMPONENTES --- */
 .componentes-box {
@@ -393,15 +399,24 @@ input:checked + .slider:before {
 
                 <div class="panel-totales">
                     
-                    <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+  
+  <!-- ✅ Slot total de piezas (lado contrario) -->
+  <div id="slot-total-piezas"
+       style="font-weight: bold; color:#001f3f; background:#e7f5ff; border:1px solid #74c0fc;
+              padding: 6px 10px; border-radius: 8px; font-size: 0.9rem;">
+     Piezas: <span id="lbl-total-piezas">0</span>
+  </div>
+  <!-- Switch de Gastos Extra (derecha) -->
+  <div style="display: flex; align-items: center; gap: 10px;">
     <label class="switch">
-        <input type="checkbox" id="check-gastos" onchange="toggleGastos()">
-        <span class="slider round"></span>
+      <input type="checkbox" id="check-gastos" onchange="toggleGastos()">
+      <span class="slider round"></span>
     </label>
     <label for="check-gastos" style="margin:0; font-weight:bold; cursor:pointer; color:#555;">Gastos Extra</label>
+  </div>
 </div>
-                    </div>
+
 
                     <div id="panel-gastos" style="display: none; background: #f1f1f1; padding: 10px; margin-bottom: 15px; border-radius: 5px; text-align: left;">
                         <label>Nº Gastos:</label>
@@ -738,6 +753,7 @@ if (Array.isArray(d.gastosAdicionales) && d.gastosAdicionales.length > 0) {
                 if (d.items && Array.isArray(d.items) && d.items.length > 0) {
                     carritoItems = (d.items || []).map(normalizarItem);
                     actualizarTablaCarrito();   
+                    actualizarSlotTotalPiezas();
                 }
    
 
@@ -966,6 +982,7 @@ function agregarAlCarrito() {
 });
 
     calcularTotalesGlobales();
+    actualizarSlotTotalPiezas();
 }
 
    function eliminarItem(index) {
@@ -1121,6 +1138,20 @@ function calcularTotalesGlobales() {
         factorUtilidad
     };
 }
+
+function calcularTotalPiezas() {
+  // Suma de cantidades de todos los items
+  return carritoItems.reduce((sum, item) => sum + (parseInt(item.cantidad, 10) || 0), 0);
+}
+
+function actualizarSlotTotalPiezas() {
+  const lbl = document.getElementById('lbl-total-piezas');
+  if (!lbl) return;
+
+  lbl.textContent = calcularTotalPiezas();
+}
+
+
 
 async function generarPDF(cotizacionId)  {
     if (carritoItems.length === 0) { alert("No hay productos para generar el PDF."); return; }
