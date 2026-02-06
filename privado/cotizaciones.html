@@ -263,9 +263,16 @@ input:checked + .slider:before {
                     </div>
                     <div class="campo">
                         <label>🏢 Cliente:</label>
-                        <select id="cliente">
-                            <option value="">Cargando clientes...</option>
-                        </select>
+
+                        <input type="text"
+                          id="cliente-search"
+                         placeholder="Buscar por nombre o apellido…"
+                         autocomplete="off"
+                         style="margin-bottom: 6px;" />
+
+                       <select id="cliente">
+                             <option value="">Cargando clientes...</option>
+                      </select>
                     </div>
                 </div>
 
@@ -574,13 +581,42 @@ let editBackupItem = null;   // copia del item original (por si cancelan)
             motoresDB.forEach(m => selMotor.add(new Option(`${m.nombre} (+$${m.precio})`, m._id)));
 
             // Clientes
-            const selCliente = document.getElementById('cliente');
-            selCliente.innerHTML = '<option value="">-- Seleccione Cliente --</option>';
-            clientesDB.sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
-            clientesDB.forEach(c => {
-                 const nombre = c.nombre || c.nombreCliente || "Cliente";
-                 selCliente.add(new Option(nombre, nombre));
-            });
+            // Clientes
+const selCliente = document.getElementById('cliente');
+selCliente.innerHTML = '<option value="">-- Seleccione Cliente --</option>';
+
+clientesDB.sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+clientesNombresFull = clientesDB.map(c => (c.nombre || c.nombreCliente || "Cliente")).filter(Boolean);
+
+// Llenar select con TODOS al inicio
+poblarSelectClientes(clientesNombresFull);
+
+// Conectar buscador
+const inputSearch = document.getElementById('cliente-search');
+
+// Al escribir: filtra por coincidencia interna
+inputSearch.addEventListener('input', () => {
+  const q = normalizarTexto(inputSearch.value);
+  if (!q) {
+    poblarSelectClientes(clientesNombresFull);
+    return;
+  }
+
+  const filtrados = clientesNombresFull.filter(n =>
+    normalizarTexto(n).includes(q)
+  );
+
+  // Opcional: limitar a 200 para que no se haga enorme
+  poblarSelectClientes(filtrados.slice(0, 200));
+
+  // Si solo hay 1, seleccionarlo automático
+  if (filtrados.length === 1) selCliente.value = filtrados[0];
+});
+
+// Cuando eliges del select, sincroniza el input
+selCliente.addEventListener('change', () => {
+  inputSearch.value = selCliente.value || "";
+});
 
             // Controles
             const selControl = document.getElementById('select-control');
@@ -719,7 +755,30 @@ if (Array.isArray(d.gastosAdicionales) && d.gastosAdicionales.length > 0) {
 
     
     inicializar();
+let clientesNombresFull = []; // cache de nombres (strings)
 
+// Quita acentos, pasa a minúsculas, trim
+function normalizarTexto(s) {
+  return (s || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // quita acentos
+    .toLowerCase()
+    .trim();
+}
+
+function poblarSelectClientes(listaNombres) {
+  const sel = document.getElementById('cliente');
+  const valorActual = sel.value;
+
+  sel.innerHTML = '<option value="">-- Seleccione Cliente --</option>';
+  listaNombres.forEach(nombre => sel.add(new Option(nombre, nombre)));
+
+  // intentar conservar selección si sigue existiendo
+  if (valorActual && listaNombres.includes(valorActual)) {
+    sel.value = valorActual;
+  }
+}
     function normalizarItem(item) {
   // Copia para no modificar referencias raras
   const it = { ...item };
