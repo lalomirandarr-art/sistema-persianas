@@ -668,6 +668,7 @@ selCliente.addEventListener('change', () => {
                 if (d.cliente) {
                     const selCliente = document.getElementById('cliente');
                     selCliente.value = d.cliente; // Selecciona el cliente automáticamente
+                    document.getElementById('cliente-search').value = d.cliente || "";
                 }
                 if (d.quienCotiza) {
                     document.getElementById('quienCotiza').value = d.quienCotiza;
