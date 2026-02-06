@@ -700,7 +700,7 @@
             <button class="btn-icon btn-pdf" onclick="descargarPDFGuardado('${c._id}')" title="Ver PDF guardado">📄</button>
 
             ${ esImportada ? 
-                `<a href="${urlRespaldo}" download="${nombreDescarga}"xt-decoration:none; font-size: 1.2em;" title="Ver Original Escaneado">🗄️</a>` 
+                `<a href="${urlRespaldo}" download="${nombreDescarga}" style="text-decoration:none; font-size: 1.2em;" title="Ver Original Escaneado">🗄️</a>`
                 : 
                 `<span style="display:inline-block; width: 28px;"></span>` /* Espacio vacío para alinear */
             }
@@ -1365,6 +1365,35 @@ async function generarPDFDesdeHistorial(id) {
     document.body.style.cursor = 'default';
 
 }
+function cambiarPestana(nombre) {
+  // 1) Ocultar todos los contenidos
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
+    tab.style.display = 'none';
+  });
+
+  // 2) Quitar activo a todos los botones
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  // 3) Mostrar el contenido seleccionado
+  const tabSeleccionada = document.getElementById(`tab-${nombre}`);
+  if (tabSeleccionada) {
+    tabSeleccionada.classList.add('active');
+    tabSeleccionada.style.display = 'block';
+  } else {
+    console.warn(`No existe el contenedor tab-${nombre}`);
+  }
+
+  // 4) Activar el botón correcto (por texto o por onclick)
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const onclick = btn.getAttribute('onclick') || '';
+    if (onclick.includes(`'${nombre}'`) || onclick.includes(`"${nombre}"`)) {
+      btn.classList.add('active');
+    }
+  });
+}
 
     // --- FUNCIÓN ABRIR MODAL (ACTUALIZADA CON CONTABILIDAD) ---
 function abrirModalDetalles(id) {
@@ -1372,7 +1401,13 @@ function abrirModalDetalles(id) {
     if (!c) return;
 
     // --- 1. RESETEAR PESTAÑAS AL ABRIR ---
-    cambiarPestana('detalles'); // Siempre empezar en la pestaña 1
+    if (typeof cambiarPestana === "function") {
+  cambiarPestana('detalles');
+} else {
+  console.warn("cambiarPestana no está definida, abriendo solo Detalles...");
+  document.getElementById('tab-detalles')?.style && (document.getElementById('tab-detalles').style.display = 'block');
+}
+
     document.getElementById('edit-id').value = c._id;
     document.getElementById('modal-titulo').innerText = `Detalles: ${c.folioInteligente}`;
 
@@ -1737,14 +1772,6 @@ try {
   document.body.style.cursor = 'default';
 }
 
-    document.body.style.cursor = 'wait';
-    try {
-        await html2pdf().set(opt).from(element).save();
-    } catch (error) {
-        console.error("Error", error);
-        alert("Error al generar PDF.");
-    }
-    document.body.style.cursor = 'default';
 }
 
 function descargarPDFGuardado(id) {
