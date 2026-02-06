@@ -1605,7 +1605,7 @@ async function generarPDFOrdenTrabajo(id) {
                     <td style="${cellStyle}">
                         ${especificacionesHTML}
                     </td>
-                    <td style="${cellStyle} background: ${notaTexto ? '#fff8e1' : 'white'}; color: #d63384;">
+                    <td style="${cellStyle} background: ${notaTexto ? '#fff8e1' : 'white'}; color: #000000;">
                         ${notaTexto}
                     </td>
                     <td style="${cellStyle} text-align: center; vertical-align: middle;">
@@ -1636,14 +1636,14 @@ async function generarPDFOrdenTrabajo(id) {
                     <div style="font-size: 14px; font-weight: bold; color: #333; margin-top: 5px;">ORDEN DE INSTALACIÓN</div>
                 </div>
                 <div style="width: 50%; text-align: right;">
-                    <div style="font-size: 1.4em; font-weight: bold; color: #fd7e14;">FOLIO: ${c.folioInteligente}</div>
+                    <div style="font-size: 1.4em; font-weight: bold; color: #001f3f;">FOLIO: ${c.folioInteligente}</div>
                     <div style="margin-top: 5px;"><strong>Fecha:</strong> ${new Date(c.fecha).toLocaleDateString('es-MX')}</div>
                    
                 </div>
             </div>
 
             <div style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 15px;">
-                <h3 style="margin: 0 0 5px 0; color: #fd7e14; font-size: 1em;">📍 CLIENTE / UBICACIÓN</h3>
+                <h3 style="margin: 0 0 5px 0; color: #001f3f; font-size: 1em;">📍 CLIENTE / UBICACIÓN</h3>
                 <div style="font-size: 1.2em; font-weight: bold; color: #000;">${c.cliente}</div>
             </div>
 
