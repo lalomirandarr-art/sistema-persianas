@@ -609,12 +609,72 @@ input:checked + .slider:before {
                     document.getElementById('quienCotiza').value = d.quienCotiza;
                 }
 
+                // ✅ 1) Restaurar % Utilidad
+if (d.pctUtilidad !== undefined && d.pctUtilidad !== null) {
+  const selUtil = document.getElementById('select-utilidad');
+  const utilidad = parseInt(d.pctUtilidad, 10);
+
+  if (!isNaN(utilidad) && utilidad >= 0 && utilidad <= 99) {
+    selUtil.value = String(utilidad);
+  } else {
+    selUtil.value = "50";
+  }
+}
+
+                console.log("Restaurando utilidad:", d.pctUtilidad);
+                console.log("Select utilidad final:", document.getElementById('select-utilidad').value);
+// ✅ 2) Restaurar Descuento Global
+if (d.descuentoGlobalPct !== undefined && d.descuentoGlobalPct !== null) {
+  document.getElementById('select-descuento').value = String(d.descuentoGlobalPct);
+}
+
+// ✅ 3) Restaurar IVA (checkbox)
+// Usamos "aplicaIva" si viene, si no, lo inferimos por monto de iva
+if (d.aplicaIva !== undefined && d.aplicaIva !== null) {
+  document.getElementById('check-iva').checked = !!d.aplicaIva;
+} else {
+  // fallback por compatibilidad
+  document.getElementById('check-iva').checked = (typeof d.iva === 'number' && d.iva > 0);
+}
+
+// ✅ 4) Restaurar Gastos Extra
+if (Array.isArray(d.gastosAdicionales) && d.gastosAdicionales.length > 0) {
+  document.getElementById('check-gastos').checked = true;
+  document.getElementById('panel-gastos').style.display = 'block';
+
+  const cantGastos = d.gastosAdicionales.length;
+
+  // ✅ MUY IMPORTANTE:
+  // tu select tiene 0..10, ya NO lo limites a 3 (eso te rompe restauración)
+  document.getElementById('cantidad-gastos').value = String(cantGastos);
+
+  generarCamposGastos();
+
+  setTimeout(() => {
+    d.gastosAdicionales.forEach((gasto, i) => {
+      const inputDesc = document.getElementById(`gasto-desc-${i + 1}`);
+      const inputMonto = document.getElementById(`gasto-monto-${i + 1}`);
+      if (inputDesc) inputDesc.value = gasto.descripcion || '';
+      if (inputMonto) inputMonto.value = gasto.monto ?? 0;
+    });
+
+    // recalcula con gastos ya cargados
+    calcularTotalesGlobales();
+  }, 50);
+
+} else {
+  // si no hay gastos, aseguramos estado
+  document.getElementById('check-gastos').checked = false;
+  document.getElementById('panel-gastos').style.display = 'none';
+}
+
                 // B) Restaurar el Carrito de Compras
                 // Aquí tomamos los items que venían del historial y los ponemos en la variable global
                 if (d.items && Array.isArray(d.items) && d.items.length > 0) {
                     carritoItems = d.items; 
                     actualizarTablaCarrito(); // ¡Esta función es la que dibuja la tabla!
                 }
+   
 
                 // C) Restaurar Descuentos
                 if (d.descuentoGlobalPct) {

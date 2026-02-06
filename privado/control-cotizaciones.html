@@ -726,36 +726,35 @@
     // --- FUNCIÓN ENVIAR A COTIZADOR ---
 
     function enviarACotizador(id) {
+  const c = todasLasCotizaciones.find(item => item._id === id);
+  if (!c) return alert("Error: Datos no encontrados");
 
-        const c = todasLasCotizaciones.find(item => item._id === id);
+  const datosParaCotizador = {
+    cliente: c.cliente,
+    quienCotiza: c.quienCotiza,
+    items: c.items,
 
-        if(!c) return alert("Error: Datos no encontrados");
+    // gastos
+    gastosAdicionales: c.gastosAdicionales || [],
+    totalGastosAdicionales: c.totalGastosAdicionales || 0,
 
-        const datosParaCotizador = {
+    // descuento
+    descuentoGlobalPct: c.descuentoGlobalPct ?? 0,
 
-            cliente: c.cliente,
+    // ✅ utilidad
+    pctUtilidad: (c.pctUtilidad ?? 50),
 
-            quienCotiza: c.quienCotiza,
+    // ✅ IVA: guardamos "aplicaIva" como boolean
+    // Si el monto de iva es > 0 interpretamos que estaba aplicado.
+    aplicaIva: (typeof c.iva === 'number' ? c.iva > 0 : false),
 
-            items: c.items,
+    // guardamos el monto por si lo necesitas (opcional)
+    iva: c.iva || 0
+  };
 
-            gastosAdicionales: c.gastosAdicionales,
-
-            totalGastosAdicionales: c.totalGastosAdicionales,
-
-            iva: c.iva,
-
-            descuentoGlobalPct: c.descuentoGlobalPct || 0,
-
-            pctUtilidad: c.pctUtilidad
-
-        };
-
-        localStorage.setItem('datosCotizacionEditar', JSON.stringify(datosParaCotizador));
-
-        window.location.href = '/cotizaciones.html';
-
-    }
+  localStorage.setItem('datosCotizacionEditar', JSON.stringify(datosParaCotizador));
+  window.location.href = '/cotizaciones.html';
+}
 
 
 
