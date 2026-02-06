@@ -1323,8 +1323,11 @@ try {
 
   // Si quieres abrirlo en pestaña cuando modo === 'ver'
   if (modo === 'ver') {
-    window.open(url, '_blank');
-  }
+  // 🔥 Abrir desde endpoint real, con filename correcto
+  window.open(`/cotizaciones/${cotizacionId}/pdf?inline=1`, '_blank');
+  URL.revokeObjectURL(url); // liberamos el blob que ya no usamos
+  return;
+}
   
   else {
     const a = document.createElement('a');

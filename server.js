@@ -717,11 +717,13 @@ app.post('/pdf/cotizacion', protegerRuta, async (req, res) => {
         .on('error', reject)
         .on('finish', () => resolve(uploadStream.id));
     });
-
+     const inline = req.query.inline === '1';
+const dispo = inline ? 'inline' : 'attachment';
     // 5) Responder al cliente con el PDF (stream)
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
 
+res.setHeader("Content-Type", "application/pdf");
+res.setHeader("Content-Disposition", `${dispo}; filename="${cot.pdf?.filename || 'Cotizacion.pdf'}"`);
     const downloadPromise = new Promise((resolve, reject) => {
       fs.createReadStream(tmpPath)
         .on('error', reject)
