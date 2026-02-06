@@ -232,36 +232,31 @@ input:checked + .slider:before {
   border: 1px solid #74c0fc;       /* contorno azul */
 }
 
-/* ✅ Fix header en móvil: ocupar todo el ancho del viewport */
-@media (max-width: 900px) {
-  header.header {
-    width: 100vw;       /* ancho del viewport */
-    left: 0;
-    right: 0;
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  .nav-container {
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    padding-left: 12px;
-    padding-right: 12px;
-    box-sizing: border-box;
-  }
-
-  /* Si tus links se muestran en columna o como panel */
-  .nav-links {
-    width: 100%;
-    box-sizing: border-box;
-  }
+/* ✅ Asegura que el fondo del header cubra todo el ancho */
+header.header {
+  background: #001f3f;   /* o el color azul de tu menú */
+  width: 100%;
 }
 
-/* ✅ Evita scroll horizontal accidental (causante típico del desalineado) */
-html, body {
-  overflow-x: hidden;
+/* En móvil: el contenedor del menú debe ocupar todo */
+@media (max-width: 900px) {
+  header.header,
+  header.header .nav-container,
+  header.header .nav-links {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box;
+  }
+
+  /* si tus links se apilan como menú */
+  header.header .nav-links a,
+  header.header .nav-links button,
+  header.header .dropdown,
+  header.header .dropdown-content {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
 }
     </style>
 </head>
