@@ -799,7 +799,7 @@ app.post('/pdf/orden-trabajo', protegerRuta, async (req, res) => {
 
 
     
-const margen = 0.25; // 0.25in = 6.35mm aprox
+const margen = 0.35; // 0.25in = 6.35mm aprox
 const scale = (8.5 - 2 * margen) / 8.5; // ej: (8.5 - 0.5)/8.5 = 0.941
 
     // ✅ Márgenes en 0 para respetar tu layout (tu HTML ya trae padding)
