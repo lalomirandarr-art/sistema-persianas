@@ -699,8 +699,8 @@ if (Array.isArray(d.gastosAdicionales) && d.gastosAdicionales.length > 0) {
                 // B) Restaurar el Carrito de Compras
                 // Aquí tomamos los items que venían del historial y los ponemos en la variable global
                 if (d.items && Array.isArray(d.items) && d.items.length > 0) {
-                    carritoItems = d.items; 
-                    actualizarTablaCarrito(); // ¡Esta función es la que dibuja la tabla!
+                    carritoItems = (d.items || []).map(normalizarItem);
+                    actualizarTablaCarrito();   
                 }
    
 
@@ -719,6 +719,20 @@ if (Array.isArray(d.gastosAdicionales) && d.gastosAdicionales.length > 0) {
 
     
     inicializar();
+
+    function normalizarItem(item) {
+  // Copia para no modificar referencias raras
+  const it = { ...item };
+
+  // ✅ Notas: compatibilidad por si en algún momento se guardó como "nota" u "observaciones"
+  it.notas = it.notas ?? it.nota ?? it.observaciones ?? "";
+
+  // Protecciones por si vienen incompletos
+  it.accesorios = it.accesorios || { color: "Blanco", mando: "Derecho" };
+  it.medidas = it.medidas || { ancho: 0, alto: 0, areaCobrada: 0 };
+
+  return it;
+}
 function construirItemDesdeFormulario() {
   const idProd = document.getElementById('select-producto').value;
   const idTela = document.getElementById('select-tela').value;
@@ -848,7 +862,14 @@ function agregarAlCarrito() {
       <td>
         <strong style="font-size:1.1em;">${item.producto}</strong><br>
         <span style="color:#555;">${item.tela} - ${item.color}</span>
-      </td>
+      
+        ${item.notas ? `
+    <div style="margin-top:4px; font-size:0.85em; color:#0b5ed7; background:#e7f5ff; padding:4px 8px; border-radius:6px; display:inline-block;">
+       ${item.notas}
+    </div>
+  ` : ''}
+</td>
+
 
       <td>${item.medidas.ancho} x ${item.medidas.alto} m</td>
 
