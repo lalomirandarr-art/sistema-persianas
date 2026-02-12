@@ -54,13 +54,30 @@ mongoose.connection.once('open', () => {
 // ==========================================
 //              ZONA DE USUARIOS
 // ==========================================
+// ==========================================
+//              ZONA DE USUARIOS
+// ==========================================
 const usuarioSchema = new mongoose.Schema({ usuario: String, clave: String });
 const Usuario = mongoose.model('Usuario', usuarioSchema);
 
 async function crearAdmin() {
-    if (await Usuario.countDocuments() === 0) {
-        await Usuario.create({ usuario: "Admin", clave: "DLC19" });
-        console.log("👤 Usuario admin creado.");
+    // 👇👇 PON AQUÍ TU NUEVO USUARIO Y CONTRASEÑA 👇👇
+    const NUEVO_USUARIO = "Admin"; 
+    const NUEVA_CLAVE = "DLC19"; 
+
+    // Buscamos si ya existe algún usuario
+    const usuarioExistente = await Usuario.findOne();
+
+    if (usuarioExistente) {
+        // Si existe, le actualizamos los datos a la fuerza
+        usuarioExistente.usuario = NUEVO_USUARIO;
+        usuarioExistente.clave = NUEVA_CLAVE;
+        await usuarioExistente.save();
+        console.log(`👤 ¡Credenciales actualizadas! Nuevo usuario: ${NUEVO_USUARIO}`);
+    } else {
+        // Si la base de datos está vacía, creamos uno nuevo
+        await Usuario.create({ usuario: NUEVO_USUARIO, clave: NUEVA_CLAVE });
+        console.log(`👤 Usuario creado: ${NUEVO_USUARIO}`);
     }
 }
 crearAdmin();
