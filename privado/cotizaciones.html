@@ -549,13 +549,27 @@ let editBackupItem = null;   // copia del item original (por si cancelan)
 
 
     
+const toNumber = (v) => {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
+    // 1) quita moneda, espacios y símbolos
+    let s = v.replace(/[^\d,.\-]/g, '').trim();
+    // 2) si trae comas como separador de miles, quítalas (y deja el punto decimal)
+    s = s.replace(/,/g, '');
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+  return 0;
+};
+
 const fmtMoney = (v) =>
   new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  }).format(Number(v) || 0);
+  }).format(toNumber(v));
+``
 
     // Inicialización
     // --- FUNCIÓN INICIALIZAR (CORREGIDA Y FINAL) ---
@@ -986,11 +1000,11 @@ function agregarAlCarrito() {
       <td style="text-align: center;">${item.cantidad}</td>
 
       <td style="color: #999; font-size: 0.85em;">
-        $${fmtMoney(item.total)}
+        ${fmtMoney(item.total)}
       </td>
 
       <td style="font-weight:bold; color: #001f3f; font-size: 1.1em;">
-        $${fmtMoney(precioBase)}
+        ${fmtMoney(precioBase)}
 
       </td>
 
