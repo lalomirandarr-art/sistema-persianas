@@ -481,7 +481,10 @@ header.header {
 
                     <div style="font-size: 0.95rem; line-height: 1.8;">
                         
-                          
+                          <div style="display:flex; justify-content:space-between; color: #666;">
+                             <span>Costo de Producción:</span>
+                             <span id="lbl-costo-produccion">$0.00</span>
+                            </div>
 
                         <div style="display:flex; justify-content:space-between; font-weight:bold; font-size: 1.1em; color: #001f3f;">
                             <span>Subtotal Venta (Con Utilidad):</span> 
@@ -569,7 +572,7 @@ const fmtMoney = (v) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(toNumber(v));
-``
+
 
     // Inicialización
     // --- FUNCIÓN INICIALIZAR (CORREGIDA Y FINAL) ---
