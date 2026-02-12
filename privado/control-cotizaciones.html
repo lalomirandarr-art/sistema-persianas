@@ -530,7 +530,7 @@
         <button onclick="limpiarFiltros()" class="btn-control btn-gray">🔄 Limpiar</button>
         <button onclick="exportarExcel()" class="btn-control btn-green">⬇️ Excel</button>
         <button onclick="document.getElementById('input-excel-importar').click()" class="btn-control btn-blue">⬆️ Importar</button>
-        <button onclick="eliminarTodo()" class="btn-control btn-red">☢️ Borrar</button>
+       <!--  <button onclick="eliminarTodo()" class="btn-control btn-red">☢️ Borrar</button>  -->
     </div>
 </div>
         </div>
@@ -636,89 +636,74 @@
 
 
     function renderizarTabla() {
-
         const tabla = document.querySelector('#tabla-cotizaciones tbody');
-
         const panelPaginacion = document.getElementById('panel-paginacion');
 
         if (datosFiltrados.length === 0) {
-
-            tabla.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">Sin datos.</td></tr>'; // Aumentado colspan a 9
-
+            tabla.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">Sin datos.</td></tr>'; 
             panelPaginacion.style.display = 'none'; return;
-
         }
 
         panelPaginacion.style.display = 'flex';
-
         const inicio = (paginaActual - 1) * filasPorPagina;
-
         const fin = inicio + filasPorPagina;
-
         const datosPagina = datosFiltrados.slice(inicio, fin);
 
         tabla.innerHTML = '';
 
         datosPagina.forEach((c, index) => {
-
             const indiceReal = inicio + index + 1;
-
             const fechaObj = new Date(c.fecha);
-
             const fecha = !isNaN(fechaObj) ? fechaObj.toLocaleDateString('es-MX') : '-';
-
-            let cantidadTotal = 0; if (c.items) c.items.forEach(i => cantidadTotal += Number(i.cantidad) || 0);
+            
+            let cantidadTotal = 0; 
+            if (c.items) c.items.forEach(i => cantidadTotal += Number(i.cantidad) || 0);
 
             const estatus = c.estatus || "Emitida";
+            const esImportada = c.quienCotiza === 'Importado';
+            
+            const urlRespaldo = `/respaldos/${c._id}.pdf`;
+            const nombreDescarga = `Cotizacion_${c.folioInteligente}.pdf`;
 
-           // ... dentro del forEach((c, index) => { ...
+            // --- AQUÍ ESTÁ EL CAMBIO IMPORTANTE EN EL "Gran Total" ---
+            // Cambiamos .toFixed(2) por .toLocaleString('es-MX', {...})
+            const totalFormateado = (c.total || 0).toLocaleString('es-MX', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            });
 
-    // 1. Lógica para saber si mostramos el botón de respaldo
-    // Opción A: Si usaste la etiqueta "Importado" en tu Excel
-    const esImportada = c.quienCotiza === 'Importado';
-    
-    // Opción B (Más segura): Si la fecha es anterior a HOY (por si acaso)
-    // const fechaCorte = new Date('2026-01-01'); // Ajusta a tu fecha de migración
-    // const esAntigua = new Date(c.fecha) < fechaCorte;
+            const fila = `<tr>
+                <td class="text-center" style="color:#666;">${indiceReal}</td>
+                <td class="text-center"><span class="id-row">${c.folioInteligente || c.folio || 'N/A'}</span></td>
+                <td style="font-weight: bold;">${c.cliente}</td>
+                <td style="color: #555;">${c.quienCotiza || '---'}</td> 
+                <td>${fecha}</td>
+                <td class="text-center">${cantidadTotal}</td>
+                
+                <td class="text-right"><span class="total">$${totalFormateado}</span></td>
+                
+                <td class="text-center"><span class="badge-status">${estatus}</span></td>
+                
+                <td class="text-center">
+                    <button class="btn-icon btn-ver" onclick="abrirModalDetalles('${c._id}')" title="Ver Detalles">👁️</button>
+                    <button class="btn-icon btn-orden" onclick="generarPDFOrdenTrabajo('${c._id}')" title="Orden de Instalación">🔨</button>
+                    <button class="btn-icon btn-pdf" onclick="descargarPDFGuardado('${c._id}')" title="Ver PDF guardado">📄</button>
 
-    // Ruta del archivo (asumiendo que los pegaste en public/respaldos)
-    const urlRespaldo = `/respaldos/${c._id}.pdf`;
-    const nombreDescarga = `Cotizacion_${c.folioInteligente}.pdf`;
-    const fila = `<tr>
-        <td class="text-center" style="color:#666;">${indiceReal}</td>
-        <td class="text-center"><span class="id-row">${c.folioInteligente || 'N/A'}</span></td>
-        <td style="font-weight: bold;">${c.cliente}</td>
-        <td style="color: #555;">${c.quienCotiza || '---'}</td> 
-        <td>${fecha}</td>
-        <td class="text-center">${cantidadTotal}</td>
-        <td class="text-right"><span class="total">$${(c.total || 0).toFixed(2)}</span></td>
-        <td class="text-center"><span class="badge-status">${estatus}</span></td>
-        
-        <td class="text-center">
-            <button class="btn-icon btn-ver" onclick="abrirModalDetalles('${c._id}')" title="Ver Detalles">👁️</button>
-            <button class="btn-icon btn-orden" onclick="generarPDFOrdenTrabajo('${c._id}')" title="Orden de Instalación">🔨</button>
-            <button class="btn-icon btn-pdf" onclick="descargarPDFGuardado('${c._id}')" title="Ver PDF guardado">📄</button>
+                    ${ esImportada ? 
+                        `<a href="${urlRespaldo}" download="${nombreDescarga}" style="text-decoration:none; font-size: 1.2em;" title="Ver Original Escaneado">🗄️</a>`
+                        : 
+                        `<span style="display:inline-block; width: 28px;"></span>` 
+                    }
 
-            ${ esImportada ? 
-                `<a href="${urlRespaldo}" download="${nombreDescarga}" style="text-decoration:none; font-size: 1.2em;" title="Ver Original Escaneado">🗄️</a>`
-                : 
-                `<span style="display:inline-block; width: 28px;"></span>` /* Espacio vacío para alinear */
-            }
+                    <button class="btn-icon btn-editar" onclick="enviarACotizador('${c._id}')" title="Editar">✏️</button>
+                    <button class="btn-icon btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Borrar">🗑️</button>
+                </td>
+            </tr>`;
 
-            <button class="btn-icon btn-editar" onclick="enviarACotizador('${c._id}')" title="Editar">✏️</button>
-
-            <button class="btn-icon btn-borrar" onclick="confirmarBorrado('${c._id}')" title="Borrar">🗑️</button>
-        </td>
-    </tr>`;
-
-    tabla.innerHTML += fila;
-
-// ... cierre del forEach
-
+            tabla.innerHTML += fila;
         });
 
         actualizarControlesPaginacion();
-
     }
 
 

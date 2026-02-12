@@ -59,7 +59,7 @@ const Usuario = mongoose.model('Usuario', usuarioSchema);
 
 async function crearAdmin() {
     if (await Usuario.countDocuments() === 0) {
-        await Usuario.create({ usuario: "admin", clave: "1234" });
+        await Usuario.create({ usuario: "Admin", clave: "DLC19" });
         console.log("👤 Usuario admin creado.");
     }
 }

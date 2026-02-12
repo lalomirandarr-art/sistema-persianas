@@ -480,10 +480,8 @@ header.header {
                     <hr>
 
                     <div style="font-size: 0.95rem; line-height: 1.8;">
-                        <div style="display:flex; justify-content:space-between; color: #666;">
-                            <span>Costo de Producción:</span> 
-                            <span id="lbl-costo-produccion">$0.00</span>
-                        </div>
+                        
+                          
 
                         <div style="display:flex; justify-content:space-between; font-weight:bold; font-size: 1.1em; color: #001f3f;">
                             <span>Subtotal Venta (Con Utilidad):</span> 
@@ -506,9 +504,7 @@ header.header {
                         </div>
                     </div>
 
-                    <div style="margin-top: 10px; text-align: center;">
-                        <span class="utilidad-box">💰 Tu Ganancia Neta: <span id="lbl-utilidad">$0.00</span></span>
-                    </div>
+                    
 
                     <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
                      <button class="hero-button" onclick="guardarYVerPDF()" style="background-color: #001f3f; width: 100%; font-size: 1.1em;">
@@ -550,6 +546,17 @@ let editBackupItem = null;   // copia del item original (por si cancelan)
     let carritoItems = []; 
     let controlesDB = [];
     let componentesDB = [];
+
+
+    
+const fmtMoney = (v) =>
+  new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(Number(v) || 0);
+
     // Inicialización
     // --- FUNCIÓN INICIALIZAR (CORREGIDA Y FINAL) ---
    async function inicializar() {
@@ -681,7 +688,7 @@ selCliente.addEventListener('change', () => {
                         label.className = 'componente-item'; // <--- AQUÍ APLICAMOS EL ESTILO NUEVO
                         
                         // Insertamos el HTML del checkbox y el texto
-                        // Usamos toFixed(2) para que el precio se vea profesional (ej: $350.00)
+                        // Usamos toFixed(2) para que el precio se vea profesional (ej: $350.00) 
                         label.innerHTML = `
                             <input type="checkbox" class="check-componente" value="${c._id}" data-precio="${c.precio}" data-nombre="${c.nombre}">
                             <span>${c.nombre} <strong style="color:#28a745;">(+$${c.precio.toFixed(2)})</strong></span>
@@ -979,11 +986,12 @@ function agregarAlCarrito() {
       <td style="text-align: center;">${item.cantidad}</td>
 
       <td style="color: #999; font-size: 0.85em;">
-        $${(item.total).toFixed(2)}
+        $${fmtMoney(item.total)}
       </td>
 
       <td style="font-weight:bold; color: #001f3f; font-size: 1.1em;">
-        $${precioBase.toFixed(2)}
+        $${fmtMoney(precioBase)}
+
       </td>
 
       <td style="white-space: nowrap;">
@@ -1116,12 +1124,12 @@ function calcularTotalesGlobales() {
     // const utilidadNeta = (granTotal - iva) - costoProduccionTotal; 
 
     // --- ACTUALIZAR HTML ---
-    document.getElementById('lbl-costo-produccion').innerText = `$${costoProduccionTotal.toFixed(2)}`;
-    document.getElementById('lbl-subtotal-venta').innerText = `$${subtotalBase.toFixed(2)}`; // Siempre muestra la base
+    document.getElementById('lbl-costo-produccion').innerText = fmtMoney(costoProduccionTotal);
+    document.getElementById('lbl-subtotal-venta').innerText = fmtMoney(subtotalBase);
 
     const lblDesc = document.getElementById('lbl-descuento-monto');
     if(montoDescuento > 0) {
-        lblDesc.innerHTML = `<span>- Descuento (${pctDescuento}%):</span> <span>$${montoDescuento.toFixed(2)}</span>`;
+        lblDesc.innerHTML = `<span>- Descuento (${pctDescuento}%):</span> <span>${fmtMoney(montoDescuento)}</span>`;
         lblDesc.style.display = 'flex';
     } else {
         lblDesc.style.display = 'none';
@@ -1133,7 +1141,7 @@ function calcularTotalesGlobales() {
     if(totalGastos > 0) {
         containerGastos.style.display = 'block';
         listaGastos.forEach(g => {
-            containerGastos.innerHTML += `<div style="display:flex; justify-content:space-between; color:#6610f2; font-size: 0.95em;"><span>+ ${g.descripcion}:</span> <span>$${g.monto.toFixed(2)}</span></div>`;
+            containerGastos.innerHTML += `<div style="display:flex; justify-content:space-between; color:#6610f2; font-size: 0.95em;"><span>+ ${g.descripcion}:</span>  <span>${fmtMoney(g.monto)}</span></div>`;
         });
     } else {
         containerGastos.style.display = 'none';
@@ -1141,14 +1149,14 @@ function calcularTotalesGlobales() {
 
     const lblIva = document.getElementById('lbl-iva');
     if(aplicarIva) {
-        lblIva.innerHTML = `<span>+ IVA (16%):</span> <span>$${iva.toFixed(2)}</span>`;
+        lblIva.innerHTML = `<span>+ IVA (16%):</span> <span>${fmtMoney(iva)}</span>`;
         lblIva.style.color = "#000"; 
     } else {
         lblIva.innerHTML = `<span>IVA:</span> <span>No Incluido</span>`;
         lblIva.style.color = "#999";
     }
 
-    document.getElementById('lbl-gran-total').innerText = `$${granTotal.toFixed(2)}`;
+    document.getElementById('lbl-gran-total').innerText = fmtMoney(granTotal);
     
     // Retornamos todos los valores calculados limpios
     return { 
@@ -1258,7 +1266,7 @@ async function generarPDF(cotizacionId)  {
                                 </td>
                             </tr>
 
-                            <tr style="border-bottom: 1px solid #6CDAE7;">
+                           <tr style="border-bottom: 3px solid #17a2b8;">
                                 <td colspan="7" style="padding: 4px 8px;">
                                     <div style="margin-bottom: 2px;">
                                         <em>
