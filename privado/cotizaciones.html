@@ -257,6 +257,16 @@ header.header {
     width: 100% !important;
     box-sizing: border-box;
   }
+
+
+  /* agrega a tu CSS global */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 }
     </style>
 </head>
@@ -483,7 +493,7 @@ header.header {
                         
                           <div style="display:flex; justify-content:space-between; color: #666;">
                              <span>Costo de Producción:</span>
-                             <span id="lbl-costo-produccion">$0.00</span>
+                             <span id="lbl-costo-produccion" class="visually-hidden">$0.00</span>
                             </div>
 
                         <div style="display:flex; justify-content:space-between; font-weight:bold; font-size: 1.1em; color: #001f3f;">
